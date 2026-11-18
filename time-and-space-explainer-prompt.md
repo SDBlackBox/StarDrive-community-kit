@@ -1,0 +1,368 @@
+# How far, how long, and what it buys — a copy-paste explainer prompt
+
+Paste the prompt below into an AI assistant that can read this repository, and it will walk you
+through the distances and speeds the game actually generates — system sizes, the gaps between
+systems, map extents, sublight vs warp — and turn them into minutes, turns and roles. It answers the
+question a design screen cannot: *can this hull get to the fight in time to matter?*
+
+It is written for someone who plays the game and knows the words on the screen but not this
+codebase: no C# required, and it is meant to be interrupted with questions.
+
+## Why this exists
+
+- **The UI never puts distance and speed on the same screen.** The design screen prints a speed, the
+  starmap prints a distance, and nothing prints the division. So "this carrier can reinforce that
+  front" is a claim nobody checks — and paper strength wins the argument by default.
+- **Both scales are counter-intuitive.** A solar system reaches out to 150,000 units; systems sit
+  350,000 apart; a Medium map is 6,000,000 across. Sublight tops out at 1,500, warp bottoms out at
+  3,000. Distance varies by 133× across the ladder while speed varies by, typically, an order of
+  magnitude — so the same hull is a luxury in one place and the only thing that arrives in the other.
+- **Speed is conditional, not a property.** A hull's headline FTL speed is its best case: halved
+  inside enemy projection, unusable inside a warp inhibitor with a 5 s hangover, and capped per jump
+  by the power it can hold. A ship that cannot make the leg in one charge is not travelling at its
+  rated speed, however the design screen reads.
+- **The UI's time unit is a setting.** Time is reported in turns, and a turn is 5 s by default but a
+  slider from 4 to 10 (`GamePlayGlobals.TurnTimer`, `RuleOptionsScreen`). An answer in turns is not
+  an answer in minutes until the setting is named.
+- **The game already computes two estimates, and neither is checked.** `Ship.GetAstrogateTimeTo` adds
+  the FTL leg, the STL leg through each gravity well, the rotation and one spool, and divides by
+  `TurnTimer`; the patrol window's `CalculateTurnsToComplete` does path length over FTL speed plus one
+  warp-out at STL per waypoint. Both ignore inhibition, jump recharge and game speed — which is
+  exactly what makes them the right starting point rather than a competing model.
+- **Sensor range decides whether any of this gets used.** A hull sees 24,000 to 90,000, guns fire
+  1,000 to 18,000, a vanilla Warp Inhibitor is a 40,000 bubble, and a system is 150,000 across. So
+  what a hull sees, when it enters a fight, and where a planet's batteries actually stop firing are
+  all one division — and the design screen shows the sensor stat without ever showing what it buys.
+
+## The ladder it works from
+
+Every rung is a generator or a constant, not a design opinion. Paths and symbols, not line numbers.
+
+| Rung | Number | Where it comes from |
+|---|---|---|
+| Star radius | 250–500 units | `SolarSystem.GenerateRandomSystem` |
+| Outermost orbit | 75,000–150,000 | star radius × 300, innermost ring at 10% of it |
+| System radius | ≥ 150,000 | `SolarSystem.MinRadius`; else outermost orbit + 10,000 |
+| System-to-system spacing | 350,000 nominal | `UniverseGenerator`, relaxed 0.97× per failed placement |
+| Map extent | 2M Tiny / 4M Small / 6M Medium / 9M Large / 12M Huge / 15M Epic / 20M TrulyEpic | `UniverseGenerator`, `GalSize` |
+| Systems on the map | 16 to 150 by size, × 0.3–1.8 by abundance, plus opponents | `RaceDesignScreen.GetNumStars` |
+| Sublight speed | up to 1,500 | `Ship.MaxSubLightSpeed`, `ShipStats.GetSTLSpeed` |
+| Warp speed | never below 3,000 | `Ship.LightSpeedConstant`, `ShipStats.GetFTLSpeed` |
+| Warp top speed | reached in about 2 s | `Ship_Movement.GetMaxThrustAcceleration` |
+| In-system FTL modifier | 1 (0.5 inside enemy projection) | `UniverseParams.FTLModifier`, `EnemyFTLModifier` |
+| Gravity well radius | 8,000 by default, 0 disables | `GamePlayGlobals.GravityWellRange` |
+| Inhibitor hangover | 5 s (1 s for a gravity well) | `Ship_Warp.SetWarpInhibited` |
+| Spool time | module max × race modifier, floor 3 s | `ShipStats.GetFTLSpoolTime` |
+| One-jump range | power duration × warp speed | `ShipStats.IsWarpRangeGood`, `Power.PowerDuration` |
+| Design's required range | 600,000 in one jump at full power | `GamePlayGlobals.MinAcceptableShipWarpRange` |
+| Seconds per turn | 5 default, slider 4–10 | `GamePlayGlobals.TurnTimer`, `RuleOptionsScreen` |
+| Ship sensor range | 24,000 Cockpit to 90,000 SubspaceSensors, +10,000 inside a friendly projector | `ShipStats` (module max), `ShipAI.GetSensorRadius` |
+| Sensor scan cadence | 1 s enemies, 1 s target picks, 5 s friendlies | `EmpireConstants` |
+| Combat entry range | 5,000 Guard, 1,000 Hold, otherwise sensor range | `ShipAI.GetEnterCombatRangeFromCombatState` |
+| AI warp exit range | 7,500 from a known enemy | `FlankGeometry.WarpExitRange` |
+| Planet gun reach | best battery range, capped at the planet's sensor range | `Planet.GunReach` |
+
+The 600,000 figure is the one readers find surprising: the game itself refuses a hull that cannot
+cross a system gap and a bit in a single charge, so "one jump" is a design requirement, not a tactic.
+
+## The prompt
+
+Everything between the rules; the reader does not need to edit anything.
+
+```text
+You are explaining the time and space of StarDrive BlackBox to me. I play the game and know the
+words on the screen — systems, planets, warp, gravity wells, turns — but I do not know this codebase
+and I may not write code at all. I want to understand the distances and speeds well enough to say why
+one hull is a defender and another is a raider, and to lose or win that argument with numbers.
+
+We will go through it in sections and I will ask questions as we go. Do not dump the whole thing in
+one message.
+
+SOURCE OF TRUTH
+This is the StarDrive repository at commit f575899fe199f9b622bc47146d68ce4e2e75ff14. Read the code
+before you explain it; do not work from general knowledge of 4X games, and do not carry in numbers
+from another game. These are the files, grouped by what they decide:
+
+  The map and the system
+  Ship_Game/GameScreens/NewGame/UniverseGenerator.cs     universe size (GalSize), system placement
+  Ship_Game/GameScreens/NewGame/RaceDesignScreen.cs      GetNumStars: count by size and abundance
+  Ship_Game/Universe/UniverseParams.cs                   GalaxySize, FTLModifier, EnemyFTLModifier,
+                                                         GravityWellRange, TurnTimer
+  Ship_Game/Universe/SolarSystem.cs                      GenerateRandomSystem, MinRadius, Radius,
+                                                         IdentifyGravityWell
+  Ship_Game/Universe/SolarBodies/Planet/Planet.cs        GravityWellRadius, GravityWellForEmpire
+  Ship_Game/GamePlayGlobals.cs                           GravityWellRange 8000, TurnTimer 5,
+                                                         MinAcceptableShipWarpRange 600000
+
+  The speed of a hull
+  Ship_Game/Ships/ShipStats.cs                           GetFTLSpeed, GetSTLSpeed, GetTurnRadsPerSec,
+                                                         GetFTLSpoolTime, IsWarpRangeGood
+  Ship_Game/Ships/Ship_Warp.cs                           LightSpeedConstant 3000, MaxSubLightSpeed 1500,
+                                                         WarpOutDistance, inhibition, spooling
+  Ship_Game/Ships/Ship_Movement.cs                       GetMaxThrustAcceleration, deceleration,
+                                                         UpdateVelocityAndPosition
+  Ship_Game/Ships/Power.cs                               WarpPowerDuration, PowerDuration
+  Ship_Game/Ships/Ship.cs                                GetAstrogateTimeTo, GetAstrogateTime,
+                                                         IsInhibitedByUnfriendlyGravityWell
+  Ship_Game/ChoosePatrolPlanWindow.cs                    CalculateTurnsToComplete (the fleet estimate)
+  game/Content/ShipModules/                              module thrust, mass, FTLSpoolTime, InhibitionRadius
+  game/Content/Hulls/                                    hull size and mass
+
+  The sensor
+  Ship_Game/Ships/ShipStats.cs                           SensorRange aggregation, SensorBonus, platform floor
+  Ship_Game/AI/ShipAI/ShipAI.Combat.cs                   GetSensorRadius, scan cadence, combat entry range
+  Ship_Game/Empires/EmpireConstants.cs                   EnemyScanInterval, TargetSelectionInterval
+  Ship_Game/Universe/SolarBodies/Planet/Planet.cs        planet SensorRange, GunReach
+  Ship_Game/AI/CombatTactics/FlankGeometry.cs            WarpExitRange
+  Ship_Game/Gameplay/Weapon.cs                           targeting error against distance
+
+If you cannot open a file, say so and ask me to paste it — do not fill the gap from memory.
+
+AUDIENCE RULES
+- Explain the geometry and the arithmetic as something I could redo on paper: "the system is at most
+  150,000 across, the neighbour is 350,000 away, at 3,000 that is 117 seconds".
+- Name the game concept, not the variable, unless the variable name is the point ("the game calls
+  this WarpOutDistance").
+- Define every term once, in a parenthesis, the first time: FTL, STL, spool, gravity well, projector,
+  inhibitor, turn.
+- Never show more than five lines of code, and only when the code is clearer than prose; always
+  follow it with a plain translation.
+- Give every number a unit and a denominator. "Fast" is banned as an answer; "117 s to the neighbour,
+  2,000 s across the map, both at 1× " is the answer.
+- End every section with "what this means in play": one or two sentences on what I would notice.
+- Keep three things apart: a constant in code, a value in content I could tune, and a design choice
+  someone made. If you do not know which, say so.
+- If something is a mod's doing, say so and ask which mod and version before answering a content
+  question: a mod overrides vanilla by reusing a UID, so a module's numbers in game/Content are not
+  necessarily the numbers in my game.
+
+SETUP — ask these once, together, then stop and wait
+1. Which map am I playing? Size, star abundance and number of opponents (or "Medium, Normal, two").
+2. What game speed? The simulation step is scaled by the game speed, so 1× and 2× change every
+   wall-clock answer, and a turn is a 4–10 s setting of its own.
+3. Which two hulls should we compare? Ask for the names if I have them, otherwise say you will pick a
+   slow heavy design and a fast one from game/Content and tell me why you picked them.
+If I answer vaguely, take Medium / Normal / two opponents / 1× / your two designs, say in one line
+that you took those, and move on.
+
+SECTION 1 — the one conversion, first
+Before any distance, establish the units and how they turn into time.
+  - The map is one plane in "units"; there is no metre, no second, no km in the data. Say that
+    plainly, and say that speed is units per second because the simulation is continuous in seconds.
+  - Time reaches me in turns. A turn is UniverseParams.TurnTimer, 5 s by default, set by a slider
+    between 4 and 10; every turn advances the stardate by 0.1. So a distance in turns is only a
+    distance in minutes once I tell you the setting.
+  - The game speed multiplies the simulation step, so 2× halves wall-clock time for the same number
+    of simulated seconds, and does not change the turns estimate at all.
+  - Then show me the two estimates the game already makes: Ship.GetAstrogateTimeTo (FTL leg + STL
+    leg through each well + rotation + one spool, divided by TurnTimer) and
+    CalculateTurnsToComplete in ChoosePatrolPlanWindow (path length over FTL speed, plus one
+    warp-out at STL per waypoint). Say what each one leaves out — inhibition, jump recharge, game
+    speed, acceleration — so I know which number I am being shown in the UI.
+Stop and check that the units are clear before going on.
+
+SECTION 2 — the distances, rung by rung
+Walk the ladder upward and give a number at each rung, then the time at 3,000 and at 30,000 so the
+scale lands:
+  - across one system: SolarSystem.Radius, never below MinRadius, otherwise the last orbit plus a
+    margin rounded up;
+  - star to outermost planet: star radius 250–500 times 300, innermost ring at 10% of that, 3 to 10
+    rings with one planet each (or an asteroid belt), each ring placed with a random offset — so
+    planets are not evenly spaced and the outermost orbit is where the scale comes from;
+  - system to system: 350,000 nominal at UniverseGenerator, relaxed 0.97× per failed placement, so a
+    crowded map has tighter gaps than the nominal figure and a sparse one never exceeds it;
+  - the map: GalSize 2M to 20M across, holding 16 to 150 systems before the abundance multiplier and
+    the opponents' extra stars, so density is a dial of its own — VeryRare to SuperPacked is a 6×
+    swing in stops on the same map.
+Say which of these a player can change in setup and which are fixed.
+Then one line of arithmetic: a 350,000 gap at the 3,000 warp floor is 117 s; a Medium map across is
+2,000 s, which is 400 turns at the default 5 s. Ask me whether that matches what I see in play.
+
+SECTION 3 — the actual speed of two real hulls
+Do not quote a speed from the design screen. Derive both from the design:
+  - STL is thrust over mass times the race's SubLightModifier, capped at MaxSubLightSpeed — so 1,500
+    is a ceiling most hulls never reach, and a heavy hull's real number is far below it. A 150,000
+    crossing at 1,500 is 100 s, which is why sublight is an in-system speed and nothing more.
+  - FTL is warp thrust over mass times the race's FTLModifier, floored at LightSpeedConstant — a
+    hull that would be slower than 3,000 is pushed up to it, so the floor flattens the slow end of
+    the fleet. Above the floor, speed scales with warp thrust, which is why engine modules dominate
+    a fast hull's mass budget.
+  - Turning is TurnThrust over mass over 700 radians per second, capped at pi: a slow-turning heavy
+    hull pays a rotation charge on every order, and GetAstrogateTime counts it.
+  - Warp acceleration reaches top speed in about two seconds, so a jump is nearly all cruise; STL
+    acceleration and braking are not, and neither estimate counts them.
+  - Say the FTLModifier in play is 1 inside a system and 0.5 inside enemy projection, so the same
+    hull's crossing of a defended system costs double.
+Give me the two hulls' STL, FTL, turn rate and time to the neighbour and across the map, in a table,
+with the design file each number came from. If a design's mass or thrust is in a mod, say so.
+
+SECTION 4 — what is not speed
+This is where the design screen lies to me. Cover, in this order:
+  - Gravity wells. Each hostile planet holds a ship out of warp inside its GravityWellRadius while
+    GravityWellRange is above zero (8,000 by default, zero disables wells for the whole game). A
+    friendly projector cancels the well; a trait shrinks it. Inside a well a ship flies at STL, and
+    GetAstrogateTime charges the well's diameter at that speed.
+  - Ship inhibition. A module with an InhibitionRadius puts its ship on its empire's Inhibitors list;
+    any enemy within that radius sets the ship Inhibited for 5 s. The vanilla Warp Inhibitor is a
+    4×4 module with a 40,000 radius for 750 power (`game/Content/ShipModules/Utility modules/Misc/
+    Warp Inhibitor.xml`), which is five default gravity wells across — start from the real module,
+    not from a guess, and check whether the hull I named can even carry one. Leaving the bubble is not enough:
+    the timer has to run out, and no spool can start while Inhibited. While warping, the check runs
+    every frame and the consequence is HyperspaceReturn: pulled out of warp, then spool from zero. A
+    global event can inhibit every ship the same way.
+  - Spool. FTLSpoolTime is the largest value across the hull's modules times the race's
+    SpoolTimeModifier; a research bonus can take it to zero (instant warp). It is paid on every
+    engagement and again after every pull-out, so a hull with a long spool loses to the same hull
+    with more engine and less gun in a fight over a contested system.
+  - Jump range. A warp leg reaches WarpPowerDuration times MaxFTLSpeed, where the duration is power
+    store over warp drain, scaled by how charged the ship is. A fast hull out of power covers less
+    ground than a slow one that is charged. MinAcceptableShipWarpRange is the floor the game uses to
+    reject a design outright, so this is not a tactic, it is a requirement.
+  - The warp-out. WarpOutDistance is a fixed safety margin plus three seconds of STL: a ship cannot
+    be in warp at the moment it arrives, so every leg ends with a short STL approach and a rotation,
+    whether or not the estimate counted it.
+Then tell me what a defended destination costs: an enemy projector halves FTL, an inhibitor over the
+well costs 5 s plus a full spool, and a hull that cannot jump the leg in one charge pays the whole
+trip at a speed it never shows on the design screen.
+
+SECTION 5 — the division that answers the question
+Build the table a strategy can be argued from: hull, FTL speed, time to a 350,000 neighbour, time
+across the map, and the role that time implies. Use these bands, and say if my map's numbers fall
+outside them:
+  - crosses to a neighbour in under a minute: raider or quick-reaction, arrives before the defender
+    can reinforce;
+  - one to four minutes: line fleet reinforcement, useful, not decisive;
+  - over five minutes to the neighbour, or a jump range that cannot make the leg: system defender,
+    whatever its guns, because the war will be decided before it arrives;
+  - slower than the fleet it joins: a defender even if it is assigned to the strike fleet — it will
+    always be the last ship there.
+Then work one example end to end: the same trip for both hulls into a system inside enemy projection,
+with an enemy inhibitor over the destination well, and with the heavy hull low on charge. Say which
+of the four penalties dominates, and what the player could change — power, engines, a different
+staging system, killing the projector first — and what they could not change.
+Stop and let me argue with the table before the last section.
+
+SECTION 5.5 — the other division: what a hull sees against everything it does
+Sensors are the stat that decides whether sections 2 to 5 ever apply: a hull that cannot see the
+enemy does not start the trip, does not enter combat and does not fire. Do not treat sensor range
+as a longer weapon range — in this game they are two ladders, and only one of them is a gun.
+  - Where the number comes from. A hull's SensorRange is the largest SensorRange across its modules,
+    plus the largest SensorBonus, times the empire's SensorModifier (ShipStats). The vanilla command
+    modules set the floor: Cockpit 24,000, Bridge 48,000, CIC 70,000; a Sensor1x2 carries 70,000 and
+    a SubspaceSensors 90,000 (game/Content/ShipModules). So a hull with no sensor module still sees
+    24,000, and only the largest module counts — two sensors do not add.
+  - The floor and the bonus are different things. Platforms are floored at 10,000 in ShipStats, so
+    a bare defence platform still sees 10,000 with no sensor module at all; a ship inside a friendly
+    subspace projector's radius gets +10,000 flat, not a percentage (ShipAI.GetSensorRadius);
+    fighters borrow their carrier's range when it covers them, and a ship that is launching or
+    landing sees nothing.
+Then put the sensor on the same ladder as section 2 and let me watch it fail:
+  - 24,000 is a sixth of a 150,000 system and 7% of the 350,000 gap; 90,000 is 60% of a system and a
+    quarter of the gap. Nothing vanilla sees across a system gap, so a fleet is blind between
+    systems whatever it mounts — the map is crossed by flying, not by watching.
+  - Warning is a division too. An enemy closing at the 3,000 warp floor is detected
+    (sensor − warp-out) / 3,000 before it arrives: about 5.5 to 7 s on a 24,000 sensor, 27 to 29 s on
+    a 90,000 one, where the warp-out is between 3,200 and 7,500 short. At STL 1,500 the same 24,000
+    is 16 s, which is a whole in-system engagement for a fast raider.
+  - The scan is quantised, not continuous. Enemies are rescanned every 1 s, targets repicked every
+    1 s, friendlies every 5 s (EmpireConstants). At 3,000 an enemy moves 3,000 between scans — an
+    eighth of a 24,000 sensor — so the first sighting and the first order are both up to a second
+    stale.
+Then the part the design screen cannot show, what the sensor actually gates:
+  - Weapons. Vanilla guns fire 1,000 to 18,000, so a 24,000 sensor already outranges every gun the
+    hull can carry: the extra range buys target choice and warning, not shooting time. Closing from
+    the sensor edge to an 18,000 gun at the 3,000 warp floor is 2 s; at STL 1,500 it is 4 s.
+  - Accuracy is a third ladder. Targeting error grows with distance from a focal point of 2,300, as
+    ((distance + 500) / 2300) to the quarter power (Weapon, Ship.TargetErrorFocalPoint), so the gun
+    at 18,000 is not the gun at 4,000. Seeing further does not buy the same hit rate.
+  - Guard and Hold do not use the sensor. A ship on GuardMode enters combat at 5,000 and on
+    HoldPosition at 1,000; every other stance enters at its sensor range
+    (ShipAI.GetEnterCombatRangeFromCombatState). A 90,000 sensor on a guard does not make it defend
+    earlier, only know sooner — usually the right trade, almost never the expected one.
+  - Planets. A planet's guns fire no further than it sees: GunReach is the best battery's SpaceRange
+    capped at the planet's SensorRange (Planet.GunReach), and that sensor is the best sensor
+    building floored at the planet's radius + 10,000, times the empire modifier. Batteries of 30,000
+    behind an 8,000 sensor fire at 8,000, so sensor buildings are weapon range for a planet, which
+    neither tooltip says.
+  - Exploration. A scout reveals a whole system within its sensor range and a planet only within a
+    tenth of it, floored at 500 (Ship.ExploreSystemDistance, ExplorePlanetDistance), both times the
+    race's ExploreDistanceMultiplier — one vanilla trait sets that to 3. A 24,000 cockpit reveals
+    systems at 24,000 and planets at 2,400; double the sensor, double both.
+  - Inhibition. The vanilla Warp Inhibitor is a 40,000 bubble, 1.7× a Cockpit sensor and nearly half
+    a SubspaceSensors, so a fleet on default command modules is pulled out of warp by something it
+    never saw. Sensor range is what turns that ambush into a decision you made.
+Tie it back to section 4 with one line: a Guard ship at 5,000 facing an enemy that leaves warp at the
+7,500 warp-exit range has 2,500 units to close at STL 1,500 — under two seconds — and its sensor
+never entered the calculation. Say which of these is content I could tune, which is a constant in
+code, and which is a stance I set.
+
+SECTION 6 — the honest limits
+Tell me what this model does not do: no traffic or congestion, no accounting for a fleet waiting for
+its slowest ship unless I ask, no tactical time (projectile flight, how long a fight lasts, how a
+single exchange resolves), and no pathing around wells or inhibitors — the estimates are
+straight-line. Say which numbers are content I could tune and which are constants in code, and point
+me at docs/ for anything already written down. Do not speculate about mods unless I ask.
+
+INTERACTION RULES
+- After each section, stop and ask "any questions before we continue?" and actually wait.
+- When I ask a question, answer it from the code and cite the file and function. If several places
+  are involved, say which one decides.
+- If I ask "why did my ship take so long", name the term that dominated — well, inhibitor, spool,
+  jump recharge, projector, game speed — and tell me what in my save or in the log would confirm it
+  (the ship's warp state, its inhibition source, whether a global event is running).
+- If I ask you to compare a hull to another, redo the same four numbers, do not describe it.
+- If I say "go deeper", show the real code for that one decision, up to ten lines, and translate it.
+- Never invent a number to fill a gap: a missing design, a mod, a build you could not read. Say what
+  is missing and what would answer it.
+```
+
+## What the reader should be able to answer afterwards
+
+- How big a system is, how far the next one is, and how long a given hull takes at each — in seconds,
+  minutes and turns, at a stated game speed.
+- Why the same hull is a raider in one place and a defender in another. (Distance and speed are a
+  division, and the distance changes by two orders of magnitude across the ladder.)
+- Why a "fast" hull fails to reinforce. (Inhibitor hangover plus a fresh spool, or a leg it cannot
+  make in one charge, not a speed that is wrong on the design screen.)
+- Why a system's defences are worth more than their guns. (Enemy projection halves FTL there, and the
+  wells force an STL approach.)
+- Why a hull the game refuses to build is refused. (Its one-jump range is under 600,000 at full
+  power.)
+- Why the fleet window's "turns to arrive" can be wrong. (The estimate is straight-line, ignores
+  wells, inhibition and recharge, and turns are 4–10 s long.)
+- What a hull's sensor range buys, in seconds of warning and in the range its guns actually get.
+  (A sensor against distance is one division; a planet's guns against its sensor is another.)
+- Why a guard ignores a sensor upgrade and a planet does not. (Guard enters combat at 5,000 whatever
+  it sees; a planet's GunReach is capped by its sensor, so sensor buildings are its weapon range.)
+- Why a fleet is pulled out of warp by something nobody saw. (The vanilla inhibitor bubble is
+  40,000; a default Cockpit sensor is 24,000.)
+
+## Questions worth asking it
+
+- "How far is it from my capital to that border system, and which of my designs gets there first?"
+- "Why is my carrier group always late when the target has a projector?"
+- "What would a 20% faster engine actually buy this hull — a role, or five seconds?"
+- "At what distance does the heavy battleship stop being worth sending rather than building?"
+- "What changes if I set turns to 10 seconds instead of 5?"
+- "Which of these penalties could I remove with a different fleet, and which are baked into the map?"
+- "What part of this could I tune in a mod, and what part is in code?"
+- "Would a 90,000 sensor make this guard hull defend the system better, or just see it coming?"
+- "How much warning does my picket actually give me against a raider coming in at 3,000?"
+- "Why can't the planet's 30,000-range batteries hit a fleet sitting at 12,000?"
+
+## Notes for the person running it
+
+- Run it where the assistant can read the repository; the prompt tells it to ask rather than
+  improvise when a file or a design is missing.
+- The links in the table above are pinned to `f575899`; if `main` has moved, ask the assistant to
+  confirm by symbol name, not line number.
+- Expect 25–45 minutes with questions. Section 4 is where the arguing happens: people arrive
+  convinced a hull's speed is a property, and leave knowing it is a best case.
+- Section 5.5 is the sensor counterweight to section 5 and is the answer to "why can't my planet
+  shoot that far". It is optional for a pure travel-time question; run it whenever the reader also
+  asks about defence or detection.
+- Ask for the role table in section 5 as a file if you are building a fleet plan; it is the input
+  `ship-strategy-brief.md` never asks for, because that document orders a fleet by tech and cost and
+  never asks whether the ship can reach the fight.
+- This document is the prompt. The generated table is not checked in on purpose: it would drift from
+  the content the moment someone retunes an engine module.

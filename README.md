@@ -31,19 +31,34 @@ merge or rebase inside `docs/kit` — that turns an update into a conflict.
 | get a checkout that builds (Windows) | `clone-setup-prompt.md` | tool |
 | get a checkout that reads and edits (Linux, macOS) | `clone-setup-prompt-linux.md` | tool |
 | understand how the game works | `game-logic-explainer-prompt.md` | explanation |
+| understand what an empire is made of, and what its race decides | `empire-explainer-prompt.md` | explanation |
+| understand how far anything is, and how long a hull takes to get there | `time-and-space-explainer-prompt.md` | explanation |
 | understand why a fight is won or lost | `ship-combat-explainer-prompt.md` | explanation |
 | understand how a tech is gated, priced and paid out | `tech-logic-explainer-prompt.md` | explanation |
 | understand what a module costs, fits and does | `module-logic-explainer-prompt.md` | explanation |
+| understand a gun's tags, damage numbers and power draw | `weapon-logic-explainer-prompt.md` | explanation |
+| understand a design's layout, numbers, role and build gate | `ship-design-explainer-prompt.md` | explanation |
+| understand which ships an empire builds, and why that one | `ship-chooser-explainer-prompt.md` | explanation |
+| understand how the AI turns goals into task fleets | `fleet-creation-explainer-prompt.md` | explanation |
+| understand how a planet is taken, and what survives the handover | `planet-capture-explainer-prompt.md` | explanation |
 | go deep on one subsystem | `colonization-ai-explainer-prompt.md` | explanation |
 | find where a player-visible thing is decided | `concept-map-prompt.md` | tool |
 | look up a content field, or a formula | `ship-content-reference.md` | reference |
 | turn a strategy into a tech-ordered fleet plan | `ship-strategy-brief.md` | tool |
+| turn a belief about the AI into a test you can run, and a result you can read | `ai-test-explainer-prompt.md` | tool |
+| cut the tech tree into eras by research cost, for one mod and one race | `era-explorer-prompt.md` | tool |
 
-The five explainers are the depth bar: they ask what you already know, then walk one subject at a
-chosen level. The combat, tech and module ones also rebuild their concept list from the code and
-check whether the checkout and the concept map are current before answering. The tools either write a
+The twelve explainers are the depth bar: they ask what you already know, then walk one subject at a
+chosen level. The combat, tech, module, weapon, design, ship-choice, fleet, planet-capture and empire
+ones
+also rebuild their concept list from the code and check whether the checkout and the concept map are
+current before answering. The tools either write a
 file (`concept-map.md`), check something against the game (`--fix-roles`, a unit test, a build), or
-run a working session with you (`ship-strategy-brief.md`). The reference is lookup-only — it exists
+run a working session with you (`ship-strategy-brief.md`, and `ai-test-explainer-prompt.md`, which
+settles the rung, the two arms and the result format before anything is run). `era-explorer-prompt.md` is a tool of the
+third kind and ships with an engine — `docs/era-explorer/era-scan.py` in the StarDrive repository —
+because the cut it makes has to be recomputed for your content root and your race rather than
+remembered. The reference is lookup-only — it exists
 to be quoted from, not read start to finish.
 
 ## How to use one

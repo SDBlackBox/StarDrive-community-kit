@@ -3,7 +3,9 @@
 Paste the prompt below into an AI assistant that can read this repository — either a local clone or
 the public repo at <https://github.com/TeamStarDrive/StarDrive> — and it becomes a guide to **research
 and the tech tree** specifically: what a tech is, whether your empire can see it, what gates it, what
-it costs, where the points come from, what unlocking it pays out, and who picks the order. It opens
+it costs, where the points come from, what unlocking it pays out, and who picks the order. That
+includes the ships at the bottom of the income: a research station is a hull with a lab in it, and
+its points arrive through a goal rather than a scan of the fleet. It opens
 with three topics and an "other", asks once whether you want code and at what depth, then answers
 one question at a time and offers the next three.
 
@@ -32,6 +34,19 @@ subsystem, with the same three changes as the combat explainer:
 - **Most techs unlock nothing you can click.** They grant a bonus (`BonusUnlocked`), which is how
   flat FTL, mass, weapon-tag and research modifiers arrive. A tech that "does nothing" is usually
   doing its work in `EmpireData`, not in the build menu.
+- **A research station is a ship, and it is not counted by scanning the fleet.** It contributes
+  through `ProcessResearchStation`, the goal that deployed it: that goal writes into
+  `ResearchStationResearchPerturn`, which `EmpireResearch.Update` applies to the queue head and then
+  zeroes. No goal, no points — a live, armed, fully fuelled station with no goal researches nothing.
+- **A station eats production, and a freighter is the last link in the chain.** Every point costs
+  `ResearchStationProductionPerResearch` (2 in `Globals.yaml`) out of the station's hold, so the
+  goal raises `SupplyGoodsToStation` missions to refill it. A station damaged past the civilian
+  threshold is in a trade blockade and stops being resupplied before it stops firing.
+- **The AI's ship tech order is a cost comparison with weights, not a wish list.** `ChooseTech`
+  prices every candidate as `TechCost × CostNormalizer × CostMultiplier`, then walks its category
+  list adding `0.005` to that normalizer per slot it passes. The bump is a fixed number while the
+  base scales with net research, so a poor empire's late categories are penalised harder than a
+  rich one's, and the same tree can give the two empires different orders.
 - **Visibility, researchability and unlockability are three different yes/no questions.**
   `Discovered` is whether the node shows; `CanBeResearched` is whether the gate is open; `Unlockable`
   is whether any root actually leads to it. A tech hidden from your race can still be handed to you
@@ -54,9 +69,9 @@ touches two links has one that decides, and saying which is the answer.
 | 2 | Shows | whether this empire can see it at all | `TechEntry.Discovered`; `Technology.Secret`; `HiddenFrom`, `HiddenFromAllExcept`, `UnlockedAtGameStart`; `RequiresResearchStations`/`RequiresMiningOps`/`RequiresSalvageOps` | a branch another race has and you cannot find |
 | 3 | Gates | whether it can be researched now | `TechEntry.CanBeResearched`, `HasPreReq` → `GetPreReq`; `Empire.CurrentTechsResearchable` | a greyed node, or one with no line to it |
 | 4 | Costs | what it costs, and what you pay | `Technology.ActualCost`, `TechEntry.TechCost`, `AddToProgress` with `ResearchMultiplierForTech` | "4 turns" that becomes seven |
-| 5 | Accrues | how many points a turn reach it | `EmpireResearch.UpdateNetResearch`, `ApplyResearchPoints`; planet net income, stations, alliance share, espionage disruption | research stalling at war |
+| 5 | Accrues | how many points a turn reach it | `EmpireResearch.UpdateNetResearch`, `ApplyResearchPoints`; `ResearchStationResearchPerturn`, filled by `ProcessResearchStation`; planet net income, alliance share, espionage disruption | research stalling when a station dies, runs dry, or was never given a goal |
 | 6 | Pays out | what unlocking changes | `Empire.UnlockTech` → `TechEntry.Unlock` → `UnlockTechContentOnly` (`UnlockBonus`, `UnlockModules`, `UnLockHulls`, `UnlockBuildings`, `DoRevealedTechs`), then `UpdateForNewTech` | a new hull in the build list, or a stat that quietly improved |
-| 7 | Chooses | who picks the next tech, and in what order | the player queue (`EmpireResearch.SetTopic`, `AddToQueue`, `AddTechToQueue`, `ResearchQItem`) or the AI (`AI/Research/ChooseTech.cs`, `ResearchPriorities`, `ResearchOptions`) | the queue panel, the AI beelining a hull |
+| 7 | Chooses | who picks the next tech, and in what order | the player queue (`EmpireResearch.SetTopic`, `AddToQueue`, `AddTechToQueue`, `ResearchQItem`) or the AI (`ChooseTech.PickResearchTopic`, `CostNormalizer`, `CostToResearchTechType`, `ResearchPriorities`, `ResearchOptions`, `ShipTechLineFocusing`) | the queue panel, the AI beelining a hull |
 
 The links are also a clock. Step 5 runs once per empire turn and applies the whole turn's research to
 the head of the queue; step 4 recalculates when the level or the universe settings change; step 6
@@ -81,10 +96,16 @@ They are the seed set to hand the prompt, not a citation:
 | The real price | `Technology.ActualCost`, `TechEntry.TechCost`, `Technology.GetCostRatio` | 4 | Pace, then the galaxy-size settings multiplier, then the root/multi-level factor — four layers |
 | Multi-level techs | `MaxLevel`, `MultiLevelCostMultiplier`, `TechEntry.TrySetUnlocked` | 4, 6 | Level costs `1.4^level`; progress resets between levels; `Unlocked` stays true between them |
 | Research income | `EmpireResearch.UpdateNetResearch`, `ApplyResearchPoints`, `GetResearchFromAllies`, `UpdateNetResearchDisruption` | 5 | Stations count first, then planets, then alliances; espionage multiplies the total, and the leftover carries to the next tech |
+| Research stations | `IShipDesign.IsResearchStation` (`IsPlatformOrStation && BaseResearchPerTurn > 0`), `Empire.CanBuildResearchStations`, `ShipBuilder.PickResearchStation`, `Empire.BestResearchStationWeCanBuild` | 5 | Only a platform or station hull carrying a research module is one; the empire flag is set by `MarkShipRolesUsableForEmpire` when such a design becomes buildable, not by owning a station |
+| Station deployment | `ResearchStationPlanner.RunResearchStationPlanner`, `ProcessResearchStation` (`BuildStationConstructor` → `WaitForConstructor` → `Research`), `BuildOrbital`, `ExplorableGameObject.CanBeResearchedBy`/`IsResearchStationDeployedBy`, `UniverseState.AddEmpireToResearchableList` | 5 | One station per body per empire; the body must be `IsResearchable`, explored, in supply distance and not already targeted; a star is a valid target and its station gets a fixed position instead of a tether |
+| Station supply | `ProcessResearchStation.AddResearch`, `TotalProductionConsumedPerTurn`, `SupplyGoodsToStation`, `ShipResupply.HasGoodTotalSupplyForResearch`, `NumTurnsForGoodResearchSupply`, `ResearchStationProductionPerResearch` | 5 | Points are `min(ResearchPerTurn, hold / 2)`; supply goals are sized from the deficit and `AverageFreighterCargoCap`, one to five at a time, and an idle queue adds nothing |
+| Losing a station | `Ship_Events.OnResearchStationDeath`, `ScrapShip.ImmediateScuttleSelfDestruct`, `ProcessResearchStation.PlanetNoLongerReseachable`/`WasOwnerChanged` | 5 | Death or dismantle frees the body and ends the income; a capture re-creates the goal for the new owner, or queues the station for removal when the body cannot be researched for them |
 | Payout | `TechEntry.UnlockTechContentOnly`, `UnlockBonus`, `Empire.UpdateForNewTech` | 6 | Bonus-only techs change `EmpireData`, and `TriggerAllShipStatusUpdate` is why existing ships change |
 | Other ways in | `UnlockFromSpy`, `UnlockFromScrap`, `UnlockFromDiplomacy`, `UnlockByConquest`; `WasAcquiredFrom`, `ConqueredSource` | 6 | A spy gives 25% progress and a roll, a derelict 25% and a hull, a conquest copies levels, diplomacy just hands it over |
 | The AI's order | `ChooseTech.PickResearchTopic`, `ScriptedResearch`, `CostToResearchTechType`; `ResearchPriorities`; `ResearchOptions` | 7 | Cost is normalised against net research so near-equal techs compare equal; `CostToResearchTechType` uses the look-ahead cost for non-ship categories |
-| Line focusing | `ShipTechLineFocusing`, `ResearchOptions.ShipCosts.LineFocusIntensity`, `EnableShipTechLineFocusing` | 7 | When the AI focuses a ship line it will research techs outside the category filter that the chosen design needs |
+| Cost against economy | `ChooseTech.CostNormalizer` (`NetResearch / 100`), `NormalizeTechCost`, `CostToResearchTechType`, `ResearchOptions.CostMultiplier`, `LowPriorityCostMultiplier`, `ShipCosts` (`Carrier` … `Orbitals`, `Randomize`, `LineFocusIntensity`, `BalanceToInfraIntensity`) | 7 | Inside one category every candidate carries the same normalizer, so the winner is decided by `TechCost × CostMultiplier`; across categories the per-slot bump decides, and ship categories are weighted in `Research.yaml` per portrait — ColonyShip, Freighter and Orbitals at 2.0 against combat hulls at 0.95 — but every `ShipCosts` weight is read inside `ShipPicker.GetModifiedShipCost`, so vanilla's `DisableShipPicker: true` leaves them dormant |
+| Economy signals | `ResearchPriorities.Wars`/`Economics`/`ResearchDebt`, `CalcEconomics`, `CalcResearchDebt`, `ProcessScript` (`IFWAR`, `IFHIGHTAX`, `IFLOWRESEARCH`, `IFLOWINCOME`), `ShipPicker` | 7 | Threat level, credit rating, worker efficiency and the spread of available tech costs choose the category order and the script's branch; the branch then decides which techs are even considered |
+| Line focusing | `ShipTechLineFocusing`, `ShipTechProgresion`, `ShipPicker`, `EnableShipTechLineFocusing`, `DisableShipPicker` | 7 | Two halves: the target design is chosen by `UseShipTechProgression` (fewest `ExtractTechCost`, hull techs scaled by personality and difficulty) or by `ShipPicker` when `DisableShipPicker` is false, and then the candidate pool is cut to that design's `TechsNeeded` |
 | Validation | `ResourceManager.TechValidator`, the `Unlockable` warning | 1 | A tech no root reaches logs "has no way to unlock"; the tree is walked from the roots and `Unlockable` is set on the way |
 
 Two of those rows are where most wrong answers start: `CanBeResearched` being read as the whole gate
@@ -93,9 +114,10 @@ one symbol away from being checked, and both are commonly explained from memory 
 
 Deliberately outside this list: the unlockability closure of a *design*
 (`ShipDesignUtils.MarkHullsUnlockable`, `MarkShipsUnlockable`, `GetFullTechTreePaths`), which belongs
-to the ship-design document even though the arithmetic is techs; the colonization and building
-economy; ground combat; diplomacy. The prompt answers the tech half of a design question and says
-where the other half lives.
+to the ship-design document even though the arithmetic is techs; the module-level arithmetic of a
+research point (`ResearchPerTurn` on a module, and the hull that carries it), which is the module
+and ship-design documents'; the colonization and building economy; ground combat; diplomacy. The
+prompt answers the tech half of a design question and says where the other half lives.
 
 ## The level ladder
 
@@ -125,9 +147,11 @@ You are not writing a wiki page and not giving a code tour. One question, one an
 choice is mine.
 
 Scope: the empire's research. That is the tech graph, what is hidden, what gates what, what it costs,
-where the points come from, what unlocking pays out, and who picks the order. The research price of
-a specific ship is a closure over techs but it is the ship-design question: answer the tech half,
-then say the other half is the ship-design reference. Colonization economy, ground combat and
+where the points come from (colonies, and the research stations the empire deploys), what unlocking
+pays out, and who picks the order. The research price of a specific ship is a closure over techs but
+it is the ship-design question: answer the tech half, then say the other half is the ship-design
+reference. Which module earns a research point is the module question; the station is the ship that
+spends one. Colonization economy, ground combat and
 diplomacy are other systems; name them in one line and stop.
 
 STEP 0 — ask these two questions once, together, then stop and wait
@@ -190,7 +214,9 @@ Research is seven steps, in this order:
   4 Costs   — what it costs and what you pay. Technology.ActualCost, TechEntry.TechCost,
               AddToProgress with the empire's ResearchMultiplierForTech.
   5 Accrues — how many points reach it a turn. EmpireResearch.UpdateNetResearch and
-              ApplyResearchPoints; stations, planets, allies, espionage.
+              ApplyResearchPoints; ResearchStationResearchPerturn, filled each turn by
+              ProcessResearchStation and zeroed after it is applied; planet income, allies,
+              espionage. Stations are ships: no goal, no points.
   6 Pays out — what unlocking changes. Empire.UnlockTech -> TechEntry.Unlock ->
               UnlockTechContentOnly -> UnlockBonus, UnlockModules, UnLockHulls, UnlockBuildings,
               DoRevealedTechs; then UpdateForNewTech.
@@ -267,11 +293,122 @@ Then name the single tech that is doing the blocking, and say which chain link i
 Say plainly that the exact closure is computed at load (ShipDesignUtils) and that the ship-design
 reference is the place its arithmetic is written down.
 
+WHICH SHIP CHOOSER RUNS — two methods, two switches, and I will ask for it
+This is the first question about ship research and the one most answers skip. Two code paths choose
+which design the AI is buying techs for, and two content flags decide which one runs. Name the flags
+before naming an order.
+  1. Read the switches. DisableShipPicker and EnableShipTechLineFocusing are [StarData] fields in
+     GamePlayGlobals, filled from game/Content/Globals.yaml or the mod's own copy; vanilla ships
+     with both true. Before 2022-12-01 they were mod-only settings and vanilla had line focusing
+     hard-on (!GlobalStats.HasMod || ...), so a checkout or a note older than that answers
+     differently — say which one you read.
+  2. Which switch does what. DisableShipPicker chooses the method: true runs ShipTechProgresion,
+     false runs ShipPicker. EnableShipTechLineFocusing chooses whether the design is sticky: true
+     keeps the one already chosen until it becomes buildable or fully researched
+     (ShouldUseExistingCombatShip), false picks again on every pass. In all four combinations the
+     candidate pool is then cut to the chosen design's TechsNeeded by UseBestShipTechs, so neither
+     switch turns the filter off.
+  3. Method A, ShipTechProgresion, the vanilla one. FilterRacialShips keeps this empire's styles and
+     drops shipyards, salvage platforms and designs with no TechsNeeded; GetResearchableShips then
+     demands a locked ship tech, a valid role on hull and role, Unlockable, no undiscovered tech,
+     and IsShipGoodToBuild. The survivors are sorted by ExtractTechCost — raw TechCost, with hull
+     techs scaled by PersonalityModifiers.HullTechMultiplier and
+     DifficultyModifiers.HullTechMultiplier — and the cheapest useful designs contribute their
+     researchable techs plus the hull, with BestCombatShip taken as the first of them.
+     TryExtractNeedTechs refuses a design more than one hull away; when only the hull is left, it
+     takes that hull if CanResearchHullInTimelyManner passes — TechCost / MaxResearchPotential
+     within TotalPopBillion.Clamped(1,200) turns. No role weights, no weapon weights, no
+     randomness: an economy test and a shortest path.
+  4. Method B, ShipPicker. The same filtered list is scored by GetModifiedShipCost and the cheapest
+     score wins; designs already buildable only set the per-role depth in MostTechs. techScore sums
+     the locked techs' TechCost times the ResearchOptions tech-type weight, then the role weight
+     (Orbitals, ColonyShip, Freighter 2.0; Carrier, Bomber, TroopShip and Support only while the
+     empire cannot build that class), then times each active weapon tag's weight, then times
+     costRatio against the cheapest non-ship tech (BalanceToInfraIntensity, capped at 200) and
+     techRatio, which divides by how many of the design's techs are already known
+     (CountTechsAlreadyResearched, LineFocusIntensity credited per known tech) against the deepest
+     design in that role. Randomize adds plus or minus that share of the score. This is the only
+     place the Research.yaml ship and weapon weights are read.
+  5. What is shared. FindBestShip returns non-ship techs alone when the category string has no
+     "Ship" in it, so a pass can contain no ship tech at all; UseBestShipTechs drops a target
+     whose techs no longer intersect the pool; and CostToResearchTechType admits a ship tech from
+     outside the requested category when the chosen design's TechsNeeded contains it.
+Say "both methods exist and this game is running A" rather than describing one as the picker.
+Switching them is a content edit, one line in Globals.yaml, not a code change — so when I ask which
+is better, say what each weights and what it cannot see, never that one is unused.
+
+WHAT A SHIP TECH COSTS THE PICKER — a different shape, and I will ask for it
+"What does this tech cost" and "what the AI pays for it" are the same number in two currencies, and
+the picker's currency has weights — and only when the picker is the chooser, which is not the
+vanilla default; settle that first (WHICH SHIP CHOOSER RUNS). Walk it in this order:
+  1. Scripted or random? Strategy.TechPath.Length decides. A scripted path runs ProcessScript
+     over the portrait's entries; otherwise ScriptedResearch("CHEAPEST", ...) runs over
+     ResearchPriorities.TechCategoryPrioritized.
+  2. What is the empire's state? Wars is AI.ThreatLevel, Economics averages credit rating and
+     worker efficiency (NetResearch / MaxResearchPotential), ResearchDebt is the spread of available
+     tech costs over net research and 50 turns, and low income is Money < NetPlanetIncomes. Those
+     four are the IFWAR, IFHIGHTAX, IFLOWRESEARCH and IFLOWINCOME branches of a script.
+  3. What number is compared? CostToResearchTechType = (TechCost x CostNormalizer) x CostMultiplier,
+     with CostNormalizer starting at max(NetResearch, 1) / 100. Within one category every candidate
+     carries the same normalizer, so the winner is decided by TechCost x CostMultiplier.
+  4. Why does the order change between empires? The picker adds 0.005 to the normalizer for each
+     category slot it walks past (0.25 for EXPENSIVE), and only 0.0002 for each ship sub-category. A
+     fixed bump on an income-scaled base means a poor empire's late categories are penalised
+     relatively harder, so it stops earlier in the list than a rich one.
+  5. What else multiplies it? LowPriorityCostMultiplier (clamped 0.1 to 10) and the tech-type weight
+     from ResearchOptions. The rest of that block — ShipCosts (combat 0.95, ColonyShip, Freighter
+     and Orbitals 2.0), the ratio BalanceToInfraIntensity caps at 200, and Randomize — only applies
+     when the picker is the chooser, because every one of them is read inside
+     GetModifiedShipCost.
+  6. Why hulls first, then? GetShipTechString always puts ShipHull in front when a hull tech is
+     available, the other sub-categories are shuffled per pick, and a ship needing only a hull
+     gets it when TechCost / MaxResearchPotential is within TotalPopBillion turns
+     (CanResearchHullInTimelyManner) — an economy test with population in it, not a preference.
+  7. What about the branch I wanted? A ship tech outside the requested category is admitted when
+     the best combat ship's TechsNeeded contains it, so the flagship pulls its own techs in.
+     EnableShipTechLineFocusing does not switch that off: it decides whether the AI keeps the ship
+     it already chose (ShouldUseExistingCombatShip) or picks a fresh one on every pass.
+Do not quote the XML Cost as the picker's price, and do not give one order to a small and a large
+empire. At level 5 name CostNormalizer first: every other number is scaled by it.
+
+SHIPS THAT RESEARCH — a different shape, and I will ask for it
+A large part of a developed empire's research is produced by hulls, so "why is my research so slow"
+is usually a question about stations and freighters, not about the tree. Walk it in this order:
+  1. Which tech is the points going to? An empty queue adds nothing (Plan.ResearchStationIdle) even
+     with a full hold, so check the topic before checking the station.
+  2. What is the empire's income this turn made of? ResearchStationResearchPerturn, then each
+     colony's NetIncome, then the alliance share, all multiplied by the espionage disruption.
+  3. Which stations exist, and is each one's ProcessResearchStation goal still in its Research step?
+     Captured, scrapped, dismantled, or a body that stopped being researchable all leave the station
+     alive with no income, and nothing in the fleet list says so.
+  4. For a station that is working: how many research modules, so what ResearchPerTurn; how much
+     production is in the hold; and what a point costs (ResearchStationProductionPerResearch, 2 by
+     default). The goal converts min(ResearchPerTurn, hold / that cost) and leaves the remainder in
+     the hold.
+  5. Who is feeding it? SupplyGoodsToStation goals are raised from the deficit and sized by
+     AverageFreighterCargoCap, one to five at a time; a station damaged past the civilian threshold
+     is in a trade blockade and stops being supplied.
+  6. Where is it deployed? One station per body per empire. The body must be IsResearchable and
+     explored, a star counts, and its station sits at a fixed position instead of on a tether.
+Say which of those six is the answer rather than narrating all six. The tree does not explain a
+stalled bar unless the queue is empty.
+Keep these apart: a station is IsResearchStation only if it is a platform or station hull
+with a research module, so a cruiser with a lab in it is not one and never researches; the
+CanBuildResearchStations flag is set when such a design becomes buildable, not by owning a station;
+and factions never research at all, while a captured station's new pirate owner scuttles it.
+
 WHEN I ASK ABOUT ERAS OR TIERS
 There is no era field and no tech tier in the code. If I use either word, say so in one line, then
 answer with what does exist: the eight roots, the branch each one opens, the hull techs a branch
 contains, and the Cost of the techs on the way. If I ask you to define eras for my game, make the cut
 from the tech files rather than from a remembered turn number, and say which file decided each cut.
+Cost is not one number on that axis either: it is the XML Cost summed over the cheapest path, which
+is not TechCost (root x101, multi-level factor) and not what lands after the empire's research
+multiplier. Two things sit at zero on it and must not be counted as spend: the roots, which every
+empire gets at game start, and any tech this race unlocks at game start via UnlockedAtGameStart — a
+Militaristic people starts with kinetic weapons and energy cannons already in hand. Secret techs are
+not on the axis at all; they are acquired, not researched. The cut itself, and the race and mod
+gates that move it, are docs/kit/era-explorer-prompt.md (engine: docs/era-explorer/era-scan.py).
 
 THE MENU, EVERY TIME
 End every answer with exactly three new topics and Other, five words or fewer each, drawn from what
@@ -349,7 +486,19 @@ When the doc and the code disagree, follow the code and say in one line which is
   Ship_Game/TechEntry.cs                         per-empire state: price, progress, gate, payout
   Ship_Game/EmpireResearch.cs                    income, queue, topic, overflow, leech, disruption
   Ship_Game/Empire.cs                            CreateEmpireTechTree, UnlockTech, the four unlock
-                                                 paths, CurrentTechsResearchable, UpdateForNewTech
+                                                 paths, CurrentTechsResearchable, UpdateForNewTech,
+                                                 CanBuildResearchStations
+  Ship_Game/Commands/Goals/ProcessResearchStation.cs   deploying a station, and the per-turn
+                                                 conversion of its production into points
+  Ship_Game/Commands/Goals/SupplyGoodsToStation.cs     the freighter mission that feeds it
+  Ship_Game/AI/ExpansionAI/ResearchStationPlanner.cs   which bodies the AI aims at, and when
+  Ship_Game/Ships/ShipDesign_Stats.cs            IsResearchStation, BaseResearchPerTurn
+  Ship_Game/Ships/ShipResupply.cs                good supply, the trade blockade, the 30-turn rule
+  Ship_Game/Universe/ExplorableGameObject.cs     IsResearchable, one station per empire per body
+  UnitTests/ExoticSystems/ResearchStations.cs    the planner, and what turns it on
+  UnitTests/ExoticSystems/StationDesignPicks.cs  which station the empire picks, and why not a
+                                                 starved one
+  UnitTests/Ships/DismantleOrbitalWorkTests.cs   a station coming apart researches nothing
   Ship_Game/Data/ResourceManager.cs              LoadTechTree, TechValidator, module/hull unlocks
   Ship_Game/GameScreens/Universe/ResearchScreenNew.cs  the research screen
   Ship_Game/ResearchQueueUIComponent.cs          the queue panel
@@ -357,7 +506,13 @@ When the doc and the code disagree, follow the code and say in one line which is
   Ship_Game/AI/Research/ChooseTech.cs            the AI's own pick, and its script runner
   Ship_Game/AI/Research/ResearchPriorities.cs    what the AI wants and why
   Ship_Game/AI/Research/ResearchOptions.cs       costs and priorities, loaded per portrait
+  Ship_Game/AI/Research/ShipTechLineFocusing.cs  which ship the tech is being bought for
+  Ship_Game/AI/Research/ShipTechProgresion.cs    hull-first shortcuts, and the pop-based turn budget
+  Ship_Game/AI/Research/ShipPicker.cs            the design score behind line focusing
   game/Content/Research.yaml                     the per-portrait weights behind those
+  game/Content/Globals.yaml                      DisableShipPicker, EnableShipTechLineFocusing
+  Ship_Game/GamePlayGlobals.cs                   those two flags, and what each one gates
+  UnitTests/Technologies/TestShipCostMods.cs     the cost weights, and BalanceToInfraIntensity
   game/Content/Technology/**                     the techs themselves: eight roots, the branches
   docs/kit/ship-content-reference.md             §5 is tech XML, field by field
   docs/code-findings.md                          settled behaviour, and the do-not-fix list
@@ -414,6 +569,12 @@ to say otherwise, it is wrong.
   a greyed node as one thing, and it never quotes the XML `Cost` as what the empire pays.
 - Asked why a design is missing, it walks the closure and names the one tech blocking it — then says
   the arithmetic is the ship-design reference's.
+- Asked why the AI took a cheap hull tech in a war, it prices both candidates the way the live
+  chooser does and names that chooser — `ShipTechProgresion` under vanilla's `DisableShipPicker:
+  true`, `ShipPicker` when it is off — then says whether the order came from the script, the
+  category priority or the line focus, instead of calling it a preference.
+- Asked why the research bar stalled, it checks the stations' goals and their holds before blaming
+  the colonies, and it does not lecture about the tree when the answer is a missing freighter.
 - You never get a file path at level 1, and never a hand-wave at level 5.
 - Modded games get "I am reading vanilla; you are not" before any number, not after.
 
@@ -428,6 +589,13 @@ to say otherwise, it is wrong.
 - "What happens to a multi-level tech's price at level three, and to the bonus it granted?"
 - "My mod replaced a tech and now there are two. What does the loader actually key on?"
 - "Is 'era' a thing in this game, or is that just how players talk?"
+- "My research station is alive, armed and full. Why is it adding nothing?"
+- "How much production does a station eat per point, and how many freighters keep it fed?"
+- "I lost a research station. What stopped, and can that planet be researched again?"
+- "Why did the AI research a cheap hull tech while it was losing a war?"
+- "Would a richer empire get the same tech order out of the same tree?"
+- "Does the AI's ship research weigh the picker's costs, or is it using something else?"
+- "What would the AI chase instead if the ship picker were switched back on?"
 
 ## Notes for the person running it
 
@@ -450,5 +618,13 @@ to say otherwise, it is wrong.
   "current" most of the time; when it does not, it should be because something really moved.
 - Run this on the same checkout as the map if you can. Answering from the public `main` cannot see
   your card, your pull request or your local edit, and the prompt is required to say so.
+- The AI cost question needs two facts the tech file cannot give: the empire's net research (it sets
+  `CostNormalizer`) and which ship chooser is running. With `DisableShipPicker: true` that is
+  `ShipTechProgresion`, whose only extra weights are the hull multipliers in `ExtractTechCost`; with
+  it false the portrait's `ShipCosts` weights apply. Have both before quoting a price, or say
+  plainly that the answer is the vanilla default.
+- The station half is why this document touches ships at all: the points come out of a hull's hold,
+  not out of the tree. The module that earns a point and the design that carries it are the module
+  and ship-design explainers' subjects; this one owns the goal, the supply and the payout.
 - This is the first of the building blocks for a fleet plan. The next ones cover modules, designs,
-  fleet composition, ship choice and fleet goals; the tech tree is the clock they all run on.
+fleet composition, ship choice and fleet goals; the tech tree is the clock they all run on.

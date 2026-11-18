@@ -54,7 +54,7 @@ pays out — and naming the link is the answer.
 | 3 | Fits | whether it may occupy these cells | `Restrictions` + `SlotStruct.CanSlotSupportModule`; `DesignModuleGrid.ModuleFitsAtSlot`; `PercentLimitOnShips` → `ShipDesignScreen.SlotLimitOnShip` | the cell turns red, or the module will not stick |
 | 4 | Costs | what it adds to the ship | `Cost` → `ShipDesign.GetCost`; `Mass` → `ShipStats.GetMassParts`; `HealthMax` × `HealthMod` | the price, the speed, the durability |
 | 5 | Draws | power and ammunition it needs | `Power.Calculate`; `PowerDraw`, `PowerDrawAtWarp`, `PowerFlowMax`, `PowerStoreMax`; weapon `PowerFireUsagePerSecond`; `OrdinanceCapacity` | "recharge time", running dry mid-fight |
-| 6 | Pays out | what it does when installed | `ModuleType` and the secondary rules in `ShipModule.Is`; `WeaponType` → `InstalledWeapon`; shields, hangars, bays, engines | the effect you bought |
+| 6 | Pays out | what it does when installed | `ModuleType` and the secondary rules in `ShipModule.Is`; `WeaponType` → `InstalledWeapon`; shields, hangars, bays, engines; a weapon's own file is the weapon document's | the effect you bought |
 | 7 | Breaks | what happens when it is damaged | `HealthMax`, resistances, `Deflection`, `RepairDifficulty`, `ExplosionDamage`/`ExplosionRadius`, `TargetValue` | a ship that loses its reactor first, or one that explodes |
 
 The links are also a build order. A design is a hull plus a set of module references; steps 1–3
@@ -82,7 +82,7 @@ a citation:
 | Mass | `ShipModule.GetActualMass`, `ShipStats.GetMassParts`, `MassAfterDampers` | 4 | Hull mass floor; armour modifier; ordnance fill fraction; dampers only subtract while powered, and never past half |
 | Power | `Power.Calculate`; `PowerFlowMax`, `PowerStoreMax`, `PowerDraw`, `PowerDrawAtWarp` | 5 | Supply is a rate, storage is a budget; warp draw at half weight; shipyard adds weapon fire power separately |
 | Type vs behaviour | `ShipModule.Is(ShipModuleType)` | 6 | `PowerFlowMax >= 1` ⇒ plant, `APResist != 0` ⇒ armour, mining/salvage ⇒ hangar |
-| Weapons | `WeaponType`, `InstalledWeapon`, `FieldOfFire`, `AccuracyPercent`, `WeaponTemplate` | 6 | The module holds a weapon UID; the weapon file holds the damage; a missing weapon logs a warning and the module is inert |
+| Weapons | `WeaponType`, `InstalledWeapon`, `FieldOfFire`, `AccuracyPercent`, `WeaponTemplate` | 6 | The module holds a weapon UID; the weapon file holds the damage; a missing weapon logs a warning and the module is inert. The weapon's tags, dps and power per shot belong to `weapon-logic-explainer-prompt.md` |
 | Shields | `ShieldPowerMax`, `ShieldRadius`, `ShieldRechargeDelay`, `Shield*Resist`, `AmplifyShields` | 6 | Amplifiers add to main shields, and small hulls get less from the same bubble |
 | Bays | `HangarShipUID`, `MaximumHangarShipSize`, `PermittedHangarRoles`, `HangarTimerConstant` | 6 | `NotApplicable` means size-valued; a static bay pointing at a ship you cannot build becomes `DynamicLaunch` at runtime |
 | Damage | `HealthMax`, `HealthMod`, `Deflection`, `*Resist`, `APResist`, `RepairDifficulty` | 7 | Resistances are clamped to 1; `APResist` also marks armour; `RepairDifficulty` caps a repair tick |
@@ -96,7 +96,8 @@ one symbol away from being checked.
 Deliberately outside this list: how a hull's slot grid is authored (`.hull`, §2 of the content
 reference), the `.design` line grammar and the design-level warnings (`ShipDesignIssues`), a design's
 research price closure, and the AI's module choice (`ShipBuilder`). The prompt answers the module
-half and says which document owns the rest.
+half and says which document owns the rest. The weapon template is
+`weapon-logic-explainer-prompt.md`, which continues this chain at step 6.
 
 ## The level ladder
 
@@ -130,7 +131,9 @@ Scope: a single module and the design that mounts it. A hull's slot grid, the .d
 the design-level warnings are the ship-design reference's job; answer the module half and say where
 the other half lives. Which tech unlocks a module is the tech document's job, but say which tech it
 is when I ask why the module is missing. The AI's choice of modules, fleet composition and combat
-outcomes are other systems; name them and stop.
+outcomes are other systems; name them and stop. The weapon inside a weapon module — its tags, its
+damage numbers and its per-second power price — is `weapon-logic-explainer-prompt.md`; hand over at
+step 6 and do not guess at it.
 
 STEP 0 — ask these two questions once, together, then stop and wait
 1. "Do you want code?" — no / pointers only / show me the code. This decides whether file names,
@@ -378,6 +381,20 @@ file under a directory whose path contains "disabled" is skipped entirely. Say w
 vanilla and I am not playing vanilla, ask me which mod and version, and read its Globals.yaml before
 answering a content question. Combined Arms and Star Trek are separate repositories; if their files
 are not here, say what you could not read.
+
+WHAT MAKES A MODULE YOURS — tech, race, era
+A module is not owned until a tech lists it, and three things then decide whether this empire ever
+sees it. Answer "when can I build this" with these, in this order:
+  1. The tech. A module has no unlock field; a tech's ModulesUnlocked/UnlockedMod names the module
+     UID, and Empire.IsModuleUnlocked is the test. A module no tech lists loads, appears in the
+     files, and can never be built — only an Ancient or Remnant design carries it.
+  2. The race gate on that tech. Technology.HiddenFrom and HiddenFromAllExcept hide the tech, and
+     the module goes with it; UnlockedAtGameStart hands both to a people on turn 1. So the same
+     module is available at different times to two players of the same content root.
+  3. The mod, which can replace both the module and the tech that lists it.
+Do not answer with ShipModule.TechLevel or TechBranch: they order and label the palette, they do not
+gate anything. The cost axis those unlocking techs sit on belongs to the era explorer
+(docs/kit/era-explorer-prompt.md); the module's own numbers belong to this document.
 
 Go to the file that decides the behaviour, not the first file that mentions it, and say which one
 decides when several are involved. If you cannot open a file, say so and ask me to paste it; do not

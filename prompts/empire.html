@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>What an empire is made of — StarDrive BlackBox</title><style>
+:root{--bg:#14171c;--panel:#1b1f26;--ink:#e6e8ea;--dim:#8b949e;--line:#2b313a;--gold:#ffd479;--link:#8ecbff;--ok:#8ad06a}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 Georgia,serif}
+a{color:var(--link);text-decoration:none}a:hover{text-decoration:underline}
+code{font:12.5px ui-monospace,monospace;color:#c9d1d9;background:#20252d;padding:0 3px;border-radius:3px}
+.bar{position:sticky;top:0;z-index:9;background:rgba(20,23,28,.94);border-bottom:1px solid var(--line)}
+.bar .in{max-width:1240px;margin:0 auto;padding:10px 28px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{display:inline-block;font:12px ui-monospace,monospace;padding:5px 12px;border:1px solid #3a424e;border-radius:999px;background:var(--panel);color:var(--ink);cursor:pointer}
+.btn:hover{border-color:var(--link);text-decoration:none}
+.btn.primary{border-color:#6b5a2b;background:#2a261b;color:var(--gold)}
+.head{max-width:1240px;margin:0 auto;padding:34px 28px 6px}
+h1{font-size:27px;margin:0 0 8px;line-height:1.25}
+p.lede{color:var(--dim);max-width:82ch;margin:0 0 12px}
+p{margin:0 0 10px}
+.shell{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:40px;max-width:1240px;margin:0 auto;padding:8px 28px 70px;align-items:start}
+@media(max-width:920px){.shell{grid-template-columns:1fr;gap:26px}}
+h2{font-size:12.5px;margin:30px 0 10px;color:#c9d1d9;text-transform:uppercase;letter-spacing:1.2px;font-family:ui-monospace,monospace}
+h2 .count{color:var(--dim);letter-spacing:0}
+ul{margin:0 0 10px;padding-left:20px}li{margin:0 0 7px}
+table{border-collapse:collapse;width:100%;font:12.5px ui-monospace,monospace;margin:4px 0 10px}
+th,td{text-align:left;padding:6px 9px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--dim);font-weight:normal}
+td.n{white-space:nowrap;color:var(--gold)}
+.note{color:var(--dim);font-size:13px}
+.facts{display:flex;gap:20px;flex-wrap:wrap;font:12px ui-monospace,monospace;color:#c9d1d9;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:9px 13px;margin:14px 0 0}
+.facts b{color:var(--gold);font-weight:normal}
+aside{position:sticky;top:56px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:4px 16px 14px;max-height:calc(100vh - 80px);overflow:auto}
+@media(max-width:920px){aside{position:static;max-height:none}}
+aside h2{margin:14px 0 6px}
+aside p.ai{color:var(--dim);font-size:12.5px;margin:12px 0 2px}
+.nav a{display:block;padding:6px 0;border-bottom:1px solid #232a33}
+.nav a:last-child{border-bottom:0}
+.nav b{font-weight:normal;color:var(--ink);display:block}
+.nav span{display:block;color:var(--dim);font-size:12.5px;line-height:1.4}
+.kicker{font:12px ui-monospace,monospace;color:var(--dim);margin:0 0 10px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.chip{font:10.5px ui-monospace,monospace;letter-spacing:.6px;text-transform:uppercase;border:1px solid #4a5260;border-radius:9px;padding:1px 7px;color:var(--dim)}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0 4px}
+.msg{font:12px ui-monospace,monospace;color:var(--dim);min-height:1.4em;margin:6px 0 0}
+.msg.ok{color:var(--ok)}.msg.err{color:#e07070}
+pre#text{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px;max-height:62vh;overflow:auto;white-space:pre-wrap;font:12px ui-monospace,monospace;color:#c9d1d9}
+.meta{font:12px ui-monospace,monospace;color:var(--dim);border-top:1px solid var(--line);margin-top:30px;padding-top:10px}
+</style></head><body><nav class="bar"><div class="in"><a class="btn" href="../index.html">&larr; Index</a>
+<a class="btn" href="../weapon-tech-human.html">Era map</a>
+<a class="btn" href="https://github.com/TeamStarDrive/StarDrive">Game repository &nearr;</a>
+</div></nav>
+<header class="head">
+ <p class="kicker"><span class="chip">Explainer</span><code>empire-explainer-prompt.md</code></p>
+ <h1>What an empire is made of</h1>
+ <p class="lede">The document the other explainers point at: the race file behind a people, what each trait actually changes, what it starts the game with, and where the numbers that make one empire different from another are written.</p>
+ <div class="acts">
+  <button class="btn primary" id="copy">Copy prompt</button>
+  <button class="btn" id="show">Show prompt</button>
+  <a class="btn" href="https://github.com/SDBlackBox/StarDrive-community-kit/blob/main/empire-explainer-prompt.md">In the kit repo &nearr;</a>
+ </div>
+ <p class="msg" id="msg"></p>
+</header>
+<div class="shell">
+<main>
+<h2>How it works</h2>
+<ul><li>Separates the saved race (<code>EmpireData</code>, matched by field name) from the live <code>Empire</code> that owns colonies, research, fleets and diplomacy, and asks which half a question is about.</li><li>Treats a trait as a number with a reader, not a label: roughly eighty fields on <code>RacialTrait</code>, most of them read directly by the game.</li><li>Answers what a people starts with and what it is allowed to see, which is what the tech and era documents assume.</li></ul>
+
+<h2>What it needs</h2>
+<p>A checkout, or the public repository.</p>
+
+<h2>The prompt</h2>
+<p class="note">11,679 characters, copied verbatim from <code>empire-explainer-prompt.md</code> at
+build time. Copy takes the whole file, because that is what the prompt expects you to paste.</p>
+<pre id="text" hidden># Explaining an empire — a copy-paste interactive prompt
+
+Paste the prompt below into an agent that can read this repository, and it becomes a guide to **what
+an empire is made of**: the race file behind it, what its traits actually change, what it starts
+with, what it is allowed to see, and where the numbers that make one empire different from another
+are written down.
+
+This is the document the others point at. The [tech explainer](tech-logic-explainer-prompt.md) says a
+tech can be hidden from a people; this one says what a people is. The
+[era explorer](era-explorer-prompt.md) needs a race and a trait set to draw a ladder; this one is
+where those come from. The [ship chooser](ship-chooser-explainer-prompt.md) and
+[fleet creation](fleet-creation-explainer-prompt.md) explainers assume an empire with designs, money
+and goals; this one says where those start.
+
+## Why this exists
+
+- **There is no empire in `game/Content`.** There are race files under `game/Content/Races/`, and an
+  empire is one of those loaded into `EmpireData` — a `[StarData]` object, saved, matched by field
+  name — plus the live `Empire` that owns colonies, research, fleets and diplomacy. Ask which half a
+  question is about before answering it.
+- **A trait is not a label, it is a number with a reader.** `RacialTrait` carries roughly eighty
+  fields, and a great many are read directly: `ResearchMod`, `ProductionMod`, `ShipCostMod`,
+  `MaintMod`, `GroundCombatModifier`, `TargetingModifier`, `DodgeMod`, `OrdnanceEffectivenessBonus`,
+  the `Env*` habitability row. &quot;Why is my research slower than his&quot; is often a trait, not a building.
+- **Only four racial trait names exist in code.** `RacialTrait.NameOfTrait` is `None`, `Cybernetic`,
+  `Militaristic`, `NonCybernetic`. So a tech can be gated on exactly those — the fifty trait options
+  a player picks from are not the same list as the traits content can test for. Confusing the two is
+  the most common wrong answer here.
+- **A race file carries its own starting fleet.** `StartingShip`, `PrototypeShip` and the `Default*`
+  hulls are race data, so two empires begin with different ships from identical content.
+- **The first trait set is the player&#x27;s; the rest are the AI&#x27;s rerolls.** `TraitSets[0]` is what the
+  race design screen shows, and `PlayerTraitOptions` returns exactly that one. An AI opponent of the
+  same race can therefore hold traits you never saw on the menu.
+- **`UnlockedAtGameStart` is a real grant.** A matching empire does not merely see the tech: the
+  trait&#x27;s `UnlockAtGameStart` calls `ForceFullyResearched`, so a Militaristic people begins with
+  kinetic weapons, energy cannons, laser beam turrets, corvettes, armour theory, fighter shields and
+  the military tech already owned. That is why the era ladder is shorter for them.
+- **An empire is a save object.** Renaming a `[StarData]` field breaks old saves silently; adding one
+  does not need a version bump. Say which of the two a change is, if the question is about changing
+  anything.
+- **Pirates and factions are empires with the rules switched off.** `IsFaction` forces every tech
+  back to unresearched, and a pre-warp empire (`Traits.Prewarp == 1`) does the same to itself.
+
+## The empire chain
+
+| # | Step | What it decides | Where |
+|---|---|---|---|
+| 1 | Who | the people: name, ship type, colour, portrait, voice | `EmpireData.PortraitName`, `RacialTrait.Name`, `ShipType`, `Singular`/`Plural` |
+| 2 | Which traits | the numbers and the gates | `RacialTrait` fields, `TraitSets`, `PlayerTraitOptions`, `SelectedTraitSet` |
+| 3 | What it starts with | free techs, extra ships, extra buildings | `UnlockedAtGameStart` → `RacialTrait.UnlockAtGameStart` → `ForceFullyResearched`; `EmpireData.unlockShips`, `unlockBuilding`; `StartingShip`, `PrototypeShip`, `Default*` |
+| 4 | What it can see | techs hidden from this people | `Technology.HiddenFrom`, `HiddenFromAllExcept`, `TechEntry.IsHidden`, `InRaceRequirementsArray` |
+| 5 | What it earns | research, production, tax, upkeep | `ResearchMod`, `ProductionMod`, `TaxMod`, `ConsumptionModifier`, `MaintMod`, `ShipCostMod`, `BaseReproductiveRate` |
+| 6 | What it fights with | ground strength, accuracy, evasion, hull, ordnance | `GroundCombatModifier`, `TargetingModifier`, `DodgeMod`, `ModHpModifier`, `OrdnanceEffectivenessBonus`, `ArmorPiercingBonus` |
+| 7 | Who it is to others | starting relations, spies, diplomacy | `DiplomacyMod`, `DiplomaticPersonality`, `AgentList`, `MoleList`, `SpyModifier` |
+
+The race file also decides the *shape* of a game rather than a number: `Prewarp` starts everyone
+behind, `Prototype` hands out a flagship, `Blind` changes what you can see, `PreferredEnv` and the
+`Env*` row decide which worlds are worth taking.
+
+## The level ladder
+
+| Level | Reads like | Code | What the answer contains |
+|---|---|---|---|
+| 1 | ELI5 | none | who these people are, what they are good at, and why they start with more or less than you |
+| 2 | a curious 10-year-old | none | one race, three traits, what each does in play — no field names |
+| 3 | a technical 15-year-old | one file and one class | a trait, the number it changes, and whether that number is content or code |
+| 4 | a developer new to this repo | short snippets | where the race file is read, what is saved, what a new field costs |
+| 5 | a BlackBox developer | symbols and call chains | trait reads, save compatibility, mod interaction, factions and pre-warp |
+
+## The prompt
+
+Copy everything between the rules.
+
+```text
+You are my guide to what an empire IS in StarDrive BlackBox: the race behind it, what its traits
+change, what it starts with, and what it is allowed to see. One question, one answer, then the next
+choice is mine.
+
+STEP 0 — three questions, once, together, then stop
+1. &quot;Which race, and vanilla or a mod?&quot; — the file under game/Content/Races, and the mod if any.
+   A mod can ship its own Races folder; if you cannot read it, say so before answering.
+2. &quot;Which trait set?&quot; — the first TraitSet is the one the race design screen shows; the others are
+   what an AI of the same race may roll. Ask which one we are talking about.
+3. &quot;Do you want code, and how deep, 1-5?&quot; — print this and nothing more:
+     1  no code — who they are and what they are good at
+     2  game terms, one trait per sentence, no code
+     3  one file and one class, a number with a worked example
+     4  short snippets, where it is read, what is saved
+     5  BlackBox dev — symbols, call chains, save and mod consequences
+If I answer vaguely take level 2 and no code, say so in one line, and move on.
+
+STEP 0.5 — say what you are reading
+One or two lines: commit and date, the race file path, whether the tree is modified, whether the mod&#x27;s
+Races folder was readable. An empire answer built on a race file you did not open is a guess.
+
+THE CHAIN — name the step in every answer
+  1 Who       — EmpireData.PortraitName, RacialTrait.Name/ShipType/Singular/Plural, colour, portrait.
+  2 Traits    — RacialTrait&#x27;s fields, TraitSets, PlayerTraitOptions, SelectedTraitSet, trait Cost and
+                Excludes. The four names content can TEST are None, Cybernetic, Militaristic,
+                NonCybernetic; the options a player picks are a different, longer list.
+  3 Starts    — roots force-researched; UnlockedAtGameStart via RacialTrait.UnlockAtGameStart -&gt;
+                ForceFullyResearched; unlockShips, unlockBuilding; StartingShip, PrototypeShip and the
+                Default* hulls. Factions and Prewarp empires get nothing.
+  4 Sees      — Technology.HiddenFrom, HiddenFromAllExcept, TechEntry.IsHidden, InRaceRequirementsArray.
+  5 Earns     — ResearchMod, ProductionMod, TaxMod, ConsumptionModifier, MaintMod, ShipCostMod,
+                BaseReproductiveRate, the Env* habitability row.
+  6 Fights    — GroundCombatModifier, TargetingModifier, DodgeMod, ModHpModifier,
+                OrdnanceEffectivenessBonus, ArmorPiercingBonus, ShieldPenBonusChance.
+  7 Relates   — DiplomacyMod, DiplomaticPersonality, EconomicPersonality, AgentList, MoleList,
+                SpyModifier.
+Say which step the question is on. If it spans two, say which decides.
+
+WHAT A TRAIT IS NOT
+- It is not a label. Name the field it sets and the system that reads it, or say you cannot tell.
+- It is not the same list as the tech gates. Only Cybernetic, Militaristic, NonCybernetic and a
+  ShipType can hide or grant a tech.
+- It is not free of the difficulty settings: ResearchTaxMultiplier and the difficulty table apply on
+  top, and a mod&#x27;s Globals.yaml and difficulty file change both sides of the comparison.
+- An AI of your race is not necessarily your trait set: TraitSets beyond the first are its rerolls.
+
+WHAT A SAVE DOES
+EmpireData is [StarData]: fields are matched by name, so renaming or deleting one breaks old saves
+silently while adding one does not need a version bump. When I ask about changing something, say
+which of the two it is, and whether the race file is the right place or a tech/hull/module is.
+
+HANDOFFS
+What a tech costs, and who can see it -&gt; tech-logic-explainer-prompt.md
+When things arrive, by research cost     -&gt; era-explorer-prompt.md
+A module&#x27;s cost, fit and effect          -&gt; module-logic-explainer-prompt.md
+A design&#x27;s layout and build gate         -&gt; ship-design-explainer-prompt.md
+Which ships get built                    -&gt; ship-chooser-explainer-prompt.md
+How goals become task fleets             -&gt; fleet-creation-explainer-prompt.md
+How far anything is                      -&gt; time-and-space-explainer-prompt.md
+Name the document in one line; do not re-explain its subject.
+
+WHAT I SEE IN PLAY
+Close with the one thing I would notice: the first turn their ships appear, the research that stalls,
+the world nobody else can settle, the flagship I did not expect.
+
+THE MENU, EVERY TIME
+Three new topics and Other, five words or fewer each, drawn from what this answer opened up. Then
+one line: &quot;deeper: &lt;the part worth expanding&gt;&quot;. Wait for my pick. &quot;where are we&quot; prints three lines.
+```
+
+## What a good session looks like
+
+- It asks for the race file before quoting a trait, and says when the mod&#x27;s Races folder was unreadable.
+- It separates the four testable trait names from the long list of trait options a player picks.
+- Asked &quot;why does he start with kinetic weapons&quot;, it names `UnlockedAtGameStart`,
+  `RacialTrait.UnlockAtGameStart` and `ForceFullyResearched` — not a difficulty setting.
+- Asked &quot;why is my research slower&quot;, it starts at `ResearchMod` and the difficulty multiplier before
+  it blames a building.
+- It says plainly that `EmpireData` is saved by field name, so renaming a field is a save break.
+- Every adjacent question comes back as a named document.
+
+## Questions worth asking it
+
+- &quot;What actually makes the Kulrathi different from the Humans, number by number?&quot;
+- &quot;Why did my neighbour have kinetic weapons on turn 1?&quot;
+- &quot;Which traits can a tech be gated on, and which ones are just flavour?&quot;
+- &quot;My empire&#x27;s research is slow — is that me, my race, or the difficulty?&quot;
+- &quot;What does the first TraitSet mean, and what does the AI roll?&quot;
+- &quot;If I add a trait field, what breaks in an old save?&quot;
+
+## Notes for the person running it
+
+- The race files are `game/Content/Races/*.xml`, one per people, `EmpireData`-shaped. Vanilla ships
+  thirteen of them, including the Remnant and the pirate Corsairs.
+- Trait options and their costs are content; the four names tech gating can test are code
+  (`RacialTrait.NameOfTrait`). Do not read one list as the other.
+- The [era explorer](era-explorer-prompt.md) takes a race name and applies these same gates when it
+  costs a tree. If the two disagree, the race file is the truth and the tool is the bug.
+</pre>
+</main>
+<aside>
+<p class="ai">Paste a prompt into a chat with a checkout in front of it. Each page has a copy button.</p>
+<h2>Explainers <span class="count">12</span></h2>
+<div class="nav">
+<a href="game-logic.html"><b>The game, end to end</b><span>Why a fleet lost, where a decision is made, what a number does.</span></a>
+<a href="empire.html"><b>What an empire is made of</b><span>The race file, the traits, the starting kit, what it can see.</span></a>
+<a href="tech-logic.html"><b>The tech tree</b><span>Gated, priced, paid out &mdash; and who picks the order.</span></a>
+<a href="module-logic.html"><b>Ship modules</b><span>Why a module shows, fits, costs what it costs, and breaks.</span></a>
+<a href="weapon-logic.html"><b>A gun</b><span>Tags, the three damage numbers, and what a shot costs.</span></a>
+<a href="ship-design.html"><b>Ship designs</b><span>The .design file, its layout, role, warnings and build gate.</span></a>
+<a href="ship-chooser.html"><b>Which ships get built</b><span>Pool, want, budget, rank, pick, place, renew.</span></a>
+<a href="ship-combat.html"><b>Space combat</b><span>Knowing, wanting, choosing, closing, firing, hurting, dying.</span></a>
+<a href="fleet-creation.html"><b>How a fleet forms</b><span>Goal, task, requirement, pool, extract, form, sustain.</span></a>
+<a href="planet-capture.html"><b>Taking a planet</b><span>Who decides, who carries the troops, what the ground fight rolls.</span></a>
+<a href="colonization-ai.html"><b>AI colonization</b><span>Why the AI settles the planet it settles, in plain language.</span></a>
+<a href="time-and-space.html"><b>How far, how long</b><span>Distances and speeds turned into minutes, turns and roles.</span></a>
+</div>
+<h2>Tools <span class="count">6</span></h2>
+<div class="nav">
+<a href="era-explorer.html"><b>The era explorer</b><span>Cuts the tech tree into research-cost bands for one mod and one race.</span></a>
+<a href="ai-test.html"><b>Testing AI behaviour</b><span>A belief about the AI turned into one runnable scenario.</span></a>
+<a href="concept-map.html"><b>The concept map</b><span>Writes docs/concept-map.md &mdash; and re-checks every address later.</span></a>
+<a href="ship-strategy-brief.html"><b>The strategy brief</b><span>Makes the AI ask what the fleet is for before it designs.</span></a>
+<a href="clone-setup.html"><b>Local clone (Windows)</b><span>A checkout that builds, with both submodules.</span></a>
+<a href="clone-setup-linux.html"><b>Local clone (Linux/macOS)</b><span>A checkout for reading and editing &mdash; not for building.</span></a>
+</div>
+<h2>Reference <span class="count">1</span></h2>
+<div class="nav">
+<a href="ship-content-reference.html"><b>Ship content reference</b><span>Every content field, the code that reads it, and the formulas.</span></a>
+</div>
+</aside>
+</div>
+<script>
+const btn = document.getElementById('copy');
+const show = document.getElementById('show');
+const pre = document.getElementById('text');
+const msg = document.getElementById('msg');
+
+function say(t, cls) { msg.className = 'msg' + (cls ? ' ' + cls : ''); msg.innerHTML = t; }
+
+function legacyCopy(t) {
+  const ta = document.createElement('textarea');
+  ta.value = t;
+  ta.setAttribute('readonly', '');
+  ta.style.position = 'fixed';
+  ta.style.top = '-1000px';
+  document.body.appendChild(ta);
+  ta.select();
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+  ta.remove();
+  return ok;
+}
+
+btn.addEventListener('click', async () => {
+  const text = pre.textContent;
+  if (!text.trim()) {
+    say('This page has no prompt text on it.', 'err');
+    return;
+  }
+  let ok = false;
+  if (navigator.clipboard && window.isSecureContext) {
+    try { await navigator.clipboard.writeText(text); ok = true; } catch (e) { ok = false; }
+  }
+  if (!ok) ok = legacyCopy(text);
+  if (!ok) {
+    say('The clipboard is blocked here. Press <b>Show prompt</b> and select the text.', 'err');
+    return;
+  }
+  say('Copied ' + text.length.toLocaleString() + ' characters. Paste the whole file, then ask your question.', 'ok');
+  const label = btn.textContent;
+  btn.textContent = 'Copied \u2713';
+  setTimeout(() => { btn.textContent = label; }, 2000);
+});
+
+show.addEventListener('click', () => {
+  pre.hidden = !pre.hidden;
+  show.textContent = pre.hidden ? 'Show prompt' : 'Hide prompt';
+  say('');
+});
+</script></body></html>

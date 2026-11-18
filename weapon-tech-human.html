@@ -1,0 +1,847 @@
+<!doctype html><meta charset="utf-8"><title>Era explorer — weapon tech, vanilla / Human</title>
+<style>
+:root{--bg:#14171c;--panel:#1b1f26;--ink:#e6e8ea;--dim:#8b949e;--line:#2b313a}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 Georgia,serif}
+header{padding:26px 32px 6px}h1{font-size:21px;margin:0 0 6px}
+h2{font-size:14px;margin:26px 0 8px;color:#c9d1d9;text-transform:uppercase;letter-spacing:1.2px;font-family:ui-monospace,monospace}
+p.lede{color:var(--dim);max-width:80ch;margin:0 0 8px}
+.wrap{padding:0 32px 60px;max-width:1500px}
+.facts{display:flex;gap:26px;flex-wrap:wrap;font:12px ui-monospace,monospace;color:#c9d1d9;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 14px;margin:12px 0}
+.facts b{color:#ffd479;font-weight:normal}
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin:12px 0 4px;font:12px ui-monospace,monospace}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px}
+.chart{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 14px}
+.lane{position:relative;height:46px;border-top:1px dashed #232830}.lane:first-child{border-top:0}
+.lane .lbl{position:absolute;left:0;top:3px;font:11px ui-monospace,monospace;color:var(--dim);z-index:2;background:var(--panel);padding-right:6px}
+.chips{position:absolute;left:0;right:0;top:16px;bottom:0}
+.chip{position:absolute;transform:translateX(-4px);height:15px;padding:0 5px;border-radius:3px;font:10px/15px ui-monospace,monospace;color:#0d0f12;white-space:nowrap;opacity:.92}
+.chip:hover{opacity:1;outline:1px solid #fff}
+.chip.z{outline:1px solid #ffd479}
+.axis{position:relative;height:26px;margin-top:6px;border-top:1px solid var(--line);font:10px ui-monospace,monospace;color:var(--dim)}
+.axis span{position:absolute;top:6px;transform:translateX(-50%)}
+.band{position:absolute;top:0;bottom:0;background:#ffffff06;border-left:1px solid #ffffff12}
+.band b{position:absolute;top:-1px;left:3px;font:9px ui-monospace,monospace;color:#5c6673}
+table{border-collapse:collapse;width:100%;font:12.5px ui-monospace,monospace}
+th,td{text-align:left;padding:4px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--dim);font-weight:normal}td.c{text-align:right;color:var(--dim)}
+.ladder{display:grid;grid-template-columns:120px 1fr;gap:4px 14px;margin:6px 0 20px}
+.ladder .f{font:12px ui-monospace,monospace;color:var(--dim);padding-top:4px}
+.rung{position:relative;height:33px}
+.rung .node{position:absolute;transform:translateX(-2px);border:1px solid #2f3945;border-radius:4px;padding:2px 6px;background:#1f242c;font:11px ui-monospace,monospace;white-space:nowrap}
+.rung .node em{color:var(--dim);font-style:normal}.rung .node b{color:#ffd479;font-weight:normal}
+.rung .node.free{border-color:#4a6b3a}.rung .node.free b{color:#8ad06a}
+.note{color:var(--dim);font-size:12px}
+.handoff{border-left:3px solid #ffd479;padding:6px 12px;margin:16px 0;color:#c9d1d9;font-size:13px}
+.handoff code{font:12px ui-monospace,monospace;color:#8b949e}
+</style>
+<header><h1>Weapon tech on a research-cost axis</h1>
+<p class="lede">Read for <b>vanilla</b>, race <b>Human</b> (Terran). Cost is the cheapest total of tech costs from a free node to the tech that unlocks the weapon. Root techs are free at game start, and so are techs this race unlocks at game start, so both are 0 here — that is why a Militaristic people sees its opening weapons at the left edge.</p>
+<div class="facts"><span>content: <b>/mnt/fire/StarDrive/game/Content</b></span><span>race file: <b>game/Content/Races/Human.xml</b></span><span>traits: <b>Astronomers, Corrupt, Huge Homeworld, Industrious, Militaristic, Polluted Homeworld, Prototype Flagship</b></span><span>techs: <b>190</b></span><span>weapons: <b>95</b></span><span>modules: <b>199</b></span></div>
+<div class="legend">
+<span><i style="background:#e0a458"></i>kinetic 14</span>
+<span><i style="background:#5ac8e0"></i>energy 17</span>
+<span><i style="background:#a98bf0"></i>beam 20</span>
+<span><i style="background:#7ee08a"></i>missile 5</span>
+<span><i style="background:#e07070"></i>torpedo 3</span>
+<span><i style="background:#f0e05a"></i>plasma 1</span>
+<span><i style="background:#9aa7b0"></i>point defence 6</span>
+<span><i style="background:#c98b6b"></i>bomb/bio 0</span>
+<span><i style="background:#6b7b8b"></i>support 0</span>
+<span><i style="background:#1f242c;outline:1px solid #4a6b3a"></i>free at start</span></div>
+</header>
+<div class="wrap"><h2>1 · the cost axis, one lane per tag family</h2><div class="chart">
+<div class="band" style="left:0.00%;width:17.52%"><b>0</b></div>
+<div class="band" style="left:23.65%;width:18.48%"><b>2470</b></div>
+<div class="band" style="left:49.21%;width:0.00%"><b>5140</b></div>
+<div class="band" style="left:61.18%;width:0.00%"><b>6390</b></div>
+<div class="band" style="left:83.30%;width:13.79%"><b>8700</b></div>
+<div class="lane"><span class="lbl">kinetic</span><div class="chips">
+<span class="chip z" title="ArmoredTurret — cost 0.0, 204.0 dps, range 9100, StarshipConstruction" style="left:0.00%;background:#e0a458">ArmoredTurret</span>
+<span class="chip z" title="Flak — cost 0.0, 95.5 dps, range 4500, KineticWeapons" style="left:0.00%;background:#e0a458">Flak</span>
+<span class="chip z" title="HVVulcan — cost 0.0, 32.8 dps, range 3100, SpaceWeapons" style="left:0.00%;background:#e0a458">HVVulcan</span>
+<span class="chip z" title="Railgun — cost 0.0, 63.8 dps, range 7700, KineticWeapons" style="left:0.00%;background:#e0a458">Railgun</span>
+<span class="chip" title="AdvancedKineticTurret — cost 400.0, 130.0 dps, range 6600, AdvancedKineticTurrets" style="left:3.83%;background:#e0a458">AdvancedKineticTurret</span>
+<span class="chip" title="AdvancedKineticTurret_3x3 — cost 400.0, 321.0 dps, range 6600, AdvancedKineticTurrets" style="left:3.83%;background:#e0a458">AdvancedKineticTurret_3x3</span>
+<span class="chip" title="MassDriver — cost 530.0, 220.0 dps, range 9100, MagneticArtillery" style="left:5.07%;background:#e0a458">MassDriver</span>
+<span class="chip" title="MagneticTurret_2x2 — cost 1400.0, 150.0 dps, range 7700, MagneticTurrets" style="left:13.40%;background:#e0a458">MagneticTurret_2x2</span>
+<span class="chip" title="MagneticTurret_3x3 — cost 1400.0, 388.0 dps, range 8000, MagneticTurrets" style="left:13.40%;background:#e0a458">MagneticTurret_3x3</span>
+<span class="chip" title="Fletchette Cannon — cost 1420.0, 172.0 dps, range 4600, AntiFighterSystems" style="left:13.60%;background:#e0a458">Fletchette Cannon</span>
+<span class="chip" title="MassDriver_dual — cost 1830.0, 338.5 dps, range 10500, SubspaceArtillery" style="left:17.52%;background:#e0a458">MassDriver_dual</span>
+<span class="chip" title="HVTurret_2x2 — cost 4400.0, 179.3 dps, range 8000, HVTurrets" style="left:42.13%;background:#e0a458">HVTurret_2x2</span>
+<span class="chip" title="HVTurret_3x3 — cost 4400.0, 443.3 dps, range 8000, HVTurrets" style="left:42.13%;background:#e0a458">HVTurret_3x3</span>
+<span class="chip" title="BigCannon — cost 6390.0, 1010.0 dps, range 12500, MassiveSubspaceArtillery" style="left:61.18%;background:#e0a458">BigCannon</span>
+</div></div>
+<div class="lane"><span class="lbl">energy</span><div class="chips">
+<span class="chip z" title="2x2LaserTurret — cost 0.0, 87.5 dps, range 4000, Energy Cannons" style="left:0.00%;background:#5ac8e0">2x2LaserTurret</span>
+<span class="chip z" title="BlueLaser1x2 — cost 0.0, 32.5 dps, range 2500, Energy" style="left:0.00%;background:#5ac8e0">BlueLaser1x2</span>
+<span class="chip z" title="DualHeavyLaser — cost 0.0, 235.0 dps, range 4500, Energy Cannons" style="left:0.00%;background:#5ac8e0">DualHeavyLaser</span>
+<span class="chip z" title="HeavyLaser — cost 0.0, 58.9 dps, range 4500, Energy Cannons" style="left:0.00%;background:#5ac8e0">HeavyLaser</span>
+<span class="chip" title="Disruptor — cost 440.0, 122.5 dps, range 6000, Disruptors" style="left:4.21%;background:#5ac8e0">Disruptor</span>
+<span class="chip" title="DualDisruptor — cost 440.0, 300.0 dps, range 6500, Disruptors" style="left:4.21%;background:#5ac8e0">DualDisruptor</span>
+<span class="chip" title="AF_Repeater — cost 1420.0, 125.0 dps, range 4600, AntiFighterSystems" style="left:13.60%;background:#5ac8e0">AF_Repeater</span>
+<span class="chip" title="MassiveDisruptor — cost 1440.0, 675.0 dps, range 6800, MassiveDisruptors" style="left:13.79%;background:#5ac8e0">MassiveDisruptor</span>
+<span class="chip" title="DualEmpCannon — cost 1500.0, 0.0 dps, range 6000, EMP Cannons" style="left:14.36%;background:#5ac8e0">DualEmpCannon</span>
+<span class="chip" title="EmpCannon — cost 1500.0, 0.0 dps, range 5500, EMP Cannons" style="left:14.36%;background:#5ac8e0">EmpCannon</span>
+<span class="chip" title="DualPhotonCannon — cost 1640.0, 400.0 dps, range 7000, Photon Cannons" style="left:15.70%;background:#5ac8e0">DualPhotonCannon</span>
+<span class="chip" title="PhotonCannon — cost 1640.0, 160.0 dps, range 6600, Photon Cannons" style="left:15.70%;background:#5ac8e0">PhotonCannon</span>
+<span class="chip" title="EmpDischarger1x2 — cost 3210.0, 80.0 dps, range 3000, BattleRaiders" style="left:30.73%;background:#5ac8e0">EmpDischarger1x2</span>
+<span class="chip" title="MassivePhotonCannon — cost 4040.0, 875.0 dps, range 7200, MassivePhotonCannons" style="left:38.68%;background:#5ac8e0">MassivePhotonCannon</span>
+<span class="chip" title="DualPolaronCannon — cost 5140.0, 533.3 dps, range 7400, Polaron Cannons" style="left:49.21%;background:#5ac8e0">DualPolaronCannon</span>
+<span class="chip" title="PolaronCannon — cost 5140.0, 222.5 dps, range 7000, Polaron Cannons" style="left:49.21%;background:#5ac8e0">PolaronCannon</span>
+<span class="chip" title="MassivePolaronCannon — cost 10140.0, 1170.0 dps, range 7700, MassivePolaronCannons" style="left:97.09%;background:#5ac8e0">MassivePolaronCannon</span>
+</div></div>
+<div class="lane"><span class="lbl">beam</span><div class="chips">
+<span class="chip z" title="Beam1x2 — cost 0.0, 36.0 dps, range 2100, Energy" style="left:0.00%;background:#a98bf0">Beam1x2</span>
+<span class="chip z" title="LaserBeam — cost 0.0, 96.0 dps, range 3500, LaserBeamTurrets" style="left:0.00%;background:#a98bf0">LaserBeam</span>
+<span class="chip" title="FocusLaserBeam — cost 200.0, 160.0 dps, range 5600, FocusedLaserBeam" style="left:1.91%;background:#a98bf0">FocusLaserBeam</span>
+<span class="chip" title="HeavyIonBeam — cost 350.0, 55.4 dps, range 6700, Ionic Weaponry" style="left:3.35%;background:#a98bf0">HeavyIonBeam</span>
+<span class="chip" title="IonBeam — cost 350.0, 38.4 dps, range 5300, Ionic Weaponry" style="left:3.35%;background:#a98bf0">IonBeam</span>
+<span class="chip" title="DualFusionBeam — cost 460.0, 360.0 dps, range 5600, Fusion Beam" style="left:4.40%;background:#a98bf0">DualFusionBeam</span>
+<span class="chip" title="FusionBeam — cost 460.0, 144.0 dps, range 5600, Fusion Beam" style="left:4.40%;background:#a98bf0">FusionBeam</span>
+<span class="chip" title="HeavyTractorBeam — cost 750.0, 0.0 dps, range 9400, Tractor Beam" style="left:7.18%;background:#a98bf0">HeavyTractorBeam</span>
+<span class="chip" title="TractorBeam — cost 750.0, 0.0 dps, range 7500, Tractor Beam" style="left:7.18%;background:#a98bf0">TractorBeam</span>
+<span class="chip" title="HeavySiphonBeam — cost 800.0, 0.0 dps, range 7000, Siphon Beam" style="left:7.66%;background:#a98bf0">HeavySiphonBeam</span>
+<span class="chip" title="SiphonBeam — cost 800.0, 0.0 dps, range 7700, Siphon Beam" style="left:7.66%;background:#a98bf0">SiphonBeam</span>
+<span class="chip" title="FocusFusionBeam — cost 860.0, 332.3 dps, range 8400, FocusedFusionBeam" style="left:8.23%;background:#a98bf0">FocusFusionBeam</span>
+<span class="chip" title="IonCannon1x2 — cost 960.0, 55.4 dps, range 3000, FighterTheory" style="left:9.19%;background:#a98bf0">IonCannon1x2</span>
+<span class="chip" title="ThalaronBeam — cost 1200.0, 36.9 dps, range 4200, Thalaron Blaster" style="left:11.49%;background:#a98bf0">ThalaronBeam</span>
+<span class="chip" title="HeavyPhasorTurret — cost 1660.0, 520.0 dps, range 6300, Phasors" style="left:15.89%;background:#a98bf0">HeavyPhasorTurret</span>
+<span class="chip" title="PhasorBeam — cost 1660.0, 192.0 dps, range 6300, Phasors" style="left:15.89%;background:#a98bf0">PhasorBeam</span>
+<span class="chip" title="FocusPhasorBeam — cost 3260.0, 634.3 dps, range 9800, FocusedPhasorBeam" style="left:31.21%;background:#a98bf0">FocusPhasorBeam</span>
+<span class="chip" title="Aegis — cost 3600.0, 1227.3 dps, range 14000, Battle_Stations" style="left:34.47%;background:#a98bf0">Aegis</span>
+<span class="chip" title="MassivePhasorTurret — cost 9160.0, 1040.0 dps, range 7000, MassivePhasors" style="left:87.70%;background:#a98bf0">MassivePhasorTurret</span>
+<span class="chip" title="Disintegrator — cost 9260.0, 1680.0 dps, range 11000, Disintegrator Array" style="left:88.66%;background:#a98bf0">Disintegrator</span>
+</div></div>
+<div class="lane"><span class="lbl">missile</span><div class="chips">
+<span class="chip" title="Rocket — cost 380.0, 16.2 dps, range 12000, MissileTheory" style="left:3.64%;background:#7ee08a">Rocket</span>
+<span class="chip" title="MicroTorpedo — cost 1240.0, 100.0 dps, range 14000, MicroTorpedo" style="left:11.87%;background:#7ee08a">MicroTorpedo</span>
+<span class="chip" title="ArmoredMissile — cost 1600.0, 215.4 dps, range 18000, SmallStations" style="left:15.32%;background:#7ee08a">ArmoredMissile</span>
+<span class="chip" title="LRM2 — cost 3200.0, 354.5 dps, range 13000, DualMissileTurret" style="left:30.64%;background:#7ee08a">LRM2</span>
+<span class="chip" title="LRM3 — cost 8700.0, 872.7 dps, range 15000, QuadMissileTurret" style="left:83.30%;background:#7ee08a">LRM3</span>
+</div></div>
+<div class="lane"><span class="lbl">torpedo</span><div class="chips">
+<span class="chip" title="Missile — cost 380.0, 52.5 dps, range 13000, MissileTheory" style="left:3.64%;background:#e07070">Missile</span>
+<span class="chip" title="Light Torpedo — cost 3440.0, 287.5 dps, range 15000, LightTorpedo" style="left:32.94%;background:#e07070">Light Torpedo</span>
+<span class="chip" title="BasicTorpedo — cost 9640.0, 596.2 dps, range 18000, ConventionalTorpedo" style="left:92.30%;background:#e07070">BasicTorpedo</span>
+</div></div>
+<div class="lane"><span class="lbl">plasma</span><div class="chips">
+<span class="chip" title="PlasmaThrower — cost 700.0, 1320.0 dps, range 1000, PlasmaThrowers" style="left:6.70%;background:#f0e05a">PlasmaThrower</span>
+</div></div>
+<div class="lane"><span class="lbl">point defence</span><div class="chips">
+<span class="chip" title="PDLaser — cost 520.0, 3.3 dps, range 3200, Point Defense" style="left:4.98%;background:#9aa7b0">PDLaser</span>
+<span class="chip" title="VulcanCannon — cost 520.0, 2.3 dps, range 3200, Point Defense" style="left:4.98%;background:#9aa7b0">VulcanCannon</span>
+<span class="chip" title="Phalanx PD — cost 2470.0, 9.0 dps, range 4000, RapidFirePD" style="left:23.65%;background:#9aa7b0">Phalanx PD</span>
+<span class="chip" title="RapidEnergyPD — cost 2470.0, 9.0 dps, range 4000, RapidFirePD" style="left:23.65%;background:#9aa7b0">RapidEnergyPD</span>
+<span class="chip" title="FlakAA Cannon — cost 2620.0, 40.0 dps, range 4000, HeavyPD" style="left:25.09%;background:#9aa7b0">FlakAA Cannon</span>
+<span class="chip" title="HeavyEnergyPD — cost 2620.0, 40.0 dps, range 4000, HeavyPD" style="left:25.09%;background:#9aa7b0">HeavyEnergyPD</span>
+</div></div>
+<div class="axis">
+<span style="left:0.00%">0</span>
+<span style="left:9.57%">1000</span>
+<span style="left:19.15%">2000</span>
+<span style="left:28.72%">3000</span>
+<span style="left:38.30%">4000</span>
+<span style="left:47.87%">5000</span>
+<span style="left:57.45%">6000</span>
+<span style="left:67.02%">7000</span>
+<span style="left:76.60%">8000</span>
+<span style="left:86.17%">9000</span>
+<span style="left:95.75%">10000</span>
+<span style="left:105.32%">11000</span>
+</div><div class="axis" style="border:0;height:18px"><span style="left:0;transform:none">research points after the free opening →</span></div></div>
+<h2>2 · the same data as lines — a chain is a line, a split is a decision</h2>
+<div class="ladder"><div class="f">kinetic<br><span class="note">19 weapons<br>10 techs<br>3 free</span></div><div>
+<div class="rung"><span class="node free" style="left:0.00%">KineticWeapons <b>0</b> Flak <em>95.5 dps</em>, Railgun <em>63.8 dps</em> <em>→ splits 2 ways</em></span></div>
+<div class="rung"><span class="node free" style="left:0.00%">SpaceWeapons <b>0</b> HVVulcan <em>32.8 dps</em></span></div>
+<div class="rung"><span class="node free" style="left:0.00%">StarshipConstruction <b>0</b> ArmoredTurret <em>204.0 dps</em></span></div>
+<div class="rung"><span class="node" style="left:3.83%">AdvancedKineticTurrets <b>400</b> AdvancedKineticTurret <em>130.0 dps</em>, AdvancedKineticTurret_3x3 <em>321.0 dps</em></span></div>
+<div class="rung"><span class="node" style="left:5.07%">MagneticArtillery <b>530</b> MassDriver <em>220.0 dps</em></span></div>
+<div class="rung"><span class="node" style="left:13.40%">MagneticTurrets <b>1400</b> MagneticTurret_2x2 <em>150.0 dps</em>, MagneticTurret_3x3 <em>388.0 dps</em></span></div>
+<div class="rung"><span class="node" style="left:13.60%">AntiFighterSystems <b>1420</b> Fletchette Cannon <em>172.0 dps</em></span></div>
+<div class="rung"><span class="node" style="left:17.52%">SubspaceArtillery <b>1830</b> MassDriver_dual <em>338.5 dps</em></span></div>
+<div class="rung"><span class="node" style="left:42.13%">HVTurrets <b>4400</b> HVTurret_2x2 <em>179.3 dps</em>, HVTurret_3x3 <em>443.3 dps</em></span></div>
+<div class="rung"><span class="node" style="left:61.18%">MassiveSubspaceArtillery <b>6390</b> BigCannon <em>1010.0 dps</em></span></div>
+</div></div>
+<div class="ladder"><div class="f">energy<br><span class="note">25 weapons<br>11 techs<br>2 free</span></div><div>
+<div class="rung"><span class="node free" style="left:0.00%">Energy <b>0</b> BlueLaser1x2 <em>32.5 dps</em></span></div>
+<div class="rung"><span class="node free" style="left:0.00%">Energy Cannons <b>0</b> 2x2LaserTurret <em>87.5 dps</em>, DualHeavyLaser <em>235.0 dps</em>, HeavyLaser <em>58.9 dps</em></span></div>
+<div class="rung"><span class="node" style="left:4.21%">Disruptors <b>440</b> Disruptor <em>122.5 dps</em>, DualDisruptor <em>300.0 dps</em> <em>→ splits 2 ways</em></span></div>
+<div class="rung"><span class="node" style="left:13.60%">AntiFighterSystems <b>1420</b> AF_Repeater <em>125.0 dps</em></span></div>
+<div class="rung"><span class="node" style="left:13.79%">MassiveDisruptors <b>1440</b> MassiveDisruptor <em>675.0 dps</em></span></div>
+<div class="rung"><span class="node" style="left:14.36%">EMP Cannons <b>1500</b> DualEmpCannon <em>0.0 dps</em>, EmpCannon <em>0.0 dps</em></span></div>
+<div class="rung"><span class="node" style="left:15.70%">Photon Cannons <b>1640</b> DualPhotonCannon <em>400.0 dps</em>, PhotonCannon <em>160.0 dps</em> <em>→ splits 2 ways</em></span></div>
+<div class="rung"><span class="node" style="left:30.73%">BattleRaiders <b>3210</b> EmpDischarger1x2 <em>80.0 dps</em></span></div>
+<div class="rung"><span class="node" style="left:38.68%">MassivePhotonCannons <b>4040</b> MassivePhotonCannon <em>875.0 dps</em></span></div>
+<div class="rung"><span class="node" style="left:49.21%">Polaron Cannons <b>5140</b> DualPolaronCannon <em>533.3 dps</em>, PolaronCannon <em>222.5 dps</em></span></div>
+<div class="rung"><span class="node" style="left:97.09%">MassivePolaronCannons <b>10140</b> MassivePolaronCannon <em>1170.0 dps</em></span></div>
+</div></div>
+<div class="ladder"><div class="f">beam<br><span class="note">22 weapons<br>15 techs<br>2 free</span></div><div>
+<div class="rung"><span class="node free" style="left:0.00%">Energy <b>0</b> Beam1x2 <em>36.0 dps</em> <em>→ splits 2 ways</em></span></div>
+<div class="rung"><span class="node free" style="left:0.00%">LaserBeamTurrets <b>0</b> LaserBeam <em>96.0 dps</em></span></div>
+<div class="rung"><span class="node" style="left:1.91%">FocusedLaserBeam <b>200</b> FocusLaserBeam <em>160.0 dps</em></span></div>
+<div class="rung"><span class="node" style="left:3.35%">Ionic Weaponry <b>350</b> HeavyIonBeam <em>55.4 dps</em>, IonBeam <em>38.4 dps</em> <em>→ splits 2 ways</em></span></div>
+<div class="rung"><span class="node" style="left:4.40%">Fusion Beam <b>460</b> DualFusionBeam <em>360.0 dps</em>, FusionBeam <em>144.0 dps</em></span></div>
+<div class="rung"><span class="node" style="left:7.18%">Tractor Beam <b>750</b> HeavyTractorBeam <em>0.0 dps</em>, TractorBeam <em>0.0 dps</em></span></div>
+<div class="rung"><span class="node" style="left:7.66%">Siphon Beam <b>800</b> HeavySiphonBeam <em>0.0 dps</em>, SiphonBeam <em>0.0 dps</em></span></div>
+<div class="rung"><span class="node" style="left:8.23%">FocusedFusionBeam <b>860</b> FocusFusionBeam <em>332.3 dps</em></span></div>
+<div class="rung"><span class="node" style="left:9.19%">FighterTheory <b>960</b> IonCannon1x2 <em>55.4 dps</em></span></div>
+<div class="rung"><span class="node" style="left:11.49%">Thalaron Blaster <b>1200</b> ThalaronBeam <em>36.9 dps</em></span></div>
+<div class="rung"><span class="node" style="left:15.89%">Phasors <b>1660</b> HeavyPhasorTurret <em>520.0 dps</em>, PhasorBeam <em>192.0 dps</em></span></div>
+<div class="rung"><span class="node" style="left:31.21%">FocusedPhasorBeam <b>3260</b> FocusPhasorBeam <em>634.3 dps</em></span></div>
+<div class="rung"><span class="node" style="left:34.47%">Battle_Stations <b>3600</b> Aegis <em>1227.3 dps</em></span></div>
+<div class="rung"><span class="node" style="left:87.70%">MassivePhasors <b>9160</b> MassivePhasorTurret <em>1040.0 dps</em></span></div>
+<div class="rung"><span class="node" style="left:88.66%">Disintegrator Array <b>9260</b> Disintegrator <em>1680.0 dps</em></span></div>
+</div></div>
+<div class="ladder"><div class="f">missile<br><span class="note">10 weapons<br>5 techs<br>0 free</span></div><div>
+<div class="rung"><span class="node" style="left:3.64%">MissileTheory <b>380</b> Rocket <em>16.2 dps</em></span></div>
+<div class="rung"><span class="node" style="left:11.87%">MicroTorpedo <b>1240</b> MicroTorpedo <em>100.0 dps</em></span></div>
+<div class="rung"><span class="node" style="left:15.32%">SmallStations <b>1600</b> ArmoredMissile <em>215.4 dps</em></span></div>
+<div class="rung"><span class="node" style="left:30.64%">DualMissileTurret <b>3200</b> LRM2 <em>354.5 dps</em></span></div>
+<div class="rung"><span class="node" style="left:83.30%">QuadMissileTurret <b>8700</b> LRM3 <em>872.7 dps</em></span></div>
+</div></div>
+<div class="ladder"><div class="f">torpedo<br><span class="note">6 weapons<br>3 techs<br>0 free</span></div><div>
+<div class="rung"><span class="node" style="left:3.64%">MissileTheory <b>380</b> Missile <em>52.5 dps</em></span></div>
+<div class="rung"><span class="node" style="left:32.94%">LightTorpedo <b>3440</b> Light Torpedo <em>287.5 dps</em></span></div>
+<div class="rung"><span class="node" style="left:92.30%">ConventionalTorpedo <b>9640</b> BasicTorpedo <em>596.2 dps</em></span></div>
+</div></div>
+<div class="ladder"><div class="f">plasma<br><span class="note">1 weapons<br>1 techs<br>0 free</span></div><div>
+<div class="rung"><span class="node" style="left:6.70%">PlasmaThrowers <b>700</b> PlasmaThrower <em>1320.0 dps</em></span></div>
+</div></div>
+<div class="ladder"><div class="f">point defence<br><span class="note">6 weapons<br>3 techs<br>0 free</span></div><div>
+<div class="rung"><span class="node" style="left:4.98%">Point Defense <b>520</b> PDLaser <em>3.3 dps</em>, VulcanCannon <em>2.3 dps</em></span></div>
+<div class="rung"><span class="node" style="left:23.65%">RapidFirePD <b>2470</b> Phalanx PD <em>9.0 dps</em>, RapidEnergyPD <em>9.0 dps</em></span></div>
+<div class="rung"><span class="node" style="left:25.09%">HeavyPD <b>2620</b> FlakAA Cannon <em>40.0 dps</em>, HeavyEnergyPD <em>40.0 dps</em></span></div>
+</div></div>
+<h2>3 · brackets, cut where the cost list is empty for 600 points or more</h2>
+<table><tr><th>band</th><th class="c">weapons entering</th><th>what enters</th></tr>
+<tr><td>0–1830</td><td class="c">48</td><td>2x2LaserTurret (energy), ArmoredTurret (kinetic), Beam1x2 (beam), BlueLaser1x2 (energy), DualHeavyLaser (energy), Flak (kinetic), HeavyLaser (energy), HVVulcan (kinetic), LaserBeam (beam), Railgun (kinetic), RepairDrone (other), FocusLaserBeam (beam), HeavyIonBeam (beam), IonBeam (beam), Missile (torpedo), Rocket (missile), AdvancedKineticTurret (kinetic), AdvancedKineticTurret_3x3 (kinetic), Disruptor (energy), DualDisruptor (energy), DualFusionBeam (beam), FusionBeam (beam), PDLaser (point defence), VulcanCannon (point defence), MassDriver (kinetic), PlasmaThrower (plasma), HeavyTractorBeam (beam), TractorBeam (beam), HeavySiphonBeam (beam), SiphonBeam (beam), FocusFusionBeam (beam), IonCannon1x2 (beam), LRM1 (other), ThalaronBeam (beam), MicroTorpedo (missile), MagneticTurret_2x2 (kinetic), MagneticTurret_3x3 (kinetic), AF_Repeater (energy), Fletchette Cannon (kinetic), MassiveDisruptor (energy), DualEmpCannon (energy), EmpCannon (energy), ArmoredMissile (missile), DualPhotonCannon (energy), PhotonCannon (energy), HeavyPhasorTurret (beam), PhasorBeam (beam), MassDriver_dual (kinetic)</td></tr>
+<tr><td>2470–4400</td><td class="c">12</td><td>Phalanx PD (point defence), RapidEnergyPD (point defence), FlakAA Cannon (point defence), HeavyEnergyPD (point defence), LRM2 (missile), EmpDischarger1x2 (energy), FocusPhasorBeam (beam), Light Torpedo (torpedo), Aegis (beam), MassivePhotonCannon (energy), HVTurret_2x2 (kinetic), HVTurret_3x3 (kinetic)</td></tr>
+<tr><td>5140–5140</td><td class="c">2</td><td>DualPolaronCannon (energy), PolaronCannon (energy)</td></tr>
+<tr><td>6390–6390</td><td class="c">1</td><td>BigCannon (kinetic)</td></tr>
+<tr><td>8700–10140</td><td class="c">5</td><td>LRM3 (missile), MassivePhasorTurret (beam), Disintegrator (beam), BasicTorpedo (torpedo), MassivePolaronCannon (energy)</td></tr>
+</table>
+<h2>4 · not on this race's tree</h2>
+<p class="lede">Every weapon whose unlocking techs are all secret, hidden, or simply not listed by any tech. These are acquisition questions, not research-cost questions, so they cannot sit on a cost axis — and a bracket built without them is honest only if it says so.</p>
+<table><tr><th>weapon</th><th>tags</th><th class="c">dps</th><th>why it is off-axis</th></tr>
+<tr><td>AncientRepulsor</td><td>Energy+Beam</td><td class="c">0.0</td><td class="note">only secret techs list it</td></tr>
+<tr><td>CPMissile</td><td>Guided+Intercept+Torpedo</td><td class="c">370.0</td><td class="note">no tech lists its module</td></tr>
+<tr><td>CPMissileMirv</td><td>Guided+Missile+Intercept</td><td class="c">666.7</td><td class="note">no tech lists its module</td></tr>
+<tr><td>ClusterMirv</td><td>Kinetic+Cannon</td><td class="c">2250.0</td><td class="note">no tech lists its module</td></tr>
+<tr><td>ClusterMissiles</td><td>Guided+Missile+Intercept</td><td class="c">66.7</td><td class="note">only secret techs list it</td></tr>
+<tr><td>DarkMatterCannon_1x2</td><td>Energy+Cannon</td><td class="c">58.7</td><td class="note">only secret techs list it</td></tr>
+<tr><td>DarkMatterCannon_2x2</td><td>Energy+Cannon</td><td class="c">121.3</td><td class="note">only secret techs list it</td></tr>
+<tr><td>DarkMatterCannon_3x3</td><td>Energy+Cannon</td><td class="c">289.3</td><td class="note">only secret techs list it</td></tr>
+<tr><td>Death Spores</td><td>BioWeapon</td><td class="c">0.0</td><td class="note">no tech lists its module</td></tr>
+<tr><td>DefenseMissile</td><td>Guided+Missile+Intercept</td><td class="c">350.0</td><td class="note">no tech lists its module</td></tr>
+<tr><td>DualFlak</td><td>Kinetic+Cannon</td><td class="c">187.5</td><td class="note">no tech lists its module</td></tr>
+<tr><td>DysonSwarmLauncher</td><td>Kinetic+Cannon</td><td class="c">0.0</td><td class="note">no tech lists its module</td></tr>
+<tr><td>EmpTorpedo</td><td>Guided+Intercept+Torpedo</td><td class="c">0.0</td><td class="note">no tech lists its module</td></tr>
+<tr><td>Hellstorm</td><td>Guided+Missile+Intercept</td><td class="c">140.0</td><td class="note">only secret techs list it</td></tr>
+<tr><td>IonDefenseCannon</td><td>Energy+Cannon</td><td class="c">106.7</td><td class="note">only secret techs list it</td></tr>
+<tr><td>NuclearBomb</td><td>Bomb</td><td class="c">0.0</td><td class="note">no tech lists its module</td></tr>
+<tr><td>Owlwok Antidote</td><td>Bomb+BioWeapon</td><td class="c">0.0</td><td class="note">no tech lists its module</td></tr>
+<tr><td>PlanetAC</td><td>Kinetic+Cannon</td><td class="c">550.0</td><td class="note">no tech lists its module</td></tr>
+<tr><td>PlanetFlak</td><td>Kinetic+Cannon</td><td class="c">175.0</td><td class="note">no tech lists its module</td></tr>
+<tr><td>QTCannon</td><td>Energy+Guided+Intercept+Cannon</td><td class="c">1357.1</td><td class="note">no tech lists its module</td></tr>
+<tr><td>REAegis</td><td>Energy+Cannon</td><td class="c">257.1</td><td class="note">only secret techs list it</td></tr>
+<tr><td>REDisintegrator</td><td>Beam</td><td class="c">3756.5</td><td class="note">only secret techs list it</td></tr>
+<tr><td>RemnantDrisruptor_2x2</td><td>Energy+Cannon</td><td class="c">175.5</td><td class="note">only secret techs list it</td></tr>
+<tr><td>RemnantHV2x3</td><td>Energy</td><td class="c">200.0</td><td class="note">only secret techs list it</td></tr>
+<tr><td>RemnantNuker</td><td>Guided+Intercept+Torpedo</td><td class="c">130.0</td><td class="note">only secret techs list it</td></tr>
+<tr><td>RepairBeam</td><td>-</td><td class="c">-390.0</td><td class="note">no tech lists its module</td></tr>
+<tr><td>System Defence Torpedo</td><td>Guided+Missile+Intercept</td><td class="c">1100.0</td><td class="note">no tech lists its module</td></tr>
+</table>
+<h2>5 · every module on the same axis, one lane per module type</h2>
+<p class="lede">A weapon is one kind of module. The same rule prices every <code>ShipModule</code> in this content root: the cheapest total of tech costs from a free node to a tech whose <code>ModulesUnlocked</code> names it. 154 of 199 files are on this race's axis; the other 45 are listed by no tech, or only by secret ones, so they are acquired rather than researched.</p>
+<p class="lede">A weapon module and its gun share a cost by construction; what this view adds is everything around them — armour, shields, reactors, fuel cells, engines, hangars, troops, colony and storage. The type is the file's <code>ModuleType</code>, not the weapon tag family above: a <code>Turret</code> is a mount, and the same mount holds kinetic, energy and beam guns.</p>
+<div class="chart">
+<div class="band" style="left:0.00%;width:47.41%"><b>0</b></div>
+<div class="band" style="left:57.71%;width:0.00%"><b>6390</b></div>
+<div class="band" style="left:64.85%;width:0.00%"><b>7180</b></div>
+<div class="band" style="left:77.22%;width:14.36%"><b>8550</b></div>
+<div class="band" style="left:97.09%;width:0.00%"><b>10750</b></div>
+<div class="lane"><span class="lbl">Turret</span><div class="chips">
+<span class="chip z" title="ArmoredTurret — cost 0.0, 2x2 O, mass 700" style="left:0.00%;background:#e0a458">ArmoredTurret</span>
+<span class="chip z" title="FlakTurret — cost 0.0, 2x2 O, mass 24" style="left:0.00%;background:#e0a458">FlakTurret</span>
+<span class="chip z" title="LaserBeamTurret2x2 — cost 0.0, 2x2 O, mass 7" style="left:0.00%;background:#e0a458">LaserBeamTurret2x2</span>
+<span class="chip z" title="LaserTurret — cost 0.0, 2x2 O, mass 20" style="left:0.00%;background:#e0a458">LaserTurret</span>
+<span class="chip z" title="LaserTurretHeavy — cost 0.0, 3x3 O, mass 18" style="left:0.00%;background:#e0a458">LaserTurretHeavy</span>
+<span class="chip" title="IonBeamTurret2x2 — cost 350.0, 2x2 O, mass 16" style="left:3.16%;background:#e0a458">IonBeamTurret2x2</span>
+<span class="chip" title="AdvancedKineticTurret — cost 400.0, 2x2 O, mass 24" style="left:3.61%;background:#e0a458">AdvancedKineticTurret</span>
+<span class="chip" title="AdvancedKineticTurret_3x3 — cost 400.0, 3x3 O, mass 54" style="left:3.61%;background:#e0a458">AdvancedKineticTurret_3x3</span>
+<span class="chip" title="DisruptorTurret2x2 — cost 440.0, 2x2 O, mass 20" style="left:3.97%;background:#e0a458">DisruptorTurret2x2</span>
+<span class="chip" title="DisruptorTurret3x3 — cost 440.0, 3x3 O, mass 45" style="left:3.97%;background:#e0a458">DisruptorTurret3x3</span>
+<span class="chip" title="FusionTurret2x2 — cost 460.0, 2x2 O, mass 8" style="left:4.15%;background:#e0a458">FusionTurret2x2</span>
+<span class="chip" title="FusionTurret3x3 — cost 460.0, 3x3 O, mass 18" style="left:4.15%;background:#e0a458">FusionTurret3x3</span>
+<span class="chip" title="LaserCannon — cost 520.0, 1x1 O, mass 3" style="left:4.70%;background:#e0a458">LaserCannon</span>
+<span class="chip" title="PlasmaThrower — cost 700.0, 2x2 O, mass 3" style="left:6.32%;background:#e0a458">PlasmaThrower</span>
+<span class="chip" title="TractorBeamTurret2x2 — cost 750.0, 2x2 O, mass 16" style="left:6.77%;background:#e0a458">TractorBeamTurret2x2</span>
+<span class="chip" title="SiphonBeamTurret2x2 — cost 800.0, 2x2 O, mass 16" style="left:7.23%;background:#e0a458">SiphonBeamTurret2x2</span>
+<span class="chip" title="LRMmk1 — cost 1200.0, 2x2 O, mass 77" style="left:10.84%;background:#e0a458">LRMmk1</span>
+<span class="chip" title="MagneticTurret_2x2 — cost 1400.0, 2x2 O, mass 24" style="left:12.64%;background:#e0a458">MagneticTurret_2x2</span>
+<span class="chip" title="MagneticTurret_3x3 — cost 1400.0, 3x3 O, mass 54" style="left:12.64%;background:#e0a458">MagneticTurret_3x3</span>
+<span class="chip" title="AF_Repeater — cost 1420.0, 2x2 O, mass 30" style="left:12.82%;background:#e0a458">AF_Repeater</span>
+<span class="chip" title="Flechette AF Turret — cost 1420.0, 2x2 O, mass 30" style="left:12.82%;background:#e0a458">Flechette AF Turret</span>
+<span class="chip" title="DisruptorTurret4x4 — cost 1440.0, 4x4 O, mass 80" style="left:13.01%;background:#e0a458">DisruptorTurret4x4</span>
+<span class="chip" title="EMPTurret2x2 — cost 1500.0, 2x2 O, mass 16" style="left:13.55%;background:#e0a458">EMPTurret2x2</span>
+<span class="chip" title="EMPTurret3x3 — cost 1500.0, 3x3 O, mass 32" style="left:13.55%;background:#e0a458">EMPTurret3x3</span>
+<span class="chip" title="ArmoredMissile — cost 1600.0, 2x2 O, mass 1300" style="left:14.45%;background:#e0a458">ArmoredMissile</span>
+<span class="chip" title="PhotonTurret — cost 1640.0, 2x2 O, mass 20" style="left:14.81%;background:#e0a458">PhotonTurret</span>
+<span class="chip" title="PhotonTurret3x3 — cost 1640.0, 3x3 O, mass 45" style="left:14.81%;background:#e0a458">PhotonTurret3x3</span>
+<span class="chip" title="PhasorTurret2x2 — cost 1660.0, 2x2 O, mass 8" style="left:14.99%;background:#e0a458">PhasorTurret2x2</span>
+<span class="chip" title="PhasorTurret3x3 — cost 1660.0, 3x3 O, mass 18" style="left:14.99%;background:#e0a458">PhasorTurret3x3</span>
+<span class="chip" title="EnergyPDRapid — cost 2470.0, 2x2 O, mass 14" style="left:22.31%;background:#e0a458">EnergyPDRapid</span>
+<span class="chip" title="Phalanx PD — cost 2470.0, 2x2 O, mass 14" style="left:22.31%;background:#e0a458">Phalanx PD</span>
+<span class="chip" title="EnergyPDHeavy — cost 2620.0, 2x2 O, mass 14" style="left:23.66%;background:#e0a458">EnergyPDHeavy</span>
+<span class="chip" title="FlakAA Cannon — cost 2620.0, 2x2 O, mass 14" style="left:23.66%;background:#e0a458">FlakAA Cannon</span>
+<span class="chip" title="LRMmk2 — cost 3200.0, 3x3 O, mass 204" style="left:28.90%;background:#e0a458">LRMmk2</span>
+<span class="chip" title="PhotonTurret4x4 — cost 4040.0, 4x4 O, mass 80" style="left:36.49%;background:#e0a458">PhotonTurret4x4</span>
+<span class="chip" title="HVTurret_2x2 — cost 4400.0, 2x2 O, mass 24" style="left:39.74%;background:#e0a458">HVTurret_2x2</span>
+<span class="chip" title="HVTurret_3x3 — cost 4400.0, 3x3 O, mass 54" style="left:39.74%;background:#e0a458">HVTurret_3x3</span>
+<span class="chip" title="PolaronTurret2x2 — cost 5140.0, 2x2 O, mass 20" style="left:46.42%;background:#e0a458">PolaronTurret2x2</span>
+<span class="chip" title="PolaronTurret3x3 — cost 5140.0, 3x3 O, mass 45" style="left:46.42%;background:#e0a458">PolaronTurret3x3</span>
+<span class="chip" title="LRMmk3 — cost 8700.0, 4x4 O, mass 353" style="left:78.57%;background:#e0a458">LRMmk3</span>
+<span class="chip" title="PhasorTurret4x4 — cost 9160.0, 4x4 O, mass 48" style="left:82.73%;background:#e0a458">PhasorTurret4x4</span>
+<span class="chip" title="PolaronTurret4x4 — cost 10140.0, 4x4 O, mass 80" style="left:91.58%;background:#e0a458">PolaronTurret4x4</span>
+</div></div>
+<div class="lane"><span class="lbl">MainGun</span><div class="chips">
+<span class="chip z" title="Beam1x2 — cost 0.0, 1x2 IO, mass 3" style="left:0.00%;background:#c97b4a">Beam1x2</span>
+<span class="chip z" title="BlueLaser1x2 — cost 0.0, 1x2 IO, mass 4" style="left:0.00%;background:#c97b4a">BlueLaser1x2</span>
+<span class="chip z" title="HVVulcanCannon — cost 0.0, 1x2 IO, mass 5" style="left:0.00%;background:#c97b4a">HVVulcanCannon</span>
+<span class="chip z" title="HeavyLaserCannon — cost 0.0, 1x3 O, mass 22" style="left:0.00%;background:#c97b4a">HeavyLaserCannon</span>
+<span class="chip z" title="Railgun1x3 — cost 0.0, 1x3 O, mass 18" style="left:0.00%;background:#c97b4a">Railgun1x3</span>
+<span class="chip" title="LaserBeam2x3 — cost 200.0, 2x3 O, mass 42" style="left:1.81%;background:#c97b4a">LaserBeam2x3</span>
+<span class="chip" title="IonBeam2x3 — cost 350.0, 2x3 O, mass 30" style="left:3.16%;background:#c97b4a">IonBeam2x3</span>
+<span class="chip" title="VulcanCannon — cost 520.0, 1x1 O, mass 4" style="left:4.70%;background:#c97b4a">VulcanCannon</span>
+<span class="chip" title="MassDriver2x4 — cost 530.0, 2x4 O, mass 72" style="left:4.79%;background:#c97b4a">MassDriver2x4</span>
+<span class="chip" title="TractorBeam2x3 — cost 750.0, 2x3 IO, mass 30" style="left:6.77%;background:#c97b4a">TractorBeam2x3</span>
+<span class="chip" title="SiphonBeam2x3 — cost 800.0, 2x3 O, mass 30" style="left:7.23%;background:#c97b4a">SiphonBeam2x3</span>
+<span class="chip" title="FusionBeam2x4 — cost 860.0, 2x4 O, mass 60" style="left:7.77%;background:#c97b4a">FusionBeam2x4</span>
+<span class="chip" title="IonCannon1x2 — cost 960.0, 1x2 IO, mass 8" style="left:8.67%;background:#c97b4a">IonCannon1x2</span>
+<span class="chip" title="ThalaronBeam2x3 — cost 1200.0, 2x3 O, mass 30" style="left:10.84%;background:#c97b4a">ThalaronBeam2x3</span>
+<span class="chip" title="DualMassDriver_2x5 — cost 1830.0, 2x5 O, mass 95" style="left:16.53%;background:#c97b4a">DualMassDriver_2x5</span>
+<span class="chip" title="EmpDischarger — cost 3210.0, 1x2 IO, mass 8" style="left:28.99%;background:#c97b4a">EmpDischarger</span>
+<span class="chip" title="PhasorBeam2x5 — cost 3260.0, 2x5 O, mass 80" style="left:29.44%;background:#c97b4a">PhasorBeam2x5</span>
+<span class="chip" title="Aegis — cost 3600.0, 6x6 IO, mass 12000" style="left:32.51%;background:#c97b4a">Aegis</span>
+<span class="chip" title="BigCannon — cost 6390.0, 3x8 O, mass 240" style="left:57.71%;background:#c97b4a">BigCannon</span>
+<span class="chip" title="DisintegratorArray — cost 9260.0, 3x8 O, mass 205" style="left:83.63%;background:#c97b4a">DisintegratorArray</span>
+</div></div>
+<div class="lane"><span class="lbl">MissileLauncher</span><div class="chips">
+<span class="chip" title="MissileLauncher1x3 — cost 380.0, 1x3 O, mass 25" style="left:3.43%;background:#7ee08a">MissileLauncher1x3</span>
+<span class="chip" title="RocketLauncher — cost 380.0, 1x1 O, mass 6" style="left:3.43%;background:#7ee08a">RocketLauncher</span>
+<span class="chip" title="MicroTorpedo — cost 1240.0, 1x3 O, mass 60" style="left:11.20%;background:#7ee08a">MicroTorpedo</span>
+<span class="chip" title="Light Torpedo — cost 3440.0, 2x3 O, mass 143" style="left:31.07%;background:#7ee08a">Light Torpedo</span>
+<span class="chip" title="ConventionalTorpedo — cost 9640.0, 2x5 O, mass 232" style="left:87.06%;background:#7ee08a">ConventionalTorpedo</span>
+</div></div>
+<div class="lane"><span class="lbl">Bomb</span><div class="chips">
+<span class="chip" title="NuclearBombBay2x2 — cost 360.0, 2x2 O, mass 40" style="left:3.25%;background:#c98b6b">NuclearBombBay2x2</span>
+<span class="chip" title="DeathSporeBay — cost 3720.0, 2x2 O, mass 40" style="left:33.60%;background:#c98b6b">DeathSporeBay</span>
+</div></div>
+<div class="lane"><span class="lbl">Drone</span><div class="chips">
+<span class="chip z" title="ShipyardRepairDrone — cost 0.0, 3x3 IO, mass 24" style="left:0.00%;background:#c060a0">ShipyardRepairDrone</span>
+<span class="chip" title="RepairDrone — cost 500.0, 2x2 IO, mass 30" style="left:4.52%;background:#c060a0">RepairDrone</span>
+</div></div>
+<div class="lane"><span class="lbl">Armor</span><div class="chips">
+<span class="chip z" title="Internal Bulkhead — cost 0.0, 1x1 I, mass 4" style="left:0.00%;background:#9aa7b0">Internal Bulkhead</span>
+<span class="chip z" title="Reinforced Bulkhead — cost 0.0, 2x2 I, mass 16" style="left:0.00%;background:#9aa7b0">Reinforced Bulkhead</span>
+<span class="chip z" title="SteelArmorLarge — cost 0.0, 3x3 O, mass 54" style="left:0.00%;background:#9aa7b0">SteelArmorLarge</span>
+<span class="chip z" title="SteelArmorMed — cost 0.0, 2x2 O, mass 24" style="left:0.00%;background:#9aa7b0">SteelArmorMed</span>
+<span class="chip z" title="SteelArmorSmall — cost 0.0, 1x1 O, mass 6" style="left:0.00%;background:#9aa7b0">SteelArmorSmall</span>
+<span class="chip z" title="Structure — cost 0.0, 1x1 IO, mass 1" style="left:0.00%;background:#9aa7b0">Structure</span>
+<span class="chip" title="PlaSteelArmorLarge — cost 450.0, 3x3 O, mass 27" style="left:4.06%;background:#9aa7b0">PlaSteelArmorLarge</span>
+<span class="chip" title="PlaSteelArmorMed — cost 450.0, 2x2 O, mass 12" style="left:4.06%;background:#9aa7b0">PlaSteelArmorMed</span>
+<span class="chip" title="PlaSteelArmorSmall — cost 450.0, 1x1 O, mass 3" style="left:4.06%;background:#9aa7b0">PlaSteelArmorSmall</span>
+<span class="chip" title="Ceramic Armor Large — cost 1550.0, 3x3 O, mass 54" style="left:14.00%;background:#9aa7b0">Ceramic Armor Large</span>
+<span class="chip" title="Ceramic Armor Med — cost 1550.0, 2x2 O, mass 24" style="left:14.00%;background:#9aa7b0">Ceramic Armor Med</span>
+<span class="chip" title="Ceramic Armor Small — cost 1550.0, 1x1 O, mass 6" style="left:14.00%;background:#9aa7b0">Ceramic Armor Small</span>
+<span class="chip" title="CompositeAlloys Large — cost 4150.0, 3x3 O, mass 63" style="left:37.48%;background:#9aa7b0">CompositeAlloys Large</span>
+<span class="chip" title="CompositeAlloys Med — cost 4150.0, 2x2 O, mass 28" style="left:37.48%;background:#9aa7b0">CompositeAlloys Med</span>
+<span class="chip" title="CompositeAlloys Small — cost 4150.0, 1x1 O, mass 7" style="left:37.48%;background:#9aa7b0">CompositeAlloys Small</span>
+<span class="chip" title="Crystal Armor Large — cost 8550.0, 3x3 O, mass 72" style="left:77.22%;background:#9aa7b0">Crystal Armor Large</span>
+<span class="chip" title="Crystal Armor Med — cost 8550.0, 2x2 O, mass 32" style="left:77.22%;background:#9aa7b0">Crystal Armor Med</span>
+<span class="chip" title="Crystal Armor Small — cost 8550.0, 1x1 O, mass 8" style="left:77.22%;background:#9aa7b0">Crystal Armor Small</span>
+</div></div>
+<div class="lane"><span class="lbl">Shield</span><div class="chips">
+<span class="chip z" title="Fighter Shield — cost 0.0, 1x1 IO, mass 9" style="left:0.00%;background:#5ac8e0">Fighter Shield</span>
+<span class="chip" title="Shield_1KW — cost 650.0, 2x2 IO, mass 36" style="left:5.87%;background:#5ac8e0">Shield_1KW</span>
+<span class="chip" title="Amplifier — cost 1150.0, 1x1 I, mass 2" style="left:10.39%;background:#5ac8e0">Amplifier</span>
+<span class="chip" title="Shield_10KW — cost 2150.0, 3x3 IO, mass 81" style="left:19.42%;background:#5ac8e0">Shield_10KW</span>
+<span class="chip" title="AdvAmplifier — cost 4750.0, 2x2 I, mass 8" style="left:42.90%;background:#5ac8e0">AdvAmplifier</span>
+<span class="chip" title="ArmoredShield4x4 — cost 5250.0, 4x4 IO, mass 144" style="left:47.41%;background:#5ac8e0">ArmoredShield4x4</span>
+<span class="chip" title="CanopyShield — cost 10750.0, 3x6 IO, mass 150" style="left:97.09%;background:#5ac8e0">CanopyShield</span>
+</div></div>
+<div class="lane"><span class="lbl">PowerPlant</span><div class="chips">
+<span class="chip z" title="NuclearReactorMed — cost 0.0, 2x2 I, mass 30" style="left:0.00%;background:#f0e05a">NuclearReactorMed</span>
+<span class="chip z" title="NuclearReactorSmall — cost 0.0, 1x1 I, mass 7" style="left:0.00%;background:#f0e05a">NuclearReactorSmall</span>
+<span class="chip z" title="PowerSolar — cost 0.0, 1x1 O, mass 5" style="left:0.00%;background:#f0e05a">PowerSolar</span>
+<span class="chip" title="BosonTransmiter — cost 400.0, 1x1 IOE, mass 5" style="left:3.61%;background:#f0e05a">BosonTransmiter</span>
+<span class="chip" title="Fusion Reactor — cost 450.0, 2x2 I, mass 46" style="left:4.06%;background:#f0e05a">Fusion Reactor</span>
+<span class="chip" title="Extreme Fusion Reactor — cost 1450.0, 2x2 I, mass 56" style="left:13.10%;background:#f0e05a">Extreme Fusion Reactor</span>
+<span class="chip" title="AntiMatterReactor — cost 3950.0, 3x3 I, mass 135" style="left:35.67%;background:#f0e05a">AntiMatterReactor</span>
+<span class="chip" title="Main Engineering — cost 7180.0, 4x4 I, mass 200" style="left:64.85%;background:#f0e05a">Main Engineering</span>
+</div></div>
+<div class="lane"><span class="lbl">PowerConduit</span><div class="chips">
+<span class="chip z" title="PowerConduit — cost 0.0, 1x1 IOE, mass 1" style="left:0.00%;background:#d8d08a">PowerConduit</span>
+</div></div>
+<div class="lane"><span class="lbl">FuelCell</span><div class="chips">
+<span class="chip z" title="BasicFuelCell — cost 0.0, 1x1 IO, mass 1" style="left:0.00%;background:#e0905a">BasicFuelCell</span>
+<span class="chip z" title="MediumFuelCell — cost 0.0, 2x2 IO, mass 4" style="left:0.00%;background:#e0905a">MediumFuelCell</span>
+<span class="chip" title="FuelCellMediumArmored — cost 200.0, 2x2 IO, mass 8" style="left:1.81%;background:#e0905a">FuelCellMediumArmored</span>
+<span class="chip" title="FuelCellSmallArmored — cost 200.0, 1x1 IO, mass 2" style="left:1.81%;background:#e0905a">FuelCellSmallArmored</span>
+<span class="chip" title="AdvancedCellMed — cost 1000.0, 2x2 IO, mass 4" style="left:9.03%;background:#e0905a">AdvancedCellMed</span>
+<span class="chip" title="AdvancedCellSmall — cost 1000.0, 1x1 IO, mass 1" style="left:9.03%;background:#e0905a">AdvancedCellSmall</span>
+</div></div>
+<div class="lane"><span class="lbl">Engine</span><div class="chips">
+<span class="chip z" title="Engine — cost 0.0, 1x1 E, mass 5" style="left:0.00%;background:#a98bf0">Engine</span>
+<span class="chip z" title="Maneuvering_Thruster_1x1 — cost 0.0, 1x1 OE, mass 2" style="left:0.00%;background:#a98bf0">Maneuvering_Thruster_1x1</span>
+<span class="chip z" title="WarpEngine_1x1 — cost 0.0, 1x1 E, mass 5" style="left:0.00%;background:#a98bf0">WarpEngine_1x1</span>
+<span class="chip" title="FrigateEngine — cost 360.0, 2x2 E, mass 19" style="left:3.25%;background:#a98bf0">FrigateEngine</span>
+<span class="chip" title="Maneuvering_Thruster_1x2 — cost 360.0, 2x1 OE, mass 10" style="left:3.25%;background:#a98bf0">Maneuvering_Thruster_1x2</span>
+<span class="chip" title="WarpEngine_2x2 — cost 360.0, 2x2 E, mass 20" style="left:3.25%;background:#a98bf0">WarpEngine_2x2</span>
+<span class="chip" title="CombatEngine_2x1 — cost 410.0, 2x1 E, mass 6" style="left:3.70%;background:#a98bf0">CombatEngine_2x1</span>
+<span class="chip" title="CapEngines — cost 960.0, 3x3 E, mass 42" style="left:8.67%;background:#a98bf0">CapEngines</span>
+<span class="chip" title="Maneuvering_Thruster_1x3 — cost 960.0, 3x1 OE, mass 15" style="left:8.67%;background:#a98bf0">Maneuvering_Thruster_1x3</span>
+<span class="chip" title="WarpEngine_3x3 — cost 960.0, 3x3 E, mass 45" style="left:8.67%;background:#a98bf0">WarpEngine_3x3</span>
+<span class="chip" title="Maneuvering_Thruster_1x4 — cost 2960.0, 4x1 OE, mass 20" style="left:26.73%;background:#a98bf0">Maneuvering_Thruster_1x4</span>
+<span class="chip" title="Titan Engine — cost 2960.0, 4x4 E, mass 73" style="left:26.73%;background:#a98bf0">Titan Engine</span>
+<span class="chip" title="WarpEngine_4x4 — cost 2960.0, 4x4 E, mass 80" style="left:26.73%;background:#a98bf0">WarpEngine_4x4</span>
+</div></div>
+<div class="lane"><span class="lbl">Hangar</span><div class="chips">
+<span class="chip" title="OrdnanceSupplyBay — cost 500.0, 2x2 O, mass 32" style="left:4.52%;background:#7ec8a0">OrdnanceSupplyBay</span>
+<span class="chip" title="FighterBay — cost 960.0, 3x4 IO, mass 144" style="left:8.67%;background:#7ec8a0">FighterBay</span>
+<span class="chip" title="TroopAssaultBay — cost 1100.0, 2x3 IO, mass 32" style="left:9.93%;background:#7ec8a0">TroopAssaultBay</span>
+<span class="chip" title="Raider Bay — cost 3210.0, 3x5 IO, mass 190" style="left:28.99%;background:#7ec8a0">Raider Bay</span>
+</div></div>
+<div class="lane"><span class="lbl">Troop</span><div class="chips">
+<span class="chip" title="MarineBarracks2x2 — cost 1100.0, 2x2 I, mass 24" style="left:9.93%;background:#8fb3c9">MarineBarracks2x2</span>
+<span class="chip" title="MarineBarracks6x3 — cost 1850.0, 5x3 I, mass 108" style="left:16.71%;background:#8fb3c9">MarineBarracks6x3</span>
+</div></div>
+<div class="lane"><span class="lbl">Colony</span><div class="chips">
+<span class="chip z" title="ColonyModule — cost 0.0, 2x3 IO, mass 100" style="left:0.00%;background:#d0a0e0">ColonyModule</span>
+</div></div>
+<div class="lane"><span class="lbl">Command</span><div class="chips">
+<span class="chip z" title="Cockpit — cost 0.0, 1x1 I, mass 2" style="left:0.00%;background:#8b949e">Cockpit</span>
+<span class="chip" title="Bridge — cost 480.0, 2x2 I, mass 32" style="left:4.34%;background:#8b949e">Bridge</span>
+<span class="chip" title="Sickbay — cost 1850.0, 3x3 I, mass 96" style="left:16.71%;background:#8b949e">Sickbay</span>
+<span class="chip" title="CIC — cost 7180.0, 4x4 I, mass 128" style="left:64.85%;background:#8b949e">CIC</span>
+</div></div>
+<div class="lane"><span class="lbl">Storage</span><div class="chips">
+<span class="chip z" title="BasicCargoHold — cost 0.0, 1x1 IO, mass 3" style="left:0.00%;background:#b0a080">BasicCargoHold</span>
+<span class="chip z" title="ExoticStorage — cost 0.0, 1x1 IO, mass 6" style="left:0.00%;background:#b0a080">ExoticStorage</span>
+<span class="chip z" title="MediumCargoHold — cost 0.0, 2x2 IO, mass 6" style="left:0.00%;background:#b0a080">MediumCargoHold</span>
+<span class="chip z" title="OrdnanceLocker — cost 0.0, 2x2 IO, mass 10" style="left:0.00%;background:#b0a080">OrdnanceLocker</span>
+<span class="chip z" title="OrdnanceLockerSmall — cost 0.0, 1x1 IO, mass 2" style="left:0.00%;background:#b0a080">OrdnanceLockerSmall</span>
+<span class="chip" title="LargeCargoHold — cost 420.0, 3x3 IO, mass 15" style="left:3.79%;background:#b0a080">LargeCargoHold</span>
+<span class="chip" title="Fabricator — cost 500.0, 2x2 I, mass 15" style="left:4.52%;background:#b0a080">Fabricator</span>
+<span class="chip" title="ContainerDeck — cost 870.0, 3x4 IO, mass 18" style="left:7.86%;background:#b0a080">ContainerDeck</span>
+<span class="chip" title="LargeOrdStorage — cost 1150.0, 4x4 IO, mass 46" style="left:10.39%;background:#b0a080">LargeOrdStorage</span>
+<span class="chip" title="LargeFabricator — cost 2950.0, 4x4 I, mass 55" style="left:26.64%;background:#b0a080">LargeFabricator</span>
+</div></div>
+<div class="lane"><span class="lbl">Sensors</span><div class="chips">
+<span class="chip z" title="Sensor1x2 — cost 0.0, 2x1 IO, mass 2" style="left:0.00%;background:#70c0c8">Sensor1x2</span>
+<span class="chip" title="SubspaceSensors — cost 370.0, 2x2 IO, mass 20" style="left:3.34%;background:#70c0c8">SubspaceSensors</span>
+</div></div>
+<div class="lane"><span class="lbl">Special</span><div class="chips">
+<span class="chip" title="ResearchArray — cost 200.0, 2x2 xI, mass 40" style="left:1.81%;background:#c060a0">ResearchArray</span>
+<span class="chip" title="SalvageUnit — cost 880.0, 4x4 IO, mass 100" style="left:7.95%;background:#c060a0">SalvageUnit</span>
+<span class="chip" title="Pulse Capacitor — cost 1000.0, 2x2 I, mass 4" style="left:9.03%;background:#c060a0">Pulse Capacitor</span>
+<span class="chip" title="Warp Inhibitor — cost 1240.0, 4x4 I, mass 200" style="left:11.20%;background:#c060a0">Warp Inhibitor</span>
+<span class="chip" title="ProcessingUnit — cost 1600.0, 6x6 I, mass 200" style="left:14.45%;background:#c060a0">ProcessingUnit</span>
+<span class="chip" title="ResearchLab — cost 1600.0, 6x2 xI, mass 200" style="left:14.45%;background:#c060a0">ResearchLab</span>
+</div></div>
+<div class="lane"><span class="lbl">Construction</span><div class="chips">
+<span class="chip z" title="ConstructionArray — cost 0.0, 2x3 IO, mass 36" style="left:0.00%;background:#a0b060">ConstructionArray</span>
+</div></div>
+<div class="axis">
+<span style="left:0.00%">0</span>
+<span style="left:18.06%">2000</span>
+<span style="left:36.13%">4000</span>
+<span style="left:54.19%">6000</span>
+<span style="left:72.25%">8000</span>
+<span style="left:90.31%">10000</span>
+<span style="left:108.38%">12000</span>
+</div></div>
+<h3 style="font-size:15px;margin:18px 0 6px">module types — what the tree sells besides guns</h3>
+<table><tr><th>type</th><th class="c">modules</th><th class="c">on axis</th><th class="c">cost span</th><th>cheapest</th><th>dearest</th></tr>
+<tr><td>Turret</td><td class="c">50</td><td class="c">42</td><td class="c">0–10140</td><td>ArmoredTurret</td><td>PolaronTurret4x4</td></tr>
+<tr><td>MainGun</td><td class="c">25</td><td class="c">20</td><td class="c">0–9260</td><td>Beam1x2</td><td>DisintegratorArray</td></tr>
+<tr><td>MissileLauncher</td><td class="c">8</td><td class="c">5</td><td class="c">380–9640</td><td>MissileLauncher1x3</td><td>ConventionalTorpedo</td></tr>
+<tr><td>Bomb</td><td class="c">3</td><td class="c">2</td><td class="c">360–3720</td><td>NuclearBombBay2x2</td><td>DeathSporeBay</td></tr>
+<tr><td>Drone</td><td class="c">2</td><td class="c">2</td><td class="c">0–500</td><td>ShipyardRepairDrone</td><td>RepairDrone</td></tr>
+<tr><td>Armor</td><td class="c">27</td><td class="c">18</td><td class="c">0–8550</td><td>Internal Bulkhead</td><td>Crystal Armor Small</td></tr>
+<tr><td>Shield</td><td class="c">10</td><td class="c">7</td><td class="c">0–10750</td><td>Fighter Shield</td><td>CanopyShield</td></tr>
+<tr><td>PowerPlant</td><td class="c">10</td><td class="c">8</td><td class="c">0–7180</td><td>NuclearReactorMed</td><td>Main Engineering</td></tr>
+<tr><td>PowerConduit</td><td class="c">1</td><td class="c">1</td><td class="c">0–0</td><td>PowerConduit</td><td>PowerConduit</td></tr>
+<tr><td>FuelCell</td><td class="c">8</td><td class="c">6</td><td class="c">0–1000</td><td>BasicFuelCell</td><td>AdvancedCellSmall</td></tr>
+<tr><td>Engine</td><td class="c">18</td><td class="c">13</td><td class="c">0–2960</td><td>Engine</td><td>WarpEngine_4x4</td></tr>
+<tr><td>Hangar</td><td class="c">6</td><td class="c">4</td><td class="c">500–3210</td><td>OrdnanceSupplyBay</td><td>Raider Bay</td></tr>
+<tr><td>Troop</td><td class="c">3</td><td class="c">2</td><td class="c">1100–1850</td><td>MarineBarracks2x2</td><td>MarineBarracks6x3</td></tr>
+<tr><td>Colony</td><td class="c">1</td><td class="c">1</td><td class="c">0–0</td><td>ColonyModule</td><td>ColonyModule</td></tr>
+<tr><td>Command</td><td class="c">4</td><td class="c">4</td><td class="c">0–7180</td><td>Cockpit</td><td>CIC</td></tr>
+<tr><td>Storage</td><td class="c">12</td><td class="c">10</td><td class="c">0–2950</td><td>BasicCargoHold</td><td>LargeFabricator</td></tr>
+<tr><td>Sensors</td><td class="c">2</td><td class="c">2</td><td class="c">0–370</td><td>Sensor1x2</td><td>SubspaceSensors</td></tr>
+<tr><td>Special</td><td class="c">8</td><td class="c">6</td><td class="c">200–1600</td><td>ResearchArray</td><td>ResearchLab</td></tr>
+<tr><td>Construction</td><td class="c">1</td><td class="c">1</td><td class="c">0–0</td><td>ConstructionArray</td><td>ConstructionArray</td></tr>
+</table>
+<p class="note">5 modules count as a second type for <code>ShipModule.Is()</code>, which is what the formulas read: CombatEngine_2x1 Engine+PowerPlant; RemnantEngine1 Engine+PowerPlant; Main Engineering PowerPlant+Shield; ProcessingUnit Special+Hangar; SalvageUnit Special+Hangar. The lane above is the authored <code>ModuleType</code>, the shipyard's category, not the whole answer.</p>
+<h3 style="font-size:15px;margin:18px 0 6px">module bands — the same 600-point seam rule, on every module</h3>
+<table><tr><th>band</th><th class="c">modules entering</th><th>types entering</th></tr>
+<tr><td>0–5250</td><td class="c">142</td><td>Turret 39, MainGun 18, Armor 15, Engine 13, Storage 10, PowerPlant 7, FuelCell 6, Shield 6, Special 6, MissileLauncher 4, Hangar 4, Command 3, Sensors 2, Drone 2, Bomb 2, Troop 2, Colony 1, Construction 1, PowerConduit 1</td></tr>
+<tr><td>6390–6390</td><td class="c">1</td><td>MainGun 1</td></tr>
+<tr><td>7180–7180</td><td class="c">2</td><td>Command 1, PowerPlant 1</td></tr>
+<tr><td>8550–10140</td><td class="c">8</td><td>Armor 3, Turret 3, MainGun 1, MissileLauncher 1</td></tr>
+<tr><td>10750–10750</td><td class="c">1</td><td>Shield 1</td></tr>
+</table>
+<h3 style="font-size:15px;margin:18px 0 6px">modules no on-tree tech lists</h3>
+<p class="lede">Acquisition, not research: a module no tech names cannot be unlocked by any empire, and one only a secret tech names arrives by derelict, conquest or spy. A design that carries one is unbuildable, which is why the design check below is worth reading beside this table.</p>
+<table><tr><th>module</th><th>type</th><th class="c">size</th><th>why it is off-axis</th></tr>
+<tr><td>AncientArmorV2_1x1</td><td>Armor</td><td class="c">1x1</td><td class="note">only secret techs list it</td></tr>
+<tr><td>AncientArmorV2_2x2</td><td>Armor</td><td class="c">2x2</td><td class="note">only secret techs list it</td></tr>
+<tr><td>AncientArmorV2_3x3</td><td>Armor</td><td class="c">3x3</td><td class="note">only secret techs list it</td></tr>
+<tr><td>AncientArmor_1x1</td><td>Armor</td><td class="c">1x1</td><td class="note">only secret techs list it</td></tr>
+<tr><td>AncientArmor_2x2</td><td>Armor</td><td class="c">2x2</td><td class="note">only secret techs list it</td></tr>
+<tr><td>AncientArmor_3x3</td><td>Armor</td><td class="c">3x3</td><td class="note">only secret techs list it</td></tr>
+<tr><td>MeteorPart</td><td>Armor</td><td class="c">1x1</td><td class="note">no tech lists it</td></tr>
+<tr><td>TEST_ModuleAmplifier</td><td>Armor</td><td class="c">1x1</td><td class="note">no tech lists it</td></tr>
+<tr><td>TEST_ModuleResist</td><td>Armor</td><td class="c">1x1</td><td class="note">no tech lists it</td></tr>
+<tr><td>Owlwok Liberator</td><td>Bomb</td><td class="c">2x2</td><td class="note">only secret techs list it</td></tr>
+<tr><td>CombatEngine_2x2</td><td>Engine</td><td class="c">2x2</td><td class="note">no tech lists it</td></tr>
+<tr><td>RemnantEngine1</td><td>Engine</td><td class="c">1x1</td><td class="note">only secret techs list it</td></tr>
+<tr><td>RemnantEngine2</td><td>Engine</td><td class="c">2x2</td><td class="note">only secret techs list it</td></tr>
+<tr><td>RemnantEngine3</td><td>Engine</td><td class="c">3x3</td><td class="note">only secret techs list it</td></tr>
+<tr><td>RemnantEngine4</td><td>Engine</td><td class="c">4x4</td><td class="note">only secret techs list it</td></tr>
+<tr><td>RemnantSmallFuelCell</td><td>FuelCell</td><td class="c">1x1</td><td class="note">only secret techs list it</td></tr>
+<tr><td>power_capacitor_1x1</td><td>FuelCell</td><td class="c">1x1</td><td class="note">no tech lists it</td></tr>
+<tr><td>PirateAssaultBay</td><td>Hangar</td><td class="c">2x3</td><td class="note">no tech lists it</td></tr>
+<tr><td>RemnantPort</td><td>Hangar</td><td class="c">2x2</td><td class="note">only secret techs list it</td></tr>
+<tr><td>DarkMatterCannon_1x2</td><td>MainGun</td><td class="c">1x2</td><td class="note">only secret techs list it</td></tr>
+<tr><td>IonCannon1x3</td><td>MainGun</td><td class="c">1x3</td><td class="note">only secret techs list it</td></tr>
+<tr><td>QTCannon</td><td>MainGun</td><td class="c">3x8</td><td class="note">no tech lists it</td></tr>
+<tr><td>REAegis</td><td>MainGun</td><td class="c">6x6</td><td class="note">only secret techs list it</td></tr>
+<tr><td>REDisintegratorArray</td><td>MainGun</td><td class="c">3x8</td><td class="note">only secret techs list it</td></tr>
+<tr><td>ClusterMissile</td><td>MissileLauncher</td><td class="c">2x2</td><td class="note">only secret techs list it</td></tr>
+<tr><td>EMPTorpedo</td><td>MissileLauncher</td><td class="c">2x5</td><td class="note">no tech lists it</td></tr>
+<tr><td>RemnantNuker</td><td>MissileLauncher</td><td class="c">2x2</td><td class="note">only secret techs list it</td></tr>
+<tr><td>AncientReactorMed</td><td>PowerPlant</td><td class="c">2x2</td><td class="note">no tech lists it</td></tr>
+<tr><td>RemnantSmallReactor</td><td>PowerPlant</td><td class="c">1x1</td><td class="note">only secret techs list it</td></tr>
+<tr><td>AncientShield2kw</td><td>Shield</td><td class="c">2x2</td><td class="note">only secret techs list it</td></tr>
+<tr><td>AncientShield_3x3</td><td>Shield</td><td class="c">3x3</td><td class="note">only secret techs list it</td></tr>
+<tr><td>TEST_ModuleShield</td><td>Shield</td><td class="c">1x1</td><td class="note">no tech lists it</td></tr>
+<tr><td>Inertial Damper</td><td>Special</td><td class="c">2x2</td><td class="note">no tech lists it</td></tr>
+<tr><td>Pirate Inhibitor</td><td>Special</td><td class="c">2x2</td><td class="note">no tech lists it</td></tr>
+<tr><td>SalvageCargo1x1</td><td>Storage</td><td class="c">1x1</td><td class="note">no tech lists it</td></tr>
+<tr><td>SalvageCargo2x2</td><td>Storage</td><td class="c">2x2</td><td class="note">no tech lists it</td></tr>
+<tr><td>MarineBarracks8x4</td><td>Troop</td><td class="c">5x3</td><td class="note">no tech lists it</td></tr>
+<tr><td>AncientRepulsor</td><td>Turret</td><td class="c">2x2</td><td class="note">only secret techs list it</td></tr>
+<tr><td>DarkMatterCannon_2x2</td><td>Turret</td><td class="c">2x2</td><td class="note">only secret techs list it</td></tr>
+<tr><td>DarkMatterCannon_3x3</td><td>Turret</td><td class="c">3x3</td><td class="note">only secret techs list it</td></tr>
+<tr><td>DisruptorTurret</td><td>Turret</td><td class="c">2x2</td><td class="note">no tech lists it</td></tr>
+<tr><td>FlakTurret3x3</td><td>Turret</td><td class="c">3x3</td><td class="note">no tech lists it</td></tr>
+<tr><td>Hellstorm</td><td>Turret</td><td class="c">2x2</td><td class="note">only secret techs list it</td></tr>
+<tr><td>RemnantDrisruptor_2x2</td><td>Turret</td><td class="c">2x2</td><td class="note">only secret techs list it</td></tr>
+<tr><td>RemnantHV2x3</td><td>Turret</td><td class="c">2x3</td><td class="note">only secret techs list it</td></tr>
+</table>
+<h2>6 · hulls, and the roles a hull does not declare</h2>
+<p class="lede">A weapon is half a ship. These are the hulls this people can unlock, by the role its <code>.hull</code> file declares, and what the hull tech costs on the same axis. Carrier, troop ship, bomber, support and colony are <b>not</b> here: <code>RoleData</code> decides those from the modules a design carries, as a share of the hull's slot count.</p>
+<table><tr><th>hull role</th><th>hull</th><th>hull tech</th><th class="c">cost</th><th class="c">slots</th><th>carrier / bomber / troop ship threshold</th></tr>
+<tr><td>corvette</td><td>Terran/Hunter</td><td>Corvettes</td><td class="c">0.0</td><td class="c">42</td><td class="note">10% = 5, 5% = 3 slots</td></tr>
+<tr><td>fighter</td><td>Terran/Shuttle</td><td>StarshipConstruction</td><td class="c">0.0</td><td class="c">12</td><td class="note">10% = 2, 5% = 1 slots</td></tr>
+<tr><td>freighter</td><td>Misc/HaulerSmall</td><td>StarshipConstruction</td><td class="c">0.0</td><td class="c">26</td><td class="note">10% = 3, 5% = 2 slots</td></tr>
+<tr><td>freighter</td><td>Misc/CargoMedium</td><td>MediumFreighters</td><td class="c">420.0</td><td class="c">68</td><td class="note">10% = 7, 5% = 4 slots</td></tr>
+<tr><td>freighter</td><td>Misc/CargoLong</td><td>LargeFreighters</td><td class="c">870.0</td><td class="c">166</td><td class="note">10% = 17, 5% = 9 slots</td></tr>
+<tr><td>frigate</td><td>Terran/Gunboat</td><td>FrigateConstruction</td><td class="c">480.0</td><td class="c">70</td><td class="note">10% = 7, 5% = 4 slots</td></tr>
+<tr><td>frigate</td><td>Terran/HeavyGunboat</td><td>FrigateConstruction</td><td class="c">480.0</td><td class="c">94</td><td class="note">10% = 10, 5% = 5 slots</td></tr>
+<tr><td>station</td><td>Terran/Terran_Station_Small</td><td>SmallStations</td><td class="c">1600.0</td><td class="c">356</td><td class="note">10% = 36, 5% = 18 slots</td></tr>
+<tr><td>station</td><td>Terran/Terran_Station</td><td>Battle_Stations</td><td class="c">3600.0</td><td class="c">954</td><td class="note">10% = 96, 5% = 48 slots</td></tr>
+<tr><td>cruiser</td><td>Terran/LightCarrier</td><td>Cruisers</td><td class="c">1680.0</td><td class="c">420</td><td class="note">10% = 42, 5% = 21 slots</td></tr>
+<tr><td>cruiser</td><td>Terran/LightCruiser</td><td>Cruisers</td><td class="c">1680.0</td><td class="c">310</td><td class="note">10% = 31, 5% = 16 slots</td></tr>
+<tr><td>battleship</td><td>Terran/Battleship</td><td>Battleships</td><td class="c">5180.0</td><td class="c">780</td><td class="note">10% = 78, 5% = 39 slots</td></tr>
+<tr><td>capital</td><td>Terran/Dreadnought</td><td>Titans</td><td class="c">11680.0</td><td class="c">1378</td><td class="note">10% = 138, 5% = 69 slots</td></tr>
+</table>
+<p class="note">Percentages divide by <code>ShipHull.SurfaceArea</code>, which is <code>HullSlots.Length</code>. A hull can pass the share and still not take the module: the bay is <code>3x4 IO</code> and the rectangle has to fit the grid.</p>
+<h2>7 · the ships this race actually ships with, on a bill of their own</h2>
+<p class="lede">A design's bill is the sum of the tech nodes in its build gate: <code>ShipDesign.TechsNeeded</code> is the hull's whole tree plus, for every unique module, the whole tree of the tech that unlocks it. Each tech is paid for once, so this is a sum and not the reach of any one node — which is why ships start far to the right of weapons: a hull and its support modules are most of the bill. Eras here are equal-count cuts of the design bills, because the weapon seams put two thirds of the ships in one band.</p>
+<div class="chart">
+<div class="band" style="left:0.00%;width:7.34%"><b>0</b></div>
+<div class="band" style="left:7.34%;width:5.66%"><b>4800</b></div>
+<div class="band" style="left:12.99%;width:12.69%"><b>8500</b></div>
+<div class="band" style="left:25.68%;width:14.52%"><b>16800</b></div>
+<div class="band" style="left:40.20%;width:56.87%"><b>26300</b></div>
+<div class="lane"><span class="lbl">corvette</span><div class="chips">
+<span class="chip" title="Hunter mk1-a — bill 0, hull Terran/Hunter, 4 techs" style="left:0.00%;background:#8b949e">Hunter mk1-a</span>
+<span class="chip" title="Hunter mk1-b — bill 0, hull Terran/Hunter, 6 techs" style="left:0.00%;background:#8b949e">Hunter mk1-b</span>
+<span class="chip" title="Hunter mk1-c — bill 0, hull Terran/Hunter, 7 techs" style="left:0.00%;background:#8b949e">Hunter mk1-c</span>
+<span class="chip" title="Hunter mk2-a — bill 380, hull Terran/Hunter, 8 techs" style="left:0.58%;background:#8b949e">Hunter mk2-a</span>
+<span class="chip" title="Hunter mk2-b — bill 830, hull Terran/Hunter, 9 techs" style="left:1.27%;background:#8b949e">Hunter mk2-b</span>
+<span class="chip" title="Hornet mk1-a — bill 3010, hull Terran/Hunter, 13 techs" style="left:4.60%;background:#8b949e">Hornet mk1-a</span>
+<span class="chip" title="Hornet mk1-b — bill 5160, hull Terran/Hunter, 16 techs" style="left:7.89%;background:#8b949e">Hornet mk1-b</span>
+<span class="chip" title="Hornet mk2-a — bill 7010, hull Terran/Hunter, 16 techs" style="left:10.72%;background:#8b949e">Hornet mk2-a</span>
+</div></div>
+<div class="lane"><span class="lbl">frigate</span><div class="chips">
+<span class="chip" title="Shelldoom mk1-a — bill 480, hull Terran/Gunboat, 8 techs" style="left:0.73%;background:#8fb3c9">Shelldoom mk1-a</span>
+<span class="chip" title="Spearhead mk1-a — bill 480, hull Terran/HeavyGunboat, 8 techs" style="left:0.73%;background:#8fb3c9">Spearhead mk1-a</span>
+<span class="chip" title="Spearhead mk1-b — bill 840, hull Terran/HeavyGunboat, 10 techs" style="left:1.28%;background:#8fb3c9">Spearhead mk1-b</span>
+<span class="chip" title="Spearhead mk2-a — bill 840, hull Terran/HeavyGunboat, 11 techs" style="left:1.28%;background:#8fb3c9">Spearhead mk2-a</span>
+<span class="chip" title="Spearhead mk2-b — bill 1220, hull Terran/HeavyGunboat, 12 techs" style="left:1.87%;background:#8fb3c9">Spearhead mk2-b</span>
+<span class="chip" title="Spearhead mk2-c — bill 1670, hull Terran/HeavyGunboat, 13 techs" style="left:2.55%;background:#8fb3c9">Spearhead mk2-c</span>
+<span class="chip" title="Spearhead mk2-d — bill 2320, hull Terran/HeavyGunboat, 14 techs" style="left:3.55%;background:#8fb3c9">Spearhead mk2-d</span>
+<span class="chip" title="Spearhead mk3-a — bill 3920, hull Terran/HeavyGunboat, 18 techs" style="left:5.99%;background:#8fb3c9">Spearhead mk3-a</span>
+<span class="chip" title="Spearhead mk3-b — bill 4440, hull Terran/HeavyGunboat, 19 techs" style="left:6.79%;background:#8fb3c9">Spearhead mk3-b</span>
+<span class="chip" title="Spearhead mk3-c — bill 4460, hull Terran/HeavyGunboat, 19 techs" style="left:6.82%;background:#8fb3c9">Spearhead mk3-c</span>
+<span class="chip" title="Missileboat mk1-a — bill 5260, hull Terran/HeavyGunboat, 20 techs" style="left:8.04%;background:#8fb3c9">Missileboat mk1-a</span>
+<span class="chip" title="Spearhead mk3-d — bill 5460, hull Terran/HeavyGunboat, 20 techs" style="left:8.35%;background:#8fb3c9">Spearhead mk3-d</span>
+<span class="chip" title="Missileboat mk1-b — bill 5840, hull Terran/HeavyGunboat, 20 techs" style="left:8.93%;background:#8fb3c9">Missileboat mk1-b</span>
+<span class="chip" title="MissileSupport mk1-a — bill 6240, hull Terran/Gunboat, 19 techs" style="left:9.54%;background:#8fb3c9">MissileSupport mk1-a</span>
+<span class="chip" title="Obsidian mk1-a — bill 6440, hull Terran/Gunboat, 21 techs" style="left:9.84%;background:#8fb3c9">Obsidian mk1-a</span>
+</div></div>
+<div class="lane"><span class="lbl">cruiser</span><div class="chips">
+<span class="chip" title="Blockade buster mk1-a — bill 2870, hull Terran/LightCruiser, 14 techs" style="left:4.39%;background:#d8d08a">Blockade buster mk1-a</span>
+<span class="chip" title="Blockade buster mk1-b — bill 3520, hull Terran/LightCruiser, 15 techs" style="left:5.38%;background:#d8d08a">Blockade buster mk1-b</span>
+<span class="chip" title="Blockade buster mk2-a — bill 3920, hull Terran/LightCruiser, 16 techs" style="left:5.99%;background:#d8d08a">Blockade buster mk2-a</span>
+<span class="chip" title="Blockade buster mk2-b — bill 4370, hull Terran/LightCruiser, 18 techs" style="left:6.68%;background:#d8d08a">Blockade buster mk2-b</span>
+<span class="chip" title="Blockade buster mk2-c — bill 4970, hull Terran/LightCruiser, 19 techs" style="left:7.60%;background:#d8d08a">Blockade buster mk2-c</span>
+<span class="chip" title="Blockade buster mk2-d — bill 6120, hull Terran/LightCruiser, 21 techs" style="left:9.36%;background:#d8d08a">Blockade buster mk2-d</span>
+<span class="chip" title="Blockade buster mk3-a — bill 6940, hull Terran/LightCruiser, 22 techs" style="left:10.61%;background:#d8d08a">Blockade buster mk3-a</span>
+<span class="chip" title="Blockade buster mk3-b — bill 8040, hull Terran/LightCruiser, 23 techs" style="left:12.29%;background:#d8d08a">Blockade buster mk3-b</span>
+<span class="chip" title="Apollo mk1-a — bill 8360, hull Terran/LightCarrier, 24 techs" style="left:12.78%;background:#d8d08a">Apollo mk1-a</span>
+<span class="chip" title="Blockade buster mk3-c — bill 8440, hull Terran/LightCruiser, 23 techs" style="left:12.90%;background:#d8d08a">Blockade buster mk3-c</span>
+<span class="chip" title="Blockade buster mk3-d — bill 8960, hull Terran/LightCruiser, 24 techs" style="left:13.70%;background:#d8d08a">Blockade buster mk3-d</span>
+<span class="chip" title="Apollo mk1-b — bill 9460, hull Terran/LightCarrier, 24 techs" style="left:14.46%;background:#d8d08a">Apollo mk1-b</span>
+<span class="chip" title="Blockade buster mk4-a — bill 10060, hull Terran/LightCruiser, 26 techs" style="left:15.38%;background:#d8d08a">Blockade buster mk4-a</span>
+<span class="chip" title="Apollo mk1-c — bill 10960, hull Terran/LightCarrier, 26 techs" style="left:16.75%;background:#d8d08a">Apollo mk1-c</span>
+<span class="chip" title="IronMaiden mk1 — bill 11760, hull Terran/LightCruiser, 26 techs" style="left:17.98%;background:#d8d08a">IronMaiden mk1</span>
+<span class="chip" title="Blockade buster mk4-b — bill 12560, hull Terran/LightCruiser, 29 techs" style="left:19.20%;background:#d8d08a">Blockade buster mk4-b</span>
+<span class="chip" title="Blockade buster mk4-c — bill 14060, hull Terran/LightCruiser, 30 techs" style="left:21.49%;background:#d8d08a">Blockade buster mk4-c</span>
+<span class="chip" title="Apollo mk2-a — bill 16260, hull Terran/LightCarrier, 31 techs" style="left:24.86%;background:#d8d08a">Apollo mk2-a</span>
+<span class="chip" title="Blockade buster mk5-a — bill 16660, hull Terran/LightCruiser, 31 techs" style="left:25.47%;background:#d8d08a">Blockade buster mk5-a</span>
+<span class="chip" title="Apollo mk2-b — bill 17260, hull Terran/LightCarrier, 33 techs" style="left:26.39%;background:#d8d08a">Apollo mk2-b</span>
+<span class="chip" title="Blockade buster mk5-b — bill 19260, hull Terran/LightCruiser, 32 techs" style="left:29.44%;background:#d8d08a">Blockade buster mk5-b</span>
+<span class="chip" title="Apollo mk3-a — bill 20260, hull Terran/LightCarrier, 34 techs" style="left:30.97%;background:#d8d08a">Apollo mk3-a</span>
+<span class="chip" title="Apollo mk4-b — bill 22260, hull Terran/LightCarrier, 33 techs" style="left:34.03%;background:#d8d08a">Apollo mk4-b</span>
+<span class="chip" title="Blockade buster mk5-c — bill 23260, hull Terran/LightCruiser, 34 techs" style="left:35.56%;background:#d8d08a">Blockade buster mk5-c</span>
+<span class="chip" title="Apollo mk4-c — bill 24860, hull Terran/LightCarrier, 34 techs" style="left:38.00%;background:#d8d08a">Apollo mk4-c</span>
+<span class="chip" title="Apollo mk4-d — bill 27960, hull Terran/LightCarrier, 35 techs" style="left:42.74%;background:#d8d08a">Apollo mk4-d</span>
+<span class="chip" title="Apollo mk4-e — bill 28960, hull Terran/LightCarrier, 36 techs" style="left:44.27%;background:#d8d08a">Apollo mk4-e</span>
+</div></div>
+<div class="lane"><span class="lbl">battleship</span><div class="chips">
+<span class="chip" title="Hades mk1-a — bill 17410, hull Terran/Battleship, 31 techs" style="left:26.61%;background:#e0a458">Hades mk1-a</span>
+<span class="chip" title="Hades mk1-b — bill 19510, hull Terran/Battleship, 33 techs" style="left:29.82%;background:#e0a458">Hades mk1-b</span>
+<span class="chip" title="Hades mk2-a — bill 21510, hull Terran/Battleship, 34 techs" style="left:32.88%;background:#e0a458">Hades mk2-a</span>
+<span class="chip" title="Hades mk2-b — bill 22160, hull Terran/Battleship, 35 techs" style="left:33.88%;background:#e0a458">Hades mk2-b</span>
+<span class="chip" title="Hades mk2-c — bill 24760, hull Terran/Battleship, 36 techs" style="left:37.85%;background:#e0a458">Hades mk2-c</span>
+<span class="chip" title="Hades mk2-d — bill 27360, hull Terran/Battleship, 37 techs" style="left:41.83%;background:#e0a458">Hades mk2-d</span>
+<span class="chip" title="Hades mk3-a — bill 30360, hull Terran/Battleship, 38 techs" style="left:46.41%;background:#e0a458">Hades mk3-a</span>
+<span class="chip" title="Hades mk3-b — bill 33460, hull Terran/Battleship, 39 techs" style="left:51.15%;background:#e0a458">Hades mk3-b</span>
+<span class="chip" title="Hades mk3-c — bill 37860, hull Terran/Battleship, 40 techs" style="left:57.88%;background:#e0a458">Hades mk3-c</span>
+<span class="chip" title="Hades mk3-d — bill 38860, hull Terran/Battleship, 41 techs" style="left:59.41%;background:#e0a458">Hades mk3-d</span>
+<span class="chip" title="Hades mk3-c2 — bill 39660, hull Terran/Battleship, 41 techs" style="left:60.63%;background:#e0a458">Hades mk3-c2</span>
+<span class="chip" title="Hades mk3-d2 — bill 40660, hull Terran/Battleship, 42 techs" style="left:62.16%;background:#e0a458">Hades mk3-d2</span>
+<span class="chip" title="Hades mk3-e — bill 46160, hull Terran/Battleship, 43 techs" style="left:70.56%;background:#e0a458">Hades mk3-e</span>
+<span class="chip" title="Hades mk4 — bill 48660, hull Terran/Battleship, 44 techs" style="left:74.39%;background:#e0a458">Hades mk4</span>
+</div></div>
+<div class="lane"><span class="lbl">capital</span><div class="chips">
+<span class="chip" title="Dreadnought mk1-a — bill 44210, hull Terran/Dreadnought, 40 techs" style="left:67.58%;background:#e0a458">Dreadnought mk1-a</span>
+<span class="chip" title="Dreadnought mk1-b — bill 46210, hull Terran/Dreadnought, 41 techs" style="left:70.64%;background:#e0a458">Dreadnought mk1-b</span>
+<span class="chip" title="Dreadnought mk1-c — bill 48210, hull Terran/Dreadnought, 42 techs" style="left:73.70%;background:#e0a458">Dreadnought mk1-c</span>
+<span class="chip" title="Dreadnought mk1-d — bill 50010, hull Terran/Dreadnought, 43 techs" style="left:76.45%;background:#e0a458">Dreadnought mk1-d</span>
+<span class="chip" title="Dreadnought mk2-a — bill 55510, hull Terran/Dreadnought, 44 techs" style="left:84.86%;background:#e0a458">Dreadnought mk2-a</span>
+<span class="chip" title="Dreadnought mk2-c — bill 61010, hull Terran/Dreadnought, 45 techs" style="left:93.27%;background:#e0a458">Dreadnought mk2-c</span>
+<span class="chip" title="Dreadnought mk2-d — bill 63510, hull Terran/Dreadnought, 46 techs" style="left:97.09%;background:#e0a458">Dreadnought mk2-d</span>
+</div></div>
+<div class="lane"><span class="lbl">carrier</span><div class="chips">
+<span class="chip" title="Light Carrier mk1-a — bill 7180, hull Terran/LightCarrier, 22 techs" style="left:10.98%;background:#7ee08a">Light Carrier mk1-a</span>
+<span class="chip" title="HeavyCarrier mk1-a — bill 8320, hull Terran/LightCarrier, 24 techs" style="left:12.72%;background:#7ee08a">HeavyCarrier mk1-a</span>
+<span class="chip" title="Light Carrier mk2-a — bill 8400, hull Terran/LightCarrier, 24 techs" style="left:12.84%;background:#7ee08a">Light Carrier mk2-a</span>
+<span class="chip" title="Light Carrier mk2-c — bill 9100, hull Terran/LightCarrier, 24 techs" style="left:13.91%;background:#7ee08a">Light Carrier mk2-c</span>
+<span class="chip" title="HeavyCarrier mk2-a — bill 9320, hull Terran/LightCarrier, 26 techs" style="left:14.25%;background:#7ee08a">HeavyCarrier mk2-a</span>
+<span class="chip" title="Light Carrier mk2-b — bill 9400, hull Terran/LightCarrier, 25 techs" style="left:14.37%;background:#7ee08a">Light Carrier mk2-b</span>
+<span class="chip" title="Light Carrier mk2-d — bill 10600, hull Terran/LightCarrier, 25 techs" style="left:16.20%;background:#7ee08a">Light Carrier mk2-d</span>
+<span class="chip" title="HeavyCarrier mk2-b — bill 11420, hull Terran/LightCarrier, 28 techs" style="left:17.46%;background:#7ee08a">HeavyCarrier mk2-b</span>
+<span class="chip" title="HeavyCarrier mk2-c — bill 12920, hull Terran/LightCarrier, 30 techs" style="left:19.75%;background:#7ee08a">HeavyCarrier mk2-c</span>
+<span class="chip" title="HeavyCarrier mk3 — bill 18520, hull Terran/LightCarrier, 32 techs" style="left:28.31%;background:#7ee08a">HeavyCarrier mk3</span>
+<span class="chip" title="Hydra mk1-a — bill 19620, hull Terran/Battleship, 32 techs" style="left:29.99%;background:#7ee08a">Hydra mk1-a</span>
+<span class="chip" title="Heavy Carrier mk1 — bill 21170, hull Terran/Battleship, 33 techs" style="left:32.36%;background:#7ee08a">Heavy Carrier mk1</span>
+<span class="chip" title="Hydra mk1-b — bill 23720, hull Terran/Battleship, 35 techs" style="left:36.26%;background:#7ee08a">Hydra mk1-b</span>
+<span class="chip" title="Heavy Carrier mk2 — bill 23770, hull Terran/Battleship, 34 techs" style="left:36.34%;background:#7ee08a">Heavy Carrier mk2</span>
+<span class="chip" title="Hydra mk1-c — bill 26320, hull Terran/Battleship, 36 techs" style="left:40.24%;background:#7ee08a">Hydra mk1-c</span>
+<span class="chip" title="Heavy Carrier mk3 — bill 26370, hull Terran/Battleship, 35 techs" style="left:40.31%;background:#7ee08a">Heavy Carrier mk3</span>
+<span class="chip" title="Sparta-Class carrier — bill 27970, hull Terran/Battleship, 39 techs" style="left:42.76%;background:#7ee08a">Sparta-Class carrier</span>
+<span class="chip" title="Heavy Carrier mk4-a — bill 29370, hull Terran/Battleship, 36 techs" style="left:44.90%;background:#7ee08a">Heavy Carrier mk4-a</span>
+<span class="chip" title="Heavy Carrier mk4-a2 — bill 31570, hull Terran/Battleship, 38 techs" style="left:48.26%;background:#7ee08a">Heavy Carrier mk4-a2</span>
+<span class="chip" title="Heavy Carrier mk4-b — bill 32870, hull Terran/Battleship, 38 techs" style="left:50.25%;background:#7ee08a">Heavy Carrier mk4-b</span>
+<span class="chip" title="Heavy Carrier mk4-b2 — bill 34670, hull Terran/Battleship, 39 techs" style="left:53.00%;background:#7ee08a">Heavy Carrier mk4-b2</span>
+<span class="chip" title="Heavy Carrier mk4-c — bill 37270, hull Terran/Battleship, 39 techs" style="left:56.97%;background:#7ee08a">Heavy Carrier mk4-c</span>
+<span class="chip" title="Heavy Carrier mk4-d — bill 38270, hull Terran/Battleship, 40 techs" style="left:58.50%;background:#7ee08a">Heavy Carrier mk4-d</span>
+<span class="chip" title="Heavy Carrier mk4-c2 — bill 39070, hull Terran/Battleship, 40 techs" style="left:59.73%;background:#7ee08a">Heavy Carrier mk4-c2</span>
+<span class="chip" title="Heavy Carrier mk4-d2 — bill 40070, hull Terran/Battleship, 41 techs" style="left:61.25%;background:#7ee08a">Heavy Carrier mk4-d2</span>
+<span class="chip" title="Heavy Carrier mk5-a — bill 40070, hull Terran/Battleship, 41 techs" style="left:61.25%;background:#7ee08a">Heavy Carrier mk5-a</span>
+<span class="chip" title="Heavy Carrier mk5-b — bill 42570, hull Terran/Battleship, 42 techs" style="left:65.08%;background:#7ee08a">Heavy Carrier mk5-b</span>
+<span class="chip" title="Perseverence SuperCarrier — bill 47420, hull Terran/Dreadnought, 43 techs" style="left:72.49%;background:#7ee08a">Perseverence SuperCarrier</span>
+</div></div>
+<div class="lane"><span class="lbl">bomber</span><div class="chips">
+<span class="chip" title="Hellmaker mk1-a — bill 840, hull Terran/HeavyGunboat, 10 techs" style="left:1.28%;background:#c98b6b">Hellmaker mk1-a</span>
+<span class="chip" title="Hellmaker mk1-b — bill 1290, hull Terran/HeavyGunboat, 11 techs" style="left:1.97%;background:#c98b6b">Hellmaker mk1-b</span>
+<span class="chip" title="Hellmaker mk2 — bill 3540, hull Terran/HeavyGunboat, 16 techs" style="left:5.41%;background:#c98b6b">Hellmaker mk2</span>
+<span class="chip" title="Sweeper mk1-a — bill 4760, hull Terran/LightCruiser, 17 techs" style="left:7.28%;background:#c98b6b">Sweeper mk1-a</span>
+<span class="chip" title="Sweeper mk1-b — bill 5210, hull Terran/LightCruiser, 19 techs" style="left:7.96%;background:#c98b6b">Sweeper mk1-b</span>
+<span class="chip" title="Sweeper mk1-c — bill 6360, hull Terran/LightCruiser, 21 techs" style="left:9.72%;background:#c98b6b">Sweeper mk1-c</span>
+<span class="chip" title="Sweeper mk2-a — bill 6760, hull Terran/LightCruiser, 22 techs" style="left:10.33%;background:#c98b6b">Sweeper mk2-a</span>
+<span class="chip" title="Sweeper mk2-b — bill 7360, hull Terran/LightCruiser, 23 techs" style="left:11.25%;background:#c98b6b">Sweeper mk2-b</span>
+<span class="chip" title="Sweeper mk2-c — bill 8460, hull Terran/LightCruiser, 24 techs" style="left:12.93%;background:#c98b6b">Sweeper mk2-c</span>
+<span class="chip" title="Sweeper mk2-d — bill 8460, hull Terran/LightCruiser, 24 techs" style="left:12.93%;background:#c98b6b">Sweeper mk2-d</span>
+<span class="chip" title="Sweeper mk3-a — bill 13160, hull Terran/LightCruiser, 27 techs" style="left:20.12%;background:#c98b6b">Sweeper mk3-a</span>
+<span class="chip" title="Sweeper mk3-b — bill 17260, hull Terran/LightCruiser, 29 techs" style="left:26.39%;background:#c98b6b">Sweeper mk3-b</span>
+<span class="chip" title="Sweeper mk3-c — bill 17260, hull Terran/LightCruiser, 29 techs" style="left:26.39%;background:#c98b6b">Sweeper mk3-c</span>
+<span class="chip" title="Sweeper mk3-d — bill 20610, hull Terran/LightCruiser, 29 techs" style="left:31.51%;background:#c98b6b">Sweeper mk3-d</span>
+<span class="chip" title="Sweeper mk4-a — bill 24610, hull Terran/LightCruiser, 28 techs" style="left:37.62%;background:#c98b6b">Sweeper mk4-a</span>
+</div></div>
+<div class="lane"><span class="lbl">troopShip</span><div class="chips">
+<span class="chip" title="ManOfWar mk1-a — bill 4760, hull Terran/LightCruiser, 17 techs" style="left:7.28%;background:#5ac8e0">ManOfWar mk1-a</span>
+<span class="chip" title="ManOfWar mk1-b — bill 5210, hull Terran/LightCruiser, 19 techs" style="left:7.96%;background:#5ac8e0">ManOfWar mk1-b</span>
+<span class="chip" title="ManOfWar mk1-c — bill 6360, hull Terran/LightCruiser, 21 techs" style="left:9.72%;background:#5ac8e0">ManOfWar mk1-c</span>
+<span class="chip" title="ManOfWar mk2-a — bill 6760, hull Terran/LightCruiser, 22 techs" style="left:10.33%;background:#5ac8e0">ManOfWar mk2-a</span>
+<span class="chip" title="ManOfWar mk2-b — bill 7360, hull Terran/LightCruiser, 23 techs" style="left:11.25%;background:#5ac8e0">ManOfWar mk2-b</span>
+<span class="chip" title="Heavy Dropship mk1 — bill 8390, hull Terran/LightCarrier, 22 techs" style="left:12.83%;background:#5ac8e0">Heavy Dropship mk1</span>
+<span class="chip" title="ManOfWar mk2-c — bill 8460, hull Terran/LightCruiser, 24 techs" style="left:12.93%;background:#5ac8e0">ManOfWar mk2-c</span>
+<span class="chip" title="Heavy Dropship mk2 — bill 9490, hull Terran/LightCarrier, 23 techs" style="left:14.51%;background:#5ac8e0">Heavy Dropship mk2</span>
+<span class="chip" title="Heavy Dropship mk2-b — bill 10490, hull Terran/LightCarrier, 25 techs" style="left:16.04%;background:#5ac8e0">Heavy Dropship mk2-b</span>
+<span class="chip" title="Heavy Dropship mk2-c — bill 13090, hull Terran/LightCarrier, 26 techs" style="left:20.01%;background:#5ac8e0">Heavy Dropship mk2-c</span>
+<span class="chip" title="Heavy Dropship mk3-a — bill 20490, hull Terran/LightCarrier, 31 techs" style="left:31.32%;background:#5ac8e0">Heavy Dropship mk3-a</span>
+<span class="chip" title="Heavy Dropship mk3-b — bill 27890, hull Terran/LightCarrier, 33 techs" style="left:42.64%;background:#5ac8e0">Heavy Dropship mk3-b</span>
+<span class="chip" title="Heavy Dropship mk3-c — bill 28890, hull Terran/LightCarrier, 34 techs" style="left:44.16%;background:#5ac8e0">Heavy Dropship mk3-c</span>
+</div></div>
+<div class="lane"><span class="lbl">support</span><div class="chips">
+<span class="chip" title="Terran Salvage Ship — bill 880, hull Terran/Gunboat, 5 techs" style="left:1.35%;background:#a98bf0">Terran Salvage Ship</span>
+<span class="chip" title="Bee mk1-a — bill 2110, hull Terran/Shuttle, 9 techs" style="left:3.23%;background:#a98bf0">Bee mk1-a</span>
+<span class="chip" title="Terran Salvage Ship Mk1 — bill 3660, hull Terran/HeavyGunboat, 17 techs" style="left:5.60%;background:#a98bf0">Terran Salvage Ship Mk1</span>
+<span class="chip" title="Bee mk2 — bill 4360, hull Terran/Shuttle, 10 techs" style="left:6.67%;background:#a98bf0">Bee mk2</span>
+<span class="chip" title="Shockwave — bill 7890, hull Terran/Gunboat, 18 techs" style="left:12.06%;background:#a98bf0">Shockwave</span>
+<span class="chip" title="Terran Salvage Ship Mk2 — bill 11980, hull Terran/LightCruiser, 29 techs" style="left:18.31%;background:#a98bf0">Terran Salvage Ship Mk2</span>
+<span class="chip" title="IronMaiden mk2 — bill 16750, hull Terran/LightCruiser, 32 techs" style="left:25.61%;background:#a98bf0">IronMaiden mk2</span>
+<span class="chip" title="Terran Salvage Ship Mk3 — bill 22980, hull Terran/LightCarrier, 32 techs" style="left:35.13%;background:#a98bf0">Terran Salvage Ship Mk3</span>
+</div></div>
+<div class="axis">
+<span style="left:0.00%">0</span>
+<span style="left:7.64%">5000</span>
+<span style="left:15.29%">10000</span>
+<span style="left:22.93%">15000</span>
+<span style="left:30.57%">20000</span>
+<span style="left:38.22%">25000</span>
+<span style="left:45.86%">30000</span>
+<span style="left:53.50%">35000</span>
+<span style="left:61.15%">40000</span>
+<span style="left:68.79%">45000</span>
+<span style="left:76.43%">50000</span>
+<span style="left:84.08%">55000</span>
+<span style="left:91.72%">60000</span>
+<span style="left:99.37%">65000</span>
+</div></div>
+<h3 style="font-size:15px;margin:18px 0 6px">the capability ladder — the cheapest ship that does each job</h3>
+<table><tr><th>job</th><th>first ship</th><th>hull</th><th class="c">bill</th><th>what it carries</th></tr>
+<tr><td>fighter</td><td>Vulcan Scout</td><td>Terran/Shuttle</td><td class="c">0</td><td class="note">HVVulcan 1x2</td></tr>
+<tr><td>corvette</td><td>Hunter mk1-a</td><td>Terran/Hunter</td><td class="c">0</td><td class="note">HVVulcan 1x2</td></tr>
+<tr><td>frigate</td><td>Shelldoom mk1-a</td><td>Terran/Gunboat</td><td class="c">480</td><td class="note">HVVulcan 1x2</td></tr>
+<tr><td>bomber</td><td>Hellmaker mk1-a</td><td>Terran/HeavyGunboat</td><td class="c">840</td><td class="note">HVVulcan 1x2</td></tr>
+<tr><td>troopShip</td><td>ManOfWar mk1-a</td><td>Terran/LightCruiser</td><td class="c">4760</td><td class="note">Flak 2x2; TroopAssaultBay x2</td></tr>
+<tr><td>support</td><td>Terran Salvage Ship</td><td>Terran/Gunboat</td><td class="c">880</td><td class="note">-</td></tr>
+<tr><td>carrier</td><td>Light Carrier mk1-a</td><td>Terran/LightCarrier</td><td class="c">7180</td><td class="note">Flak 2x2; FighterBay x8</td></tr>
+<tr><td>cruiser</td><td>Blockade buster mk1-a</td><td>Terran/LightCruiser</td><td class="c">2870</td><td class="note">Flak 2x2</td></tr>
+<tr><td>battleship</td><td>Hades mk1-a</td><td>Terran/Battleship</td><td class="c">17410</td><td class="note">MagneticTurret_3x3 3x3</td></tr>
+<tr><td>capital</td><td>Dreadnought mk1-a</td><td>Terran/Dreadnought</td><td class="c">44210</td><td class="note">LRM2 3x3</td></tr>
+</table>
+<h3 style="font-size:15px;margin:18px 0 6px">the big items — the first ship that mounts each of the largest weapon modules</h3>
+<table><tr><th>module</th><th>weapon</th><th class="c">size</th><th>first ship</th><th class="c">bill</th><th class="c">ships</th><th class="c">hull slots</th></tr>
+<tr><td>FlakTurret</td><td>kinetic</td><td class="c">2x2</td><td>Blockade buster mk1-a</td><td class="c">2870</td><td class="c">9</td><td class="c">310</td></tr>
+<tr><td>AdvancedKineticTurret</td><td>kinetic</td><td class="c">2x2</td><td>Terran Salvage Ship Mk1</td><td class="c">3660</td><td class="c">23</td><td class="c">94</td></tr>
+<tr><td>ArmoredMissile</td><td>missile</td><td class="c">2x2</td><td>Terran Small Station mk1-a</td><td class="c">3700</td><td class="c">6</td><td class="c">356</td></tr>
+<tr><td>EmpDischarger</td><td>energy</td><td class="c">1x2</td><td>Bee mk2</td><td class="c">4360</td><td class="c">3</td><td class="c">12</td></tr>
+<tr><td>LRMmk1</td><td>other</td><td class="c">2x2</td><td>Missileboat mk1-a</td><td class="c">5260</td><td class="c">11</td><td class="c">94</td></tr>
+<tr><td>MagneticTurret_2x2</td><td>kinetic</td><td class="c">2x2</td><td>Spearhead mk3-d</td><td class="c">5460</td><td class="c">13</td><td class="c">94</td></tr>
+<tr><td>ArmoredTurret</td><td>kinetic</td><td class="c">2x2</td><td>Terran Small Research Station Mk1</td><td class="c">6300</td><td class="c">15</td><td class="c">356</td></tr>
+<tr><td>MagneticTurret_3x3</td><td>kinetic</td><td class="c">3x3</td><td>Apollo mk1-a</td><td class="c">8360</td><td class="c">13</td><td class="c">420</td></tr>
+<tr><td>Aegis</td><td>beam</td><td class="c">6x6</td><td>Terran-Station mk1-a</td><td class="c">10250</td><td class="c">7</td><td class="c">954</td></tr>
+<tr><td>LRMmk2</td><td>missile</td><td class="c">3x3</td><td>Apollo mk2-a</td><td class="c">16260</td><td class="c">15</td><td class="c">420</td></tr>
+<tr><td>HVTurret_2x2</td><td>kinetic</td><td class="c">2x2</td><td>HeavyCarrier mk3</td><td class="c">18520</td><td class="c">4</td><td class="c">420</td></tr>
+<tr><td>HVTurret_3x3</td><td>kinetic</td><td class="c">3x3</td><td>Terran Salvage Ship Mk3</td><td class="c">22980</td><td class="c">17</td><td class="c">420</td></tr>
+<tr><td>EnergyPDHeavy</td><td>point defence</td><td class="c">2x2</td><td>Sweeper mk4-a</td><td class="c">24610</td><td class="c">1</td><td class="c">310</td></tr>
+<tr><td>LRMmk3</td><td>missile</td><td class="c">4x4</td><td>Hades mk3-e</td><td class="c">46160</td><td class="c">5</td><td class="c">780</td></tr>
+</table>
+<h3 style="font-size:15px;margin:18px 0 6px">the carrier ladder — every carrier, bomber, troop ship and support hull, by bill</h3>
+<table><tr><th class="c">bill</th><th>role</th><th>ship</th><th>hull</th><th>hangars</th><th>strongest weapon</th><th>families present</th></tr>
+<tr><td class="c">840</td><td>bomber</td><td>Hellmaker mk1-a</td><td>Terran/HeavyGunboat</td><td class="note">-</td><td>HVVulcan 1x2</td><td class="note">kinetic</td></tr>
+<tr><td class="c">880</td><td>support</td><td>Terran Salvage Ship</td><td>Terran/Gunboat</td><td class="note">-</td><td>-</td><td class="note">-</td></tr>
+<tr><td class="c">1290</td><td>bomber</td><td>Hellmaker mk1-b</td><td>Terran/HeavyGunboat</td><td class="note">-</td><td>HVVulcan 1x2</td><td class="note">kinetic</td></tr>
+<tr><td class="c">2110</td><td>support</td><td>Bee mk1-a</td><td>Terran/Shuttle</td><td class="note">-</td><td>IonCannon1x2 1x2</td><td class="note">beam</td></tr>
+<tr><td class="c">3540</td><td>bomber</td><td>Hellmaker mk2</td><td>Terran/HeavyGunboat</td><td class="note">-</td><td>HVVulcan 1x2</td><td class="note">kinetic</td></tr>
+<tr><td class="c">3660</td><td>support</td><td>Terran Salvage Ship Mk1</td><td>Terran/HeavyGunboat</td><td class="note">-</td><td>AdvancedKineticTurret 2x2</td><td class="note">kinetic, point defence</td></tr>
+<tr><td class="c">4360</td><td>support</td><td>Bee mk2</td><td>Terran/Shuttle</td><td class="note">-</td><td>EmpDischarger1x2 1x2</td><td class="note">energy</td></tr>
+<tr><td class="c">4760</td><td>troopShip</td><td>ManOfWar mk1-a</td><td>Terran/LightCruiser</td><td class="note">TroopAssaultBay x2</td><td>Flak 2x2</td><td class="note">kinetic, point defence</td></tr>
+<tr><td class="c">4760</td><td>bomber</td><td>Sweeper mk1-a</td><td>Terran/LightCruiser</td><td class="note">-</td><td>Flak 2x2</td><td class="note">kinetic, point defence</td></tr>
+<tr><td class="c">5210</td><td>troopShip</td><td>ManOfWar mk1-b</td><td>Terran/LightCruiser</td><td class="note">TroopAssaultBay x2</td><td>Flak 2x2</td><td class="note">kinetic, point defence</td></tr>
+<tr><td class="c">5210</td><td>bomber</td><td>Sweeper mk1-b</td><td>Terran/LightCruiser</td><td class="note">-</td><td>Flak 2x2</td><td class="note">kinetic, point defence</td></tr>
+<tr><td class="c">6360</td><td>troopShip</td><td>ManOfWar mk1-c</td><td>Terran/LightCruiser</td><td class="note">TroopAssaultBay x2</td><td>Flak 2x2</td><td class="note">kinetic, point defence</td></tr>
+<tr><td class="c">6360</td><td>bomber</td><td>Sweeper mk1-c</td><td>Terran/LightCruiser</td><td class="note">-</td><td>Flak 2x2</td><td class="note">kinetic, point defence</td></tr>
+<tr><td class="c">6760</td><td>troopShip</td><td>ManOfWar mk2-a</td><td>Terran/LightCruiser</td><td class="note">TroopAssaultBay x2</td><td>AdvancedKineticTurret 2x2</td><td class="note">kinetic, point defence</td></tr>
+<tr><td class="c">6760</td><td>bomber</td><td>Sweeper mk2-a</td><td>Terran/LightCruiser</td><td class="note">-</td><td>AdvancedKineticTurret 2x2</td><td class="note">kinetic, point defence</td></tr>
+<tr><td class="c">7180</td><td>carrier</td><td>Light Carrier mk1-a</td><td>Terran/LightCarrier</td><td class="note">FighterBay x8</td><td>Flak 2x2</td><td class="note">torpedo, kinetic</td></tr>
+<tr><td class="c">7360</td><td>troopShip</td><td>ManOfWar mk2-b</td><td>Terran/LightCruiser</td><td class="note">TroopAssaultBay x2</td><td>AdvancedKineticTurret 2x2</td><td class="note">kinetic, point defence</td></tr>
+<tr><td class="c">7360</td><td>bomber</td><td>Sweeper mk2-b</td><td>Terran/LightCruiser</td><td class="note">-</td><td>AdvancedKineticTurret 2x2</td><td class="note">kinetic, point defence</td></tr>
+<tr><td class="c">7890</td><td>support</td><td>Shockwave</td><td>Terran/Gunboat</td><td class="note">-</td><td>EmpDischarger1x2 1x2</td><td class="note">energy</td></tr>
+<tr><td class="c">8320</td><td>carrier</td><td>HeavyCarrier mk1-a</td><td>Terran/LightCarrier</td><td class="note">FighterBay x8</td><td>AdvancedKineticTurret 2x2</td><td class="note">kinetic, point defence</td></tr>
+<tr><td class="c">8390</td><td>troopShip</td><td>Heavy Dropship mk1</td><td>Terran/LightCarrier</td><td class="note">TroopAssaultBay x6</td><td>LRM1 2x2</td><td class="note">other</td></tr>
+<tr><td class="c">8400</td><td>carrier</td><td>Light Carrier mk2-a</td><td>Terran/LightCarrier</td><td class="note">FighterBay x8</td><td>AdvancedKineticTurret 2x2</td><td class="note">other, kinetic</td></tr>
+<tr><td class="c">8460</td><td>troopShip</td><td>ManOfWar mk2-c</td><td>Terran/LightCruiser</td><td class="note">TroopAssaultBay x2</td><td>AdvancedKineticTurret 2x2</td><td class="note">kinetic, point defence</td></tr>
+<tr><td class="c">8460</td><td>bomber</td><td>Sweeper mk2-c</td><td>Terran/LightCruiser</td><td class="note">-</td><td>AdvancedKineticTurret 2x2</td><td class="note">kinetic, point defence</td></tr>
+<tr><td class="c">8460</td><td>bomber</td><td>Sweeper mk2-d</td><td>Terran/LightCruiser</td><td class="note">-</td><td>AdvancedKineticTurret 2x2</td><td class="note">kinetic, point defence</td></tr>
+<tr><td class="c">9100</td><td>carrier</td><td>Light Carrier mk2-c</td><td>Terran/LightCarrier</td><td class="note">FighterBay x10</td><td>LRM1 2x2</td><td class="note">other</td></tr>
+<tr><td class="c">9320</td><td>carrier</td><td>HeavyCarrier mk2-a</td><td>Terran/LightCarrier</td><td class="note">FighterBay x8</td><td>MagneticTurret_2x2 2x2</td><td class="note">kinetic, point defence</td></tr>
+<tr><td class="c">9400</td><td>carrier</td><td>Light Carrier mk2-b</td><td>Terran/LightCarrier</td><td class="note">FighterBay x8</td><td>MagneticTurret_2x2 2x2</td><td class="note">other, kinetic</td></tr>
+<tr><td class="c">9490</td><td>troopShip</td><td>Heavy Dropship mk2</td><td>Terran/LightCarrier</td><td class="note">TroopAssaultBay x6</td><td>LRM1 2x2</td><td class="note">other</td></tr>
+<tr><td class="c">10490</td><td>troopShip</td><td>Heavy Dropship mk2-b</td><td>Terran/LightCarrier</td><td class="note">TroopAssaultBay x6</td><td>LRM1 2x2</td><td class="note">other</td></tr>
+<tr><td class="c">10600</td><td>carrier</td><td>Light Carrier mk2-d</td><td>Terran/LightCarrier</td><td class="note">FighterBay x10</td><td>LRM1 2x2</td><td class="note">other</td></tr>
+<tr><td class="c">11420</td><td>carrier</td><td>HeavyCarrier mk2-b</td><td>Terran/LightCarrier</td><td class="note">FighterBay x8</td><td>MagneticTurret_2x2 2x2</td><td class="note">kinetic, point defence</td></tr>
+<tr><td class="c">11980</td><td>support</td><td>Terran Salvage Ship Mk2</td><td>Terran/LightCruiser</td><td class="note">-</td><td>MagneticTurret_3x3 3x3</td><td class="note">kinetic</td></tr>
+<tr><td class="c">12920</td><td>carrier</td><td>HeavyCarrier mk2-c</td><td>Terran/LightCarrier</td><td class="note">FighterBay x8</td><td>MagneticTurret_2x2 2x2</td><td class="note">kinetic, point defence</td></tr>
+<tr><td class="c">13090</td><td>troopShip</td><td>Heavy Dropship mk2-c</td><td>Terran/LightCarrier</td><td class="note">TroopAssaultBay x6</td><td>LRM1 2x2</td><td class="note">other</td></tr>
+<tr><td class="c">13160</td><td>bomber</td><td>Sweeper mk3-a</td><td>Terran/LightCruiser</td><td class="note">-</td><td>AdvancedKineticTurret 2x2</td><td class="note">kinetic, point defence</td></tr>
+<tr><td class="c">16750</td><td>support</td><td>IronMaiden mk2</td><td>Terran/LightCruiser</td><td class="note">OrdnanceSupplyBay x3, TroopAssaultBay x2</td><td>LRM1 2x2</td><td class="note">other, point defence</td></tr>
+<tr><td class="c">17260</td><td>bomber</td><td>Sweeper mk3-b</td><td>Terran/LightCruiser</td><td class="note">-</td><td>AdvancedKineticTurret 2x2</td><td class="note">kinetic, point defence</td></tr>
+<tr><td class="c">17260</td><td>bomber</td><td>Sweeper mk3-c</td><td>Terran/LightCruiser</td><td class="note">-</td><td>AdvancedKineticTurret 2x2</td><td class="note">kinetic, point defence</td></tr>
+<tr><td class="c">18520</td><td>carrier</td><td>HeavyCarrier mk3</td><td>Terran/LightCarrier</td><td class="note">FighterBay x8</td><td>HVTurret_2x2 2x2</td><td class="note">kinetic, point defence</td></tr>
+<tr><td class="c">19620</td><td>carrier</td><td>Hydra mk1-a</td><td>Terran/Battleship</td><td class="note">Raider Bay x14</td><td>MagneticTurret_2x2 2x2</td><td class="note">other, kinetic, point defence</td></tr>
+<tr><td class="c">20490</td><td>troopShip</td><td>Heavy Dropship mk3-a</td><td>Terran/LightCarrier</td><td class="note">TroopAssaultBay x6</td><td>MagneticTurret_2x2 2x2</td><td class="note">kinetic</td></tr>
+<tr><td class="c">20610</td><td>bomber</td><td>Sweeper mk3-d</td><td>Terran/LightCruiser</td><td class="note">-</td><td>AdvancedKineticTurret 2x2</td><td class="note">kinetic, point defence</td></tr>
+<tr><td class="c">21170</td><td>carrier</td><td>Heavy Carrier mk1</td><td>Terran/Battleship</td><td class="note">Raider Bay x12</td><td>MagneticTurret_3x3 3x3</td><td class="note">kinetic, point defence</td></tr>
+<tr><td class="c">22980</td><td>support</td><td>Terran Salvage Ship Mk3</td><td>Terran/LightCarrier</td><td class="note">-</td><td>HVTurret_3x3 3x3</td><td class="note">kinetic, point defence</td></tr>
+<tr><td class="c">23720</td><td>carrier</td><td>Hydra mk1-b</td><td>Terran/Battleship</td><td class="note">Raider Bay x14</td><td>LRM2 3x3</td><td class="note">missile, kinetic, point defence</td></tr>
+<tr><td class="c">23770</td><td>carrier</td><td>Heavy Carrier mk2</td><td>Terran/Battleship</td><td class="note">Raider Bay x12</td><td>MagneticTurret_3x3 3x3</td><td class="note">kinetic, point defence</td></tr>
+<tr><td class="c">24610</td><td>bomber</td><td>Sweeper mk4-a</td><td>Terran/LightCruiser</td><td class="note">-</td><td>HeavyEnergyPD 2x2</td><td class="note">point defence</td></tr>
+<tr><td class="c">26320</td><td>carrier</td><td>Hydra mk1-c</td><td>Terran/Battleship</td><td class="note">Raider Bay x14</td><td>LRM2 3x3</td><td class="note">missile, kinetic, point defence</td></tr>
+<tr><td class="c">26370</td><td>carrier</td><td>Heavy Carrier mk3</td><td>Terran/Battleship</td><td class="note">Raider Bay x12</td><td>MagneticTurret_3x3 3x3</td><td class="note">kinetic, point defence</td></tr>
+<tr><td class="c">27890</td><td>troopShip</td><td>Heavy Dropship mk3-b</td><td>Terran/LightCarrier</td><td class="note">TroopAssaultBay x6</td><td>HVTurret_2x2 2x2</td><td class="note">kinetic</td></tr>
+<tr><td class="c">27970</td><td>carrier</td><td>Sparta-Class carrier</td><td>Terran/Battleship</td><td class="note">Raider Bay x10</td><td>LRM2 3x3</td><td class="note">missile, kinetic, point defence</td></tr>
+<tr><td class="c">28890</td><td>troopShip</td><td>Heavy Dropship mk3-c</td><td>Terran/LightCarrier</td><td class="note">TroopAssaultBay x6</td><td>HVTurret_2x2 2x2</td><td class="note">kinetic</td></tr>
+<tr><td class="c">29370</td><td>carrier</td><td>Heavy Carrier mk4-a</td><td>Terran/Battleship</td><td class="note">Raider Bay x12</td><td>HVTurret_3x3 3x3</td><td class="note">kinetic, point defence</td></tr>
+<tr><td class="c">31570</td><td>carrier</td><td>Heavy Carrier mk4-a2</td><td>Terran/Battleship</td><td class="note">Raider Bay x12</td><td>HVTurret_3x3 3x3</td><td class="note">kinetic, point defence</td></tr>
+<tr><td class="c">32870</td><td>carrier</td><td>Heavy Carrier mk4-b</td><td>Terran/Battleship</td><td class="note">Raider Bay x12</td><td>HVTurret_3x3 3x3</td><td class="note">kinetic, point defence</td></tr>
+<tr><td class="c">34670</td><td>carrier</td><td>Heavy Carrier mk4-b2</td><td>Terran/Battleship</td><td class="note">Raider Bay x12</td><td>HVTurret_3x3 3x3</td><td class="note">kinetic, point defence</td></tr>
+<tr><td class="c">37270</td><td>carrier</td><td>Heavy Carrier mk4-c</td><td>Terran/Battleship</td><td class="note">Raider Bay x12</td><td>HVTurret_3x3 3x3</td><td class="note">kinetic, point defence</td></tr>
+<tr><td class="c">38270</td><td>carrier</td><td>Heavy Carrier mk4-d</td><td>Terran/Battleship</td><td class="note">Raider Bay x12</td><td>HVTurret_3x3 3x3</td><td class="note">kinetic, point defence</td></tr>
+<tr><td class="c">39070</td><td>carrier</td><td>Heavy Carrier mk4-c2</td><td>Terran/Battleship</td><td class="note">Raider Bay x12</td><td>HVTurret_3x3 3x3</td><td class="note">kinetic, point defence</td></tr>
+<tr><td class="c">40070</td><td>carrier</td><td>Heavy Carrier mk4-d2</td><td>Terran/Battleship</td><td class="note">Raider Bay x12</td><td>HVTurret_3x3 3x3</td><td class="note">kinetic, point defence</td></tr>
+<tr><td class="c">40070</td><td>carrier</td><td>Heavy Carrier mk5-a</td><td>Terran/Battleship</td><td class="note">Raider Bay x12</td><td>HVTurret_3x3 3x3</td><td class="note">kinetic, point defence</td></tr>
+<tr><td class="c">42570</td><td>carrier</td><td>Heavy Carrier mk5-b</td><td>Terran/Battleship</td><td class="note">Raider Bay x12</td><td>HVTurret_3x3 3x3</td><td class="note">kinetic, point defence</td></tr>
+<tr><td class="c">47420</td><td>carrier</td><td>Perseverence SuperCarrier</td><td>Terran/Dreadnought</td><td class="note">Raider Bay x18</td><td>LRM2 3x3</td><td class="note">missile, kinetic, point defence</td></tr>
+</table>
+<h3 style="font-size:15px;margin:18px 0 6px">defence and defensive weapons, by era</h3>
+<table><tr><th>era</th><th class="c">ships</th><th class="c">shield</th><th class="c">armour</th><th class="c">point defence</th><th>cheapest ship in the era</th></tr>
+<tr><td>0–4800</td><td class="c">34</td><td class="c">79%</td><td class="c">85%</td><td class="c">17%</td><td class="note">Hunter mk1-a, 0</td></tr>
+<tr><td>4800–8500</td><td class="c">33</td><td class="c">100%</td><td class="c">100%</td><td class="c">51%</td><td class="note">Blockade buster mk2-c, 4970</td></tr>
+<tr><td>8500–16800</td><td class="c">34</td><td class="c">100%</td><td class="c">100%</td><td class="c">76%</td><td class="note">Terran Small Research Station Mk2, 8900</td></tr>
+<tr><td>16800–26300</td><td class="c">32</td><td class="c">100%</td><td class="c">100%</td><td class="c">96%</td><td class="note">T-Mining-Station mk1-d, 16870</td></tr>
+<tr><td>26300–63500</td><td class="c">33</td><td class="c">100%</td><td class="c">100%</td><td class="c">93%</td><td class="note">Hydra mk1-c, 26320</td></tr>
+</table>
+<p class="note">A design is unlockable only if every module it carries is listed by some tech; the game then refuses to build it. Every design in this folder passes, which is itself a check on the module data.</p>
+<h2>8 · what happens elsewhere</h2>
+<div class="handoff">This page stops where the other documents start. A price in practice, and which of the four prices you mean — <code>tech-logic-explainer</code>. Distance and travel time — <code>time-and-space-explainer</code>. A module's cost, fit and effect — <code>module-logic-explainer</code>. A weapon's tags, dps and power per shot — <code>weapon-logic-explainer</code>. A design's layout and build gate — <code>ship-design-explainer</code>. Which ships get built — <code>ship-chooser-explainer</code>. How goals become task fleets — <code>fleet-creation-explainer</code>.</div>
+</div>

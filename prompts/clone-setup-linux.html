@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Local clone (Linux/macOS) — StarDrive BlackBox</title><style>
+:root{--bg:#14171c;--panel:#1b1f26;--ink:#e6e8ea;--dim:#8b949e;--line:#2b313a;--gold:#ffd479;--link:#8ecbff;--ok:#8ad06a}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 Georgia,serif}
+a{color:var(--link);text-decoration:none}a:hover{text-decoration:underline}
+code{font:12.5px ui-monospace,monospace;color:#c9d1d9;background:#20252d;padding:0 3px;border-radius:3px}
+.bar{position:sticky;top:0;z-index:9;background:rgba(20,23,28,.94);border-bottom:1px solid var(--line)}
+.bar .in{max-width:1240px;margin:0 auto;padding:10px 28px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{display:inline-block;font:12px ui-monospace,monospace;padding:5px 12px;border:1px solid #3a424e;border-radius:999px;background:var(--panel);color:var(--ink);cursor:pointer}
+.btn:hover{border-color:var(--link);text-decoration:none}
+.btn.primary{border-color:#6b5a2b;background:#2a261b;color:var(--gold)}
+.head{max-width:1240px;margin:0 auto;padding:34px 28px 6px}
+h1{font-size:27px;margin:0 0 8px;line-height:1.25}
+p.lede{color:var(--dim);max-width:82ch;margin:0 0 12px}
+p{margin:0 0 10px}
+.shell{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:40px;max-width:1240px;margin:0 auto;padding:8px 28px 70px;align-items:start}
+@media(max-width:920px){.shell{grid-template-columns:1fr;gap:26px}}
+h2{font-size:12.5px;margin:30px 0 10px;color:#c9d1d9;text-transform:uppercase;letter-spacing:1.2px;font-family:ui-monospace,monospace}
+h2 .count{color:var(--dim);letter-spacing:0}
+ul{margin:0 0 10px;padding-left:20px}li{margin:0 0 7px}
+table{border-collapse:collapse;width:100%;font:12.5px ui-monospace,monospace;margin:4px 0 10px}
+th,td{text-align:left;padding:6px 9px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--dim);font-weight:normal}
+td.n{white-space:nowrap;color:var(--gold)}
+.note{color:var(--dim);font-size:13px}
+.facts{display:flex;gap:20px;flex-wrap:wrap;font:12px ui-monospace,monospace;color:#c9d1d9;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:9px 13px;margin:14px 0 0}
+.facts b{color:var(--gold);font-weight:normal}
+aside{position:sticky;top:56px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:4px 16px 14px;max-height:calc(100vh - 80px);overflow:auto}
+@media(max-width:920px){aside{position:static;max-height:none}}
+aside h2{margin:14px 0 6px}
+aside p.ai{color:var(--dim);font-size:12.5px;margin:12px 0 2px}
+.nav a{display:block;padding:6px 0;border-bottom:1px solid #232a33}
+.nav a:last-child{border-bottom:0}
+.nav b{font-weight:normal;color:var(--ink);display:block}
+.nav span{display:block;color:var(--dim);font-size:12.5px;line-height:1.4}
+.kicker{font:12px ui-monospace,monospace;color:var(--dim);margin:0 0 10px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.chip{font:10.5px ui-monospace,monospace;letter-spacing:.6px;text-transform:uppercase;border:1px solid #4a5260;border-radius:9px;padding:1px 7px;color:var(--dim)}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0 4px}
+.msg{font:12px ui-monospace,monospace;color:var(--dim);min-height:1.4em;margin:6px 0 0}
+.msg.ok{color:var(--ok)}.msg.err{color:#e07070}
+pre#text{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px;max-height:62vh;overflow:auto;white-space:pre-wrap;font:12px ui-monospace,monospace;color:#c9d1d9}
+.meta{font:12px ui-monospace,monospace;color:var(--dim);border-top:1px solid var(--line);margin-top:30px;padding-top:10px}
+</style></head><body><nav class="bar"><div class="in"><a class="btn" href="../index.html">&larr; Index</a>
+<a class="btn" href="../weapon-tech-human.html">Era map</a>
+<a class="btn" href="https://github.com/TeamStarDrive/StarDrive">Game repository &nearr;</a>
+</div></nav>
+<header class="head">
+ <p class="kicker"><span class="chip">Tool</span><code>clone-setup-prompt-linux.md</code></p>
+ <h1>Local clone setup &mdash; Linux and macOS</h1>
+ <p class="lede">The same guided clone, adjusted for Linux and macOS, and clear about the limit: a Linux checkout is for reading, editing and git work, not for building the game.</p>
+ <div class="acts">
+  <button class="btn primary" id="copy">Copy prompt</button>
+  <button class="btn" id="show">Show prompt</button>
+  <a class="btn" href="https://github.com/SDBlackBox/StarDrive-community-kit/blob/main/clone-setup-prompt-linux.md">In the kit repo &nearr;</a>
+ </div>
+ <p class="msg" id="msg"></p>
+</header>
+<div class="shell">
+<main>
+<h2>How it works</h2>
+<ul><li>Explains why the build stops: every project targets <code>net8.0-windows</code> with <code>UseWindowsForms</code>, and the solution carries MSVC-only projects.</li><li>The test harness additionally needs a real graphics device &mdash; that is a port, not a flag.</li><li>Checks the filesystem and disk space before cloning, with both submodules as the Windows prompt does.</li></ul>
+
+<h2>What it needs</h2>
+<p>Git and a shell on Linux or macOS. Read and edit only.</p>
+
+<h2>The prompt</h2>
+<p class="note">7,192 characters, copied verbatim from <code>clone-setup-prompt-linux.md</code> at
+build time. Copy takes the whole file, because that is what the prompt expects you to paste.</p>
+<pre id="text" hidden># Local clone setup on Linux — a copy-paste prompt
+
+The same guided clone as [`clone-setup-prompt.md`](clone-setup-prompt.md), adjusted for Linux: it
+asks where the repo should go, checks the filesystem and disk, shows the layout, and clones with both
+submodules — while being clear that a Linux checkout is for reading, editing and git work, not for
+building the game.
+
+Use the [Windows/main prompt](clone-setup-prompt.md) instead if the machine can build StarDrive.
+
+## What a Linux checkout is for
+
+Every project in the solution targets `net8.0-windows` with `UseWindowsForms`, references
+`MonoGame.Framework.WindowsDX`, and the tests copy `SDNative.dll` and `libfbxsdk.dll` out of `game/`.
+`StarDrive.sln` also carries the MSVC-only `SDNative`/`SDNativeTests` `.vcxproj` projects, and CI
+builds on `windows-2022` with `msbuild`. The test harness additionally needs a real graphics device:
+[`ship-strategy-brief.md`](ship-strategy-brief.md#platform-caveat) puts it plainly — it &quot;does not run
+on Linux or macOS… that is a port, not a flag.&quot;
+
+So on Linux you can:
+
+- clone, branch, rebase, review and open PRs;
+- read and search all the C# (editors, `rg`, language servers, source navigation);
+- edit content — `game/Content` YAML/XML, `.hull`, `.design` — and docs;
+- run the repo&#x27;s Python tooling (e.g. `docs/codex-entry-leads.py`) and plain shell/git checks.
+
+You cannot: build `StarDrive.exe`, build or run `SDUnitTests`, or launch the game from this checkout.
+For those, push to a Windows machine (or a Windows VM) and clone there. To *play* on Linux, install
+the itch.io build and run it under Steam Proton — that is the shipped game, not your edits.
+
+## Why the details matter on Linux specifically
+
+- **The submodules are still the trap.** Same pinned commits, same fork: `SDNative/NanoMesh` comes
+  from `gkapulis/NanoMesh` on purpose (see `.gitmodules`). Do not &quot;fix&quot; the URL.
+- **Size.** ~1.1 GB working tree plus ~1.3 GB `.git`, so ~2.5 GB free.
+- **Line endings are already handled.** `.gitattributes` normalizes to LF for source and content but
+  forces CRLF for `*.fx` and `*.config`. A checkout therefore shows CRLF in those two kinds of file
+  and that is correct — do not renormalize them or add `core.autocrlf=input` fixes.
+- **Filesystem matters.** Keep the clone on a native Linux filesystem (ext4/xfs/btrfs/zfs). Cloning
+  onto an NTFS/exFAT/SMB mount — including `/mnt/c` under WSL — makes git slow, loses the executable
+  bit, and reintroduces Windows&#x27; case-insensitive path behavior, so the tree stops matching what CI
+  builds.
+- **Case.** Windows is case-insensitive; a Linux checkout is not. If a path is referenced with the
+  wrong casing it will surface here and not there. Report it; don&#x27;t rename files to silence it.
+- **No git-lfs.** Nothing in `.gitattributes` is LFS-tracked, so `git-lfs` is not needed.
+
+## The prompt
+
+Copy everything between the rules.
+
+```text
+You are setting up a local development copy of StarDrive BlackBox for me, on Linux.
+Repository: https://github.com/TeamStarDrive/StarDrive.git  (default branch: main)
+Work interactively: ask me first, show me the plan, and only create things after I confirm.
+
+STEP 1 — Interview me (ask all of these in one go, then stop and wait)
+1. Where should the repo live? Propose ~/Projects/BlackBox as the default and let me give the
+   exact path. If I name a path under /mnt/ (WSL Windows drive), an SMB/NFS mount, or a
+   non-native filesystem, say why that is a bad place for a git checkout before doing anything.
+2. Check out the git submodules now, or leave them empty for later?
+3. Should you also verify what this Linux checkout can and cannot do for me afterwards?
+
+Do not guess my answers, do not create directories, and do not clone until I have confirmed
+the path and the options.
+
+STEP 2 — Preflight checks (report only, change nothing)
+- git --version, my distro and CPU arch
+- filesystem type of the destination (`df -T`); warn if it is not native Linux
+- free space: allow ~2.5 GB minimum (about 1.1 GB working tree plus about 1.3 GB of .git)
+- whether the target path already exists and is non-empty — if so, stop and ask instead of
+  cloning into it or deleting anything
+- git config --get core.autocrlf (should be unset or false; the repo&#x27;s .gitattributes does the
+  normalization)
+- whether dotnet is installed, purely informational: this checkout cannot build the projects
+  or run the tests on Linux even with the .NET 8 SDK
+
+STEP 3 — Show me what will be created, before creating it
+- the exact command, e.g.
+    git clone --recurse-submodules https://github.com/TeamStarDrive/StarDrive.git &quot;&lt;path&gt;&quot;
+- a preview tree of the top-level layout, marking which parts arrive as submodules:
+  StarDrive.sln, StarDrive.csproj, SDGraphics/, SDUtils/, SDAnalyzers/, Ship_Game/,
+  UnitTests/, SDNative/ (contains the two submodules), game/Content, game/Mods,
+  docs/, x64Migration/, .github/, .claude/
+- note that SDNative has two pinned submodules: SDNative/ReCpp (RedFox20/ReCpp) and
+  SDNative/NanoMesh (deliberately the gkapulis fork, pinned ahead of upstream) — do not
+  rewrite those URLs
+- state plainly what a Linux clone can and cannot do: read/edit/search the C# and content,
+  git and PR work — but no build of StarDrive.exe, no unit tests, no game launch; playing on
+  Linux means the itch.io build under Proton, and building means a Windows machine
+Then wait for my explicit go-ahead.
+
+STEP 4 — Clone, then verify
+- clone with submodules; if anything is missing, finish with
+    git submodule update --init --recursive
+- verify and report: git branch --show-current == main; git submodule status with no leading
+  &#x27;-&#x27; or &#x27;+&#x27;; git status --short is empty (CRLF in *.fx and *.config is expected and is not a
+  change); StarDrive.sln and game/Content exist; the commit hash you ended up on; the real
+  on-disk size
+- do not run dotnet build, dotnet test, or msbuild; do not add EnableWindowsTargeting or any
+  other property to the project files to make them build here
+
+RULES
+- Never delete, overwrite or push anything; do not modify repo files after cloning.
+- If a preflight check or verification fails, stop and tell me — do not work around it,
+  skip it, or guess a different repository or branch.
+```
+
+## What to change per audience
+
+- **Reviewing PRs only:** drop step 1.2 and 1.3, and use `--depth 1` — but note that shallow
+  history breaks `git log -S` across the migration, so unshallow if you plan to search history.
+- **Editors and writers working on content:** they only need `game/` and a text editor, plus the
+  writer path in [`ship-content-reference.md`](ship-content-reference.md); `--depth 1` is fine.
+- **A build box that happens to be Linux:** there isn&#x27;t one for this repo. Point them at a Windows
+  machine or a Windows VM instead of tuning the prompt.
+
+## After the clone
+
+Working-tree rules are in [`../AGENTS.md`](../../AGENTS.md). If a submodule shows as modified or
+detached, `git submodule update --init --recursive` restores the pinned commit; bump a pin
+deliberately rather than committing a dirty submodule. Before pushing an edit you could not compile
+locally, say so in the PR — CI and the reviewer are the first things to build it on Windows.
+</pre>
+</main>
+<aside>
+<p class="ai">Paste a prompt into a chat with a checkout in front of it. Each page has a copy button.</p>
+<h2>Explainers <span class="count">12</span></h2>
+<div class="nav">
+<a href="game-logic.html"><b>The game, end to end</b><span>Why a fleet lost, where a decision is made, what a number does.</span></a>
+<a href="empire.html"><b>What an empire is made of</b><span>The race file, the traits, the starting kit, what it can see.</span></a>
+<a href="tech-logic.html"><b>The tech tree</b><span>Gated, priced, paid out &mdash; and who picks the order.</span></a>
+<a href="module-logic.html"><b>Ship modules</b><span>Why a module shows, fits, costs what it costs, and breaks.</span></a>
+<a href="weapon-logic.html"><b>A gun</b><span>Tags, the three damage numbers, and what a shot costs.</span></a>
+<a href="ship-design.html"><b>Ship designs</b><span>The .design file, its layout, role, warnings and build gate.</span></a>
+<a href="ship-chooser.html"><b>Which ships get built</b><span>Pool, want, budget, rank, pick, place, renew.</span></a>
+<a href="ship-combat.html"><b>Space combat</b><span>Knowing, wanting, choosing, closing, firing, hurting, dying.</span></a>
+<a href="fleet-creation.html"><b>How a fleet forms</b><span>Goal, task, requirement, pool, extract, form, sustain.</span></a>
+<a href="planet-capture.html"><b>Taking a planet</b><span>Who decides, who carries the troops, what the ground fight rolls.</span></a>
+<a href="colonization-ai.html"><b>AI colonization</b><span>Why the AI settles the planet it settles, in plain language.</span></a>
+<a href="time-and-space.html"><b>How far, how long</b><span>Distances and speeds turned into minutes, turns and roles.</span></a>
+</div>
+<h2>Tools <span class="count">6</span></h2>
+<div class="nav">
+<a href="era-explorer.html"><b>The era explorer</b><span>Cuts the tech tree into research-cost bands for one mod and one race.</span></a>
+<a href="ai-test.html"><b>Testing AI behaviour</b><span>A belief about the AI turned into one runnable scenario.</span></a>
+<a href="concept-map.html"><b>The concept map</b><span>Writes docs/concept-map.md &mdash; and re-checks every address later.</span></a>
+<a href="ship-strategy-brief.html"><b>The strategy brief</b><span>Makes the AI ask what the fleet is for before it designs.</span></a>
+<a href="clone-setup.html"><b>Local clone (Windows)</b><span>A checkout that builds, with both submodules.</span></a>
+<a href="clone-setup-linux.html"><b>Local clone (Linux/macOS)</b><span>A checkout for reading and editing &mdash; not for building.</span></a>
+</div>
+<h2>Reference <span class="count">1</span></h2>
+<div class="nav">
+<a href="ship-content-reference.html"><b>Ship content reference</b><span>Every content field, the code that reads it, and the formulas.</span></a>
+</div>
+</aside>
+</div>
+<script>
+const btn = document.getElementById('copy');
+const show = document.getElementById('show');
+const pre = document.getElementById('text');
+const msg = document.getElementById('msg');
+
+function say(t, cls) { msg.className = 'msg' + (cls ? ' ' + cls : ''); msg.innerHTML = t; }
+
+function legacyCopy(t) {
+  const ta = document.createElement('textarea');
+  ta.value = t;
+  ta.setAttribute('readonly', '');
+  ta.style.position = 'fixed';
+  ta.style.top = '-1000px';
+  document.body.appendChild(ta);
+  ta.select();
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+  ta.remove();
+  return ok;
+}
+
+btn.addEventListener('click', async () => {
+  const text = pre.textContent;
+  if (!text.trim()) {
+    say('This page has no prompt text on it.', 'err');
+    return;
+  }
+  let ok = false;
+  if (navigator.clipboard && window.isSecureContext) {
+    try { await navigator.clipboard.writeText(text); ok = true; } catch (e) { ok = false; }
+  }
+  if (!ok) ok = legacyCopy(text);
+  if (!ok) {
+    say('The clipboard is blocked here. Press <b>Show prompt</b> and select the text.', 'err');
+    return;
+  }
+  say('Copied ' + text.length.toLocaleString() + ' characters. Paste the whole file, then ask your question.', 'ok');
+  const label = btn.textContent;
+  btn.textContent = 'Copied \u2713';
+  setTimeout(() => { btn.textContent = label; }, 2000);
+});
+
+show.addEventListener('click', () => {
+  pre.hidden = !pre.hidden;
+  show.textContent = pre.hidden ? 'Show prompt' : 'Hide prompt';
+  say('');
+});
+</script></body></html>

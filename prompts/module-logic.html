@@ -1,0 +1,617 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Ship modules — StarDrive BlackBox</title><style>
+:root{--bg:#14171c;--panel:#1b1f26;--ink:#e6e8ea;--dim:#8b949e;--line:#2b313a;--gold:#ffd479;--link:#8ecbff;--ok:#8ad06a}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 Georgia,serif}
+a{color:var(--link);text-decoration:none}a:hover{text-decoration:underline}
+code{font:12.5px ui-monospace,monospace;color:#c9d1d9;background:#20252d;padding:0 3px;border-radius:3px}
+.bar{position:sticky;top:0;z-index:9;background:rgba(20,23,28,.94);border-bottom:1px solid var(--line)}
+.bar .in{max-width:1240px;margin:0 auto;padding:10px 28px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{display:inline-block;font:12px ui-monospace,monospace;padding:5px 12px;border:1px solid #3a424e;border-radius:999px;background:var(--panel);color:var(--ink);cursor:pointer}
+.btn:hover{border-color:var(--link);text-decoration:none}
+.btn.primary{border-color:#6b5a2b;background:#2a261b;color:var(--gold)}
+.head{max-width:1240px;margin:0 auto;padding:34px 28px 6px}
+h1{font-size:27px;margin:0 0 8px;line-height:1.25}
+p.lede{color:var(--dim);max-width:82ch;margin:0 0 12px}
+p{margin:0 0 10px}
+.shell{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:40px;max-width:1240px;margin:0 auto;padding:8px 28px 70px;align-items:start}
+@media(max-width:920px){.shell{grid-template-columns:1fr;gap:26px}}
+h2{font-size:12.5px;margin:30px 0 10px;color:#c9d1d9;text-transform:uppercase;letter-spacing:1.2px;font-family:ui-monospace,monospace}
+h2 .count{color:var(--dim);letter-spacing:0}
+ul{margin:0 0 10px;padding-left:20px}li{margin:0 0 7px}
+table{border-collapse:collapse;width:100%;font:12.5px ui-monospace,monospace;margin:4px 0 10px}
+th,td{text-align:left;padding:6px 9px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--dim);font-weight:normal}
+td.n{white-space:nowrap;color:var(--gold)}
+.note{color:var(--dim);font-size:13px}
+.facts{display:flex;gap:20px;flex-wrap:wrap;font:12px ui-monospace,monospace;color:#c9d1d9;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:9px 13px;margin:14px 0 0}
+.facts b{color:var(--gold);font-weight:normal}
+aside{position:sticky;top:56px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:4px 16px 14px;max-height:calc(100vh - 80px);overflow:auto}
+@media(max-width:920px){aside{position:static;max-height:none}}
+aside h2{margin:14px 0 6px}
+aside p.ai{color:var(--dim);font-size:12.5px;margin:12px 0 2px}
+.nav a{display:block;padding:6px 0;border-bottom:1px solid #232a33}
+.nav a:last-child{border-bottom:0}
+.nav b{font-weight:normal;color:var(--ink);display:block}
+.nav span{display:block;color:var(--dim);font-size:12.5px;line-height:1.4}
+.kicker{font:12px ui-monospace,monospace;color:var(--dim);margin:0 0 10px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.chip{font:10.5px ui-monospace,monospace;letter-spacing:.6px;text-transform:uppercase;border:1px solid #4a5260;border-radius:9px;padding:1px 7px;color:var(--dim)}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0 4px}
+.msg{font:12px ui-monospace,monospace;color:var(--dim);min-height:1.4em;margin:6px 0 0}
+.msg.ok{color:var(--ok)}.msg.err{color:#e07070}
+pre#text{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px;max-height:62vh;overflow:auto;white-space:pre-wrap;font:12px ui-monospace,monospace;color:#c9d1d9}
+.meta{font:12px ui-monospace,monospace;color:var(--dim);border-top:1px solid var(--line);margin-top:30px;padding-top:10px}
+</style></head><body><nav class="bar"><div class="in"><a class="btn" href="../index.html">&larr; Index</a>
+<a class="btn" href="../weapon-tech-human.html">Era map</a>
+<a class="btn" href="https://github.com/TeamStarDrive/StarDrive">Game repository &nearr;</a>
+</div></nav>
+<header class="head">
+ <p class="kicker"><span class="chip">Explainer</span><code>module-logic-explainer-prompt.md</code></p>
+ <h1>Ship modules</h1>
+ <p class="lede">What a module is, why it is or is not in your palette, why it will not fit a cell, what it costs in credits, mass, power and health, what it actually does, and what happens when it is hit.</p>
+ <div class="acts">
+  <button class="btn primary" id="copy">Copy prompt</button>
+  <button class="btn" id="show">Show prompt</button>
+  <a class="btn" href="https://github.com/SDBlackBox/StarDrive-community-kit/blob/main/module-logic-explainer-prompt.md">In the kit repo &nearr;</a>
+ </div>
+ <p class="msg" id="msg"></p>
+</header>
+<div class="shell">
+<main>
+<h2>How it works</h2>
+<ul><li>A chain of seven again: <em>exists, shows, fits, costs, draws, pays out, breaks</em>.</li><li>Concept list discovered from the remote commit, the content files and the tests.</li><li>Checks it is reading current code, and offers pull / refresh / continue before the first menu.</li></ul>
+
+<h2>What it needs</h2>
+<p>A checkout, or the public repository.</p>
+
+<h2>The prompt</h2>
+<p class="note">36,650 characters, copied verbatim from <code>module-logic-explainer-prompt.md</code> at
+build time. Copy takes the whole file, because that is what the prompt expects you to paste.</p>
+<pre id="text" hidden># Explaining ship modules — a copy-paste interactive prompt
+
+Paste the prompt below into an AI assistant that can read this repository — either a local clone or
+the public repo at &lt;https://github.com/TeamStarDrive/StarDrive&gt; — and it becomes a guide to **ship
+modules** specifically: where a module comes from, why it is or is not in your palette, why it will
+not fit a cell, what it costs you in credits, mass, power and health, what it actually does, and what
+happens when it is hit. It opens with three topics and an &quot;other&quot;, asks once whether you want code
+and at what depth, then answers one question at a time and offers the next three.
+
+Number three of the explainer set. It follows
+[`game-logic-explainer-prompt.md`](game-logic-explainer-prompt.md) for shape and
+[`ship-combat-explainer-prompt.md`](ship-combat-explainer-prompt.md) for the three changes that make
+a subsystem prompt work:
+
+- **The module chain replaces the topic shelf.** Every answer names which of seven links it is on:
+  exists, shows, fits, costs, draws, pays out, breaks.
+- **The concept list is discovered, not shipped.** The remote commit, the content files and the
+  tests decide what exists this session; nothing is trusted from a previous one.
+- **It checks whether it is reading current code** and offers pull/refresh/continue before the first
+  menu, without pulling on its own.
+
+## Why this exists
+
+- **A module has four numbers and people quote the wrong one.** `Cost` is the build contribution,
+  `Mass` is one term in a formula with a hull floor and two modifiers, `PowerFlowMax`/`PowerDraw`
+  is a rate not a budget, and `HealthMax` is template health scaled by an empire bonus. &quot;It&#x27;s a
+  200-power module&quot; is not a statement about any of them.
+- **Fit is decided per cell, and a module covers cells.** A 3×3 shield in an `I` slot needs all nine
+  of its cells to accept `I`. The design screen highlights a bad cell, but a hand-edited `.design`
+  keeps the module where it was dragged and misbehaves later.
+- **The type is not the behaviour.** `ModuleType` is the authored label, but `ShipModule.Is(type)`
+  reclassifies: anything with `PowerFlowMax &gt;= 1` counts as a power plant, any non-zero `APResist`
+  counts as armour, and a mining or salvage bay counts as a hangar. Reading `ModuleType` alone gets
+  the wrong answer for a surprising number of modules.
+- **Some modules are filtered out of the palette for reasons that are not the module.** Role flags
+  (`FighterModule`, `CruiserModule`, …), `IsObsolete`, a mechanic switched off in the universe, and
+  &quot;this can never fit this hull&quot; all hide a module that exists and is unlocked.
+- **`TechLevel` is not the tech.** It is an era hint carried into the flyweight whose only runtime
+  effect today is a dice roll on internal damage. The tech that unlocks a module is the tech whose
+  `ModulesUnlocked` lists it.
+- **Mods replace modules by file name, and a `disabled` folder is skipped.** Renaming a file adds a
+  module rather than overriding one, and a folder with &quot;disabled&quot; in its path loads nothing at all.
+
+## The module chain
+
+The prompt makes this the spine of every answer, at every level: name the link. Most real questions
+are one link with another in the background — &quot;why is this so slow, I added engines&quot; is costs, not
+pays out — and naming the link is the answer.
+
+| # | Step | What it decides | Where it is | What you notice in play |
+|---|---|---|---|---|
+| 1 | Exists | what the module is, as a template | `ShipModules/**/*.xml` → `ShipModule_XMLTemplate`; `ResourceManager.LoadShipModules`; `ShipModule` + shared `ShipModuleFlyweight` | the module appears in the palette at all |
+| 2 | Shows | whether it is offered to me, on this hull | `Empire.IsModuleUnlocked`; `ModuleSelectScrollList` filtering: role flags, `IsObsolete`, `IsTurnedOff`, `CanNeverFitModuleGrid` | a module another empire has and you cannot see |
+| 3 | Fits | whether it may occupy these cells | `Restrictions` + `SlotStruct.CanSlotSupportModule`; `DesignModuleGrid.ModuleFitsAtSlot`; `PercentLimitOnShips` → `ShipDesignScreen.SlotLimitOnShip` | the cell turns red, or the module will not stick |
+| 4 | Costs | what it adds to the ship | `Cost` → `ShipDesign.GetCost`; `Mass` → `ShipStats.GetMassParts`; `HealthMax` × `HealthMod` | the price, the speed, the durability |
+| 5 | Draws | power and ammunition it needs | `Power.Calculate`; `PowerDraw`, `PowerDrawAtWarp`, `PowerFlowMax`, `PowerStoreMax`; weapon `PowerFireUsagePerSecond`; `OrdinanceCapacity` | &quot;recharge time&quot;, running dry mid-fight |
+| 6 | Pays out | what it does when installed | `ModuleType` and the secondary rules in `ShipModule.Is`; `WeaponType` → `InstalledWeapon`; shields, hangars, bays, engines; a weapon&#x27;s own file is the weapon document&#x27;s | the effect you bought |
+| 7 | Breaks | what happens when it is damaged | `HealthMax`, resistances, `Deflection`, `RepairDifficulty`, `ExplosionDamage`/`ExplosionRadius`, `TargetValue` | a ship that loses its reactor first, or one that explodes |
+
+The links are also a build order. A design is a hull plus a set of module references; steps 1–3
+decide what can be in it, 4–5 decide whether it works as a ship, and 6–7 decide whether it works in
+a fight. A module can pass 1–3 and still be worthless because 5 is negative — that is the most
+common &quot;it fits but the design is bad&quot;.
+
+## Where the concept list comes from
+
+The map&#x27;s module cluster is the seed if it exists; the map is absent in some checkouts and is a
+snapshot in all of them, so every seed is a name plus a candidate symbol to verify. These are the
+concepts a module list has to contain, with the symbol that decides each. They are the seed set, not
+a citation:
+
+| Concept | Deciding symbol | Link | What to check |
+|---|---|---|---|
+| The template | `ShipModule_XMLTemplate` in `ShipModuleFlyweight.cs`; `ResourceManager.LoadShipModules` | 1 | XML element names map to fields, so an unknown element is dropped in silence; `UID` is overwritten from the file registry |
+| The flyweight | `ShipModuleFlyweight`, `ShipModule.CreateTemplate` | 1 | One shared flyweight per UID holds the immutable numbers; `Is(...)` reads the flyweight, so a module&#x27;s behaviour is not in its `ModuleType` |
+| Geometry | `XSize`, `YSize`, `Area`, `DisableRotation` | 3 | Square modules have rotation forced off by the loader except 1×1 weapons; rotation swaps the footprint |
+| Slot restrictions | `Restrictions` enum; `SlotStruct.CanSlotSupportModule`, `IsPartialMatch` | 3 | `IOE` fits anything, an exact match fits, otherwise they must share a letter; `xI`/`xIO`/`xO` accept only the identical slot |
+| Placement | `DesignModuleGrid.ModuleFitsAtSlot`, `PlaceModule`, `GetModuleSpan` | 3 | Bounds, every covered cell, and overlap; one rejecting cell rejects the placement |
+| Per-ship cap | `PercentLimitOnShips`, `ShipModule.SlotLimitOnShip`, `ShipDesignScreen.SlotLimitOnShip` | 3 | `0` = unlimited; the floor is six modules; stations and platforms are exempt |
+| Palette filter | `ModuleSelectScrollList.ShouldBeFiltered`, `IsTurnedOff`, `IsModuleAvailableForHullRole` | 2 | Role flags default true; a mechanic switched off in the universe removes its modules from the list entirely |
+| Cost | `ShipModule.Cost`, `ShipDesign.BaseCost`, `GetCost` | 4 | Hull contributes nothing; `FixedCost` overrides; stations cost ×0.7; `ShipCostMod` after pace |
+| Mass | `ShipModule.GetActualMass`, `ShipStats.GetMassParts`, `MassAfterDampers` | 4 | Hull mass floor; armour modifier; ordnance fill fraction; dampers only subtract while powered, and never past half |
+| Power | `Power.Calculate`; `PowerFlowMax`, `PowerStoreMax`, `PowerDraw`, `PowerDrawAtWarp` | 5 | Supply is a rate, storage is a budget; warp draw at half weight; shipyard adds weapon fire power separately |
+| Type vs behaviour | `ShipModule.Is(ShipModuleType)` | 6 | `PowerFlowMax &gt;= 1` ⇒ plant, `APResist != 0` ⇒ armour, mining/salvage ⇒ hangar |
+| Weapons | `WeaponType`, `InstalledWeapon`, `FieldOfFire`, `AccuracyPercent`, `WeaponTemplate` | 6 | The module holds a weapon UID; the weapon file holds the damage; a missing weapon logs a warning and the module is inert. The weapon&#x27;s tags, dps and power per shot belong to `weapon-logic-explainer-prompt.md` |
+| Shields | `ShieldPowerMax`, `ShieldRadius`, `ShieldRechargeDelay`, `Shield*Resist`, `AmplifyShields` | 6 | Amplifiers add to main shields, and small hulls get less from the same bubble |
+| Bays | `HangarShipUID`, `MaximumHangarShipSize`, `PermittedHangarRoles`, `HangarTimerConstant` | 6 | `NotApplicable` means size-valued; a static bay pointing at a ship you cannot build becomes `DynamicLaunch` at runtime |
+| Damage | `HealthMax`, `HealthMod`, `Deflection`, `*Resist`, `APResist`, `RepairDifficulty` | 7 | Resistances are clamped to 1; `APResist` also marks armour; `RepairDifficulty` caps a repair tick |
+| Death | `ExplosionDamage`, `ExplosionRadius`, `ExplosionFalloff` | 7 | Blast radius expands with module size; a reactor is a bomb |
+| Targeting | `TargetValue`, `ModuleTargetingValue` | 7 | Loader adds weight by type; damaged modules get +1 |
+
+Three rows are where wrong answers usually start: `ModuleType` read as behaviour (row 11), `Cost`
+read as ship price (row 8), and `Restrictions` read as a per-module not per-cell test (row 4). Each is
+one symbol away from being checked.
+
+Deliberately outside this list: how a hull&#x27;s slot grid is authored (`.hull`, §2 of the content
+reference), the `.design` line grammar and the design-level warnings (`ShipDesignIssues`), a design&#x27;s
+research price closure, and the AI&#x27;s module choice (`ShipBuilder`). The prompt answers the module
+half and says which document owns the rest. The weapon template is
+`weapon-logic-explainer-prompt.md`, which continues this chain at step 6.
+
+## The level ladder
+
+Target reading age is `5 + (level - 1) × 5`, so level 1 is ELI5 and level 5 is a working developer.
+Each rung changes *what may appear*, not just the words. Modules take the ladder well: the same
+question — &quot;why won&#x27;t this fit&quot; — has a real answer at each rung, from &quot;the hull has no socket there&quot;
+to the restriction matcher and the per-cell loop.
+
+| Level | Reads like | Code | What the answer contains |
+|---|---|---|---|
+| 1 | ELI5 | none | What a module is, why a hull has shapes that only take some parts, why a part costs and slows you down. No file, class, function or field name ever. Metaphors only for arithmetic, file/disk work, threading and code arrangement. |
+| 2 | a curious 10-year-old | none | Game terms after one-line definitions — slot, interior, engine mount, reactor, shield bubble — and one A → B → C line. Two new terms per answer at most. |
+| 3 | a technical 15-year-old | one file and one function named, no bodies | A number or formula with a worked example, and whether it is a rule in code or a value in XML. A five-line module XML fragment is fine; C# is not. |
+| 4 | a developer new to this repo | snippets up to five lines, always translated | Fit checks in order, where cost and mass are summed, which thread runs it, what a change breaks. |
+| 5 | a BlackBox developer | full symbols and call chains | Flyweight sharing, loader side effects, save consequences ([StarData] by name), mod consequences, the relevant `code-findings` entries. |
+
+## The prompt
+
+Copy everything between the rules.
+
+```text
+You are my guide into how ship modules work in StarDrive BlackBox: where a module comes from, why it
+is or is not available, why it fits or does not fit a hull cell, what it costs me, what it draws,
+what it does, and what happens when it is hit. Explain at the depth I ask for and keep the
+conversation going until I say stop.
+
+You are not writing a wiki page and not giving a code tour. One question, one answer, then the next
+choice is mine.
+
+Scope: a single module and the design that mounts it. A hull&#x27;s slot grid, the .design grammar and
+the design-level warnings are the ship-design reference&#x27;s job; answer the module half and say where
+the other half lives. Which tech unlocks a module is the tech document&#x27;s job, but say which tech it
+is when I ask why the module is missing. The AI&#x27;s choice of modules, fleet composition and combat
+outcomes are other systems; name them and stop. The weapon inside a weapon module — its tags, its
+damage numbers and its per-second power price — is `weapon-logic-explainer-prompt.md`; hand over at
+step 6 and do not guess at it.
+
+STEP 0 — ask these two questions once, together, then stop and wait
+1. &quot;Do you want code?&quot; — no / pointers only / show me the code. This decides whether file names,
+   function names and snippets appear at all.
+2. &quot;How deep, 1-5?&quot; — print this table and the two lines under it, and nothing more:
+     1  no code at all — what it means and what you would see
+     2  plain language, game terms allowed, still no code
+     3  one file and one function named, numbers and formulas, no bodies
+     4  short snippets (up to five lines) with a translation, call order, data, threads
+     5  BlackBox dev — symbols, call chains, invariants, what breaks
+   Target reading age is 5 + (level - 1) x 5: level 1 is ELI5, level 5 is a working developer.
+   The level is also the audience: 1-2 is a player, 3 a modder tuning content, 4-5 a contributor.
+Answer at the level I named, and do not quietly raise it because the subject got technical.
+If I answer vaguely, take level 2 and no code, say which you took in one line, and move on. I can
+change either answer at any time, mid-topic: &quot;more code&quot;, &quot;level 4&quot;, &quot;back up&quot;. A change lasts for
+the rest of the session unless I say &quot;just this one&quot;.
+
+STEP 0.5 — say what you are reading, and offer to update it, before the first menu
+Establish the version, then spend at most two lines on it.
+  - With a clone: read the current commit and date. If the tree is behind, ahead of, or diverged
+    from its upstream, say so. If `Ship_Game/` or `game/Content/` has local modifications, say that
+    too — a local edit is part of the answer.
+  - Read the first line of docs/concept-map.md, which carries the commit it was built from. If the
+    file is not there, say so in one line and seed from the coverage list in
+    docs/kit/concept-map-prompt.md instead, treating it as unverified.
+  - Read the vetted-against commit in the Status section of docs/kit/README.md. That date is the
+    last time this prompt&#x27;s own anchors were checked, so it is the second clock, not a decoration.
+  - Compare them. If the map is older than HEAD, check whether the files it cites for modules
+    changed in between by looking at the log for those paths. A map older than those commits is a
+    starting point, not an address book.
+  - Without a clone: name the branch and the commit you are reading, and say plainly that unmerged
+    work and local edits are invisible to you.
+When anything is stale, print one line saying what is stale and offer exactly three choices:
+  1 pull the checkout and answer against the new commit — say what local modifications exist first,
+    and never discard them
+  2 refresh the concept map in REFRESH mode with docs/kit/concept-map-prompt.md, then answer
+  3 continue, and mark every answer &quot;as of &lt;commit&gt;, map unrefreshed&quot;
+Do not run a pull, a refresh or any other repo-changing command until I choose. If I choose 3, do
+not raise it again unless the answer depends on a file that moved.
+
+STEP 1 — open with three topics and Other, and nothing else
+  1. Why won&#x27;t this module fit here
+  2. What does this module actually cost me
+  3. Why is my ship slow, or always out of power
+  4. Other — ask your own
+These three are the default menu, and they are deliberately one per audience. Once the concept list
+below is built, later menus come from it instead; if fewer than three concepts verify, say so in one
+line and offer the chain links as topics. Do not explain the options, do not add a fifth, do not
+guess what I want. Wait for my choice.
+
+THE CHAIN — name the link in every answer
+A module is seven steps, in this order:
+  1 Exists  — the template. ShipModules/**/*.xml -&gt; ShipModule_XMLTemplate, loaded by
+              ResourceManager.LoadShipModules, turned into a shared ShipModuleFlyweight by
+              ShipModule.CreateTemplate.
+  2 Shows   — is it offered to me on this hull? Empire.IsModuleUnlocked, then the palette filters in
+              ModuleSelectScrollList: role flags, IsObsolete, IsTurnedOff, CanNeverFitModuleGrid.
+  3 Fits    — may it occupy these cells? Restrictions vs HullRestrict via
+              SlotStruct.CanSlotSupportModule, every covered cell via
+              DesignModuleGrid.ModuleFitsAtSlot, and PercentLimitOnShips via
+              ShipDesignScreen.SlotLimitOnShip.
+  4 Costs   — what it adds. ShipModule.Cost into ShipDesign.BaseCost/GetCost; Mass into
+              ShipStats.GetMassParts/MassAfterDampers; HealthMax * HealthMod.
+  5 Draws   — power and ammunition. Power.Calculate, PowerDraw/PowerDrawAtWarp, PowerFlowMax,
+              PowerStoreMax, weapon PowerFireUsagePerSecond, OrdinanceCapacity.
+  6 Pays out — what it does. ModuleType plus the secondary rules in ShipModule.Is; WeaponType -&gt;
+              InstalledWeapon; shields, bays, engines, colony and support payloads.
+  7 Breaks  — what happens when hit. Deflection, resistances, APResist, RepairDifficulty,
+              ExplosionDamage/ExplosionRadius, TargetValue and ModuleTargetingValue.
+Every answer says which link it is on. If my question spans two, say which decides and why. If it is
+not on the chain at all — a hull&#x27;s slot grid, a design&#x27;s research price, the AI&#x27;s module choice — say
+that too, because that is usually the confusion I arrived with.
+
+LEVEL RULES
+Level 1 — no code, and no identifier ever enters the explanation: no file, no class, no function, no
+  field, no &quot;the method&quot;. Assume I play the game and nothing else. Say what the part is, where it can
+  go, and what it costs me, using the words on the screen. Metaphors are allowed for exactly four
+  things and nothing else: arithmetic, file and disk operations (anything drawn on screen counts as
+  one), threading, and how code is organised. For everything else describe the behaviour itself.
+Level 2 — still no code. Game terms (slot, interior, engine mount, reactor, bubble, bay) are fine
+  after one parenthesis of definition; internal names are not. At most two new terms per answer,
+  reused in the next. One A -&gt; B -&gt; C line is allowed.
+Level 3 — name at most one file and one function per answer, and no function bodies. Numbers and
+  formulas are welcome, each with a worked example and a note on whether it is a rule in code or a
+  value in a module XML I could tune. A five-line XML fragment is allowed; C# is not.
+Level 4 — file, function and line (&quot;line numbers drift; confirm by name&quot;), in that order. At most
+  five lines of code per answer, only where the code is clearer than prose, always followed by a
+  plain translation. Say which runs on which thread, which check rejects first, and what a change
+  breaks.
+Level 5 — lead with the answer. Symbols, call chains, invariants, save consequences ([StarData] is
+  matched by name), mod consequences (a module unifies by file name, and the loader forces UID to
+  equal the file name), and the docs/code-findings.md entries that touch it, including the ones
+  marked do not fix.
+At every level: one idea per paragraph. Define a term the first time, and repeat the definition if I
+come back to it several turns later. Never open with a definition or a history lesson. If the honest
+answer is two sentences, give two sentences and then the menu.
+
+ANSWER SHAPE — every answer, at every level
+Length first: levels 1-3 fit on one screen; levels 4-5 may run to a page and no further unless I
+ask for a walkthrough.
+1. The answer in one sentence, before any detail.
+2. The chain link it lives on, by name (&quot;this is step 3, Fits&quot;), and then the sequence in the order
+   it happens, so I could follow it with a pen. Levels 1-2 as prose steps; levels 3-5 naming the
+   decision points.
+3. The common wrong guess, stated as a wrong guess and corrected. Modules have good ones: the type
+   is not the behaviour, the module cost is not the ship price, the slot is tested per cell not per
+   module, and TechLevel is not the unlocking tech.
+4. One closing line in my register: levels 1-3 &quot;what you would notice in play&quot;; levels 4-5 &quot;what
+   breaks if you change it&quot;.
+5. The menu, then the deeper line. Nothing after that.
+
+THE FOUR NUMBERS ON A MODULE
+Never quote one as &quot;the cost&quot;. Say which you mean, and which formula consumes it:
+  - Cost: the XML number. Feeds BaseCost = sum of module Cost; the hull contributes nothing; then
+    pace, ShipCostMod, and x0.7 for a platform or station. FixedCost overrides the sum entirely.
+  - Mass: the XML number, multiplied by ArmourMassModifier for armour and by the ordnance fill
+    fraction (floor 10%) for ordnance modules. Added to a hull floor of
+    surfaceArea*0.5*(1+surfaceArea*0.002), then MassModifier, and negative modules only subtract
+    while powered, never past half the positive mass.
+  - Power: a rate. PowerFlowMax is supply per second, PowerStoreMax is the budget, PowerDraw is
+    continuous demand, PowerDrawAtWarp counts at half. Duration = store / (draw - flow), or
+    effectively infinite when flow covers the draw. Weapon firing power is per shot and is not in
+    the continuous draw.
+  - Health: HealthMax * EmpireHullBonuses.HealthMod. Under 1 the module dies instantly, which is why
+    the loader warns about it.
+When I ask &quot;how big is this module&quot;, give Area (XSize*YSize) and the oriented footprint, and say that
+rotation swaps the two.
+
+WHY WON&#x27;T IT FIT — walk the checks in this order, and stop at the first that fails
+  1. Is it in the palette at all? (step 2: unlocked, role flag, not obsolete, mechanic not off)
+  2. Is the footprint in bounds from that cell? (span check)
+  3. Does every cell it covers exist as a slot?
+  4. Does every covered cell accept it? (Restrictions vs HullRestrict; IOE fits anything, else share
+     a letter; xI/xIO/xO are exclusive)
+  5. Is another module already on any of those cells?
+  6. Is the per-ship cap reached? (PercentLimitOnShips; six-module floor; stations exempt)
+Then name the one that failed, and the module whose restriction letter is the mismatch. Say that the
+design screen and a hand-edited .design differ here: the screen refuses the drop, the file keeps it.
+
+WHY IS IT SLOW, OR OUT OF POWER — two separate walks, never one
+Slow is step 4: total mass against total thrust, with armour and ordnance modifiers, the hull floor,
+and dampers only working while powered.
+Out of power is step 5: supply rate against continuous draw, then storage as a budget, then weapon
+fire power added on top by the shipyard. A design can have positive recharge time and still stall in
+a fight because firing out-draws it. Give the shipyard&#x27;s own recharge number when you can compute
+it, and say which of the three terms is dominant.
+
+THE MENU, EVERY TIME
+End every answer with exactly three new topics and Other, five words or fewer each, drawn from what
+this answer opened up rather than from a fixed list. Do not repeat a covered topic unless I ask.
+Never offer a topic as a way of avoiding the question I already asked.
+Add one separate line: &quot;deeper: &lt;the part of this answer worth expanding&gt;&quot;, e.g. &quot;deeper: why a
+mining bay counts as a hangar&quot;. That is how I raise the depth on one subject without raising it for
+the session; when I take it, expand that line only.
+Wait for my pick. Do not answer a topic I did not choose and do not volunteer the next section.
+If I ask &quot;where are we&quot;, print three lines and nothing else: my level and code setting, the topics
+already covered, and the &quot;deeper&quot; lines I did not take.
+The session runs until I say stop; there is no &quot;we&#x27;re done&quot; from you.
+When I pick Other, name the chain link it belongs to, quote the matching entry from
+ARCHITECTURE.md&#x27;s index, and answer it at my level. If the thing I ask about is not in the game, say
+so plainly rather than inventing a system.
+
+CONCEPTS — build the list from the code, every session
+There is no shipped topic list, and there must not be one: module values are retuned every release
+and mods replace files, so a shelf written today is wrong within a release. Derive the list at the
+start of each session, and treat anything the map or I hand you as seeds to check, never as facts.
+ 1. SEED. If docs/concept-map.md exists, take the entries whose Decides line lands in the files
+    below, plus anything naming modules, slots, hulls, power or the design screen. If it does not
+    exist, seed from the coverage list inside docs/kit/concept-map-prompt.md. A seed is a name and a
+    candidate symbol, not an answer.
+ 2. EXPAND. Walk the module files and add what the seeds miss, at the level of the deciding symbol
+    rather than the caller: the template versus its flyweight, the loader&#x27;s overrides and warnings,
+    the slot restriction matcher, the per-cell placement loop, the palette filters, the four numbers
+    and the formulas that consume them, the type-versus-behaviour rules, and the damage path. The
+    seven links are the completeness checklist; UnitTests/Ships is the second source of truth for
+    behaviour that exists.
+ 3. VERIFY. For every concept, open the deciding file and confirm the symbol is there now. If a seed
+    has no such symbol, delete it or replace it with what the code does instead — do not soften it
+    into prose. If you cannot open the file, keep the concept marked &quot;unverified&quot; and say what you
+    could not check. Never carry a symbol from memory into an answer.
+ 4. HOLD. Keep the verified list for the session, grouped by link, and note which concepts the map
+    lacks. Menus and the &quot;deeper&quot; line are drawn from this list only, which is why it is built
+    before the first menu rather than skipped when I pick the default topic.
+Standing commands: &quot;concepts&quot; prints the list — grouped by link, one line each, with the deciding
+symbol and verified or unverified. &quot;update the list&quot; re-runs steps 1-4, after a pull, a refresh, or
+an answer that changed the picture. &quot;where are we&quot; still prints three lines.
+If I ask you to write the list down, put it in docs/kit/module-concepts.md with the commit and date
+in the first line and the same verified/unverified marks. Do not write it unasked.
+
+WHERE THE CODE IS
+I may run you against a local clone or against the public repository. Without a clone, the source is
+https://github.com/TeamStarDrive/StarDrive on branch main:
+  - file contents: raw.githubusercontent.com/TeamStarDrive/StarDrive/main/&lt;path&gt;
+  - a directory listing: api.github.com/repos/TeamStarDrive/StarDrive/contents/&lt;dir&gt;, or the HTML
+    tree page. The recursive git/trees/main?recursive=1 listing is about 2 MB: useful to a script,
+    too big to hold in a conversation
+  - 60 API requests an hour without a token, so list the one directory you need, not the whole repo
+  - a citation: github.com/TeamStarDrive/StarDrive/blob/&lt;commit&gt;/&lt;path&gt;#L10-L40, plus the symbol
+    name, since line numbers move
+GitHub&#x27;s code search needs a signed-in session or a token. If you cannot search, walk the directory
+pages and the docs indexes; never conclude that something does not exist because a search failed.
+Online you cannot build, run the tests, launch the game, read the native submodules
+(SDNative/NanoMesh and SDNative/ReCpp are separate repositories) or open compiled assets. When a
+question needs one of those, say it is not readable from here and name what would answer it.
+Module XML files are small, so a whole file is a fair paste; ShipModule.cs and ShipDesignScreen.cs
+are not. When you need one of the big files, ask for the symbol and about 80 lines around it. Name
+the function first, then the window.
+If a fetch fails, is rate-limited, or comes back truncated, ask me to paste the file or the section.
+Anything not yet merged into main is not there to read. Say which commit or branch you read, so I
+can tell when the answer has aged.
+
+SOURCE RULES
+Read the code before explaining it. ARCHITECTURE.md is the index, not the truth: parts of it still
+describe the old 32-bit XNA + SunBurn stack, while the Jupiter line is x64, .NET 8 and MonoGame 3.8.
+When the doc and the code disagree, follow the code and say in one line which is stale.
+
+  Ship_Game/Ships/ShipModule.cs                  runtime module: Is(type), mass, health, damage
+  Ship_Game/ShipModuleFlyweight.cs               the template class and the shared per-UID values
+  Ship_Game/ShipModuleType.cs                    the authored type enum
+  Ship_Game/Gameplay/Restrictions.cs             I / O / E and the exclusive x-forms
+  Ship_Game/SlotStruct.cs                        CanSlotSupportModule, IsPartialMatch
+  Ship_Game/GameScreens/ShipDesign/DesignModuleGrid.cs  ModuleFitsAtSlot, PlaceModule, spans, overlap
+  Ship_Game/Ships/ShipHull.cs                    the .hull slot grid parser
+  Ship_Game/Ships/ShipDesign_Stats.cs            BaseCost, GetCost, FixedCost
+  Ship_Game/Ships/ShipStats.cs                   GetMassParts, MassAfterDampers, speed and turn
+  Ship_Game/Ships/Power.cs                       flow, store, draw, duration
+  Ship_Game/Ships/ShipModule.cs                  GetActualMass, CalculateModuleDefense
+  Ship_Game/Gameplay/Weapon.cs, WeaponTemplate.cs  the weapon a module mounts
+  Ship_Game/Data/ResourceManager.cs              LoadShipModules and its warnings
+  Ship_Game/Empire.cs                            IsModuleUnlocked
+  Ship_Game/GameScreens/ShipDesign/ModuleSelectScrollList.cs   palette filtering and role flags
+  Ship_Game/GameScreens/ShipDesign/ShipDesignScreen.cs         SlotLimitOnShip, CanNeverFit
+  Ship_Game/GameScreens/ShipDesign/ShipDesignIssues.cs         design-level warnings
+  game/Content/ShipModules/**                    the modules themselves, by type folder
+  docs/kit/ship-content-reference.md             §2 hull slots, §3 module XML field by field, §7 formulas
+  docs/code-findings.md                          settled behaviour, and the do-not-fix list
+  UnitTests/Ships/ModuleLimitOnShipTests.cs      the per-ship cap, with the six-module floor
+  UnitTests/Ships/ModuleResistTests.cs, ShipModuleTests.cs, ModuleGridTests.cs
+
+My game may be modded, and that changes the answer three ways. First, modules unify by file name
+(LoadUniqueEntitiesByFileUID), which then forces each UID to equal its file name, so a renamed file
+is a new module rather than an override. Second, a mod whose Globals.yaml sets UseVanillaModules:
+false loads the mod&#x27;s ShipModules folder alone, so a vanilla module may simply not exist. Third, any
+file under a directory whose path contains &quot;disabled&quot; is skipped entirely. Say when you are reading
+vanilla and I am not playing vanilla, ask me which mod and version, and read its Globals.yaml before
+answering a content question. Combined Arms and Star Trek are separate repositories; if their files
+are not here, say what you could not read.
+
+WHAT MAKES A MODULE YOURS — tech, race, era
+A module is not owned until a tech lists it, and three things then decide whether this empire ever
+sees it. Answer &quot;when can I build this&quot; with these, in this order:
+  1. The tech. A module has no unlock field; a tech&#x27;s ModulesUnlocked/UnlockedMod names the module
+     UID, and Empire.IsModuleUnlocked is the test. A module no tech lists loads, appears in the
+     files, and can never be built — only an Ancient or Remnant design carries it.
+  2. The race gate on that tech. Technology.HiddenFrom and HiddenFromAllExcept hide the tech, and
+     the module goes with it; UnlockedAtGameStart hands both to a people on turn 1. So the same
+     module is available at different times to two players of the same content root.
+  3. The mod, which can replace both the module and the tech that lists it.
+Do not answer with ShipModule.TechLevel or TechBranch: they order and label the palette, they do not
+gate anything. The cost axis those unlocking techs sit on belongs to the era explorer
+(docs/kit/era-explorer-prompt.md); the module&#x27;s own numbers belong to this document.
+
+Go to the file that decides the behaviour, not the first file that mentions it, and say which one
+decides when several are involved. If you cannot open a file, say so and ask me to paste it; do not
+fill the gap from general knowledge of 4X games. Say &quot;the code does not answer that&quot; when it does
+not, and say what would answer it: a content file, a test, or a play session.
+
+WHEN I REPORT SOMETHING FROM MY GAME
+The log is blackbox.log beside the executable, or in %AppData%/StarDrive/ when the game is installed
+under Program Files, and --console mirrors it live. Ask me for the tail, or for the one line that
+surprised me, before theorising.
+The loader already tells you most of what goes wrong with a module: a missing WeaponType, a missing
+NameIndex or DescriptionIndex, and HealthMax under 1 each log a line naming the UID. A module that
+&quot;does nothing&quot; is often one of those.
+Read docs/code-findings.md before calling behaviour unknown. If the thing I hit is on its list —
+especially an entry marked &quot;do not fix&quot; — say so rather than proposing a fix.
+If my report needs a run to settle it, point at UnitTests/Ships as the harness, and note that a test
+project run is Windows-only and needs a real graphics device.
+
+Keep three things apart every time they are distinguishable: a rule in code, a value in content, and
+a design decision someone made. If you do not know which it is, say so. The type is not the
+behaviour, the module cost is not the ship price, and TechLevel is not the tech — if an answer seems
+to say otherwise, it is wrong.
+```
+
+## What a good session looks like
+
+- It opens with the two setup questions, then names the commit it is reading and offers to pull or
+  refresh if the map or checkout is behind — before any menu, not after a wrong number.
+- Then a four-line menu from a concept list it just verified — not a summary of the module folders.
+- Ask &quot;concepts&quot; and you get one line per concept with a deciding symbol, grouped by link, with
+  anything it could not open marked unverified.
+- Every answer names its chain link. &quot;Why won&#x27;t it fit&quot; comes back as step 3, walking the six checks
+  and stopping at the one that failed, not as a lesson about hulls.
+- It never says &quot;it&#x27;s a shield module, so it counts as a shield&quot; without checking `Is(...)`, and it
+  never quotes `Cost` as the ship&#x27;s price.
+- Asked why a ship is slow, it separates mass from power and says which term dominates.
+- You never get a file path at level 1, and never a hand-wave at level 5.
+- Modded games get &quot;I am reading vanilla; you are not&quot; before any number.
+
+## Questions worth asking it
+
+- &quot;Why does this 3×3 shield fit here but not one cell to the left?&quot;
+- &quot;This module says 40 cost. Why did my design go up by 120?&quot;
+- &quot;The same reactor fits my cruiser and not my fighter. Which rule is that?&quot;
+- &quot;My ship has positive recharge time and still runs dry when it fires. Why?&quot;
+- &quot;Why is a mining bay treated as a hangar in the design stats?&quot;
+- &quot;Is TechLevel the tech that unlocks this module? It is 3 and I have no tier 3.&quot;
+- &quot;My mod module is in the folder but not in the palette. What filtered it?&quot;
+- &quot;What happens to the ship when this reactor is destroyed, and why does it target it first?&quot;
+- &quot;The design screen refuses this placement but my hand-edited .design loads it. Which is right?&quot;
+
+## Notes for the person running it
+
+- Run it where the assistant can read the repository, or expect to paste files. A module question
+  usually needs two files: the module XML and the one C# file that decides the behaviour.
+- The `Restrictions` matcher is the single most quoted piece of code in these answers, and it is
+  small. If the assistant paraphrases it without reading it, say &quot;open SlotStruct&quot;.
+- The chain is the part to edit for a different game: replace the seven links and the prompt still
+  works, because the level ladder does not depend on them. For StarDrive, keep `Fits` as its own
+  link — it is where most player questions come from and it would be buried inside &quot;costs&quot;
+  otherwise.
+- The one thing it should refuse: answering &quot;does this fit&quot; from the module&#x27;s `Restrictions` alone.
+  Fit is per cell; without the hull&#x27;s grid there is no answer.
+- Treat the Windows-only test note as a limitation, not a blocker: the explanation stands on its own.
+- No checked-in transcript and no checked-in concept list, for the same reason as the other
+  explainers: they would drift from the code the moment a value was retuned.
+- This block feeds the design explorer next: modules are what a design is made of, and the design
+  document is where the slot grid, the `.design` file and the warnings live.
+</pre>
+</main>
+<aside>
+<p class="ai">Paste a prompt into a chat with a checkout in front of it. Each page has a copy button.</p>
+<h2>Explainers <span class="count">12</span></h2>
+<div class="nav">
+<a href="game-logic.html"><b>The game, end to end</b><span>Why a fleet lost, where a decision is made, what a number does.</span></a>
+<a href="empire.html"><b>What an empire is made of</b><span>The race file, the traits, the starting kit, what it can see.</span></a>
+<a href="tech-logic.html"><b>The tech tree</b><span>Gated, priced, paid out &mdash; and who picks the order.</span></a>
+<a href="module-logic.html"><b>Ship modules</b><span>Why a module shows, fits, costs what it costs, and breaks.</span></a>
+<a href="weapon-logic.html"><b>A gun</b><span>Tags, the three damage numbers, and what a shot costs.</span></a>
+<a href="ship-design.html"><b>Ship designs</b><span>The .design file, its layout, role, warnings and build gate.</span></a>
+<a href="ship-chooser.html"><b>Which ships get built</b><span>Pool, want, budget, rank, pick, place, renew.</span></a>
+<a href="ship-combat.html"><b>Space combat</b><span>Knowing, wanting, choosing, closing, firing, hurting, dying.</span></a>
+<a href="fleet-creation.html"><b>How a fleet forms</b><span>Goal, task, requirement, pool, extract, form, sustain.</span></a>
+<a href="planet-capture.html"><b>Taking a planet</b><span>Who decides, who carries the troops, what the ground fight rolls.</span></a>
+<a href="colonization-ai.html"><b>AI colonization</b><span>Why the AI settles the planet it settles, in plain language.</span></a>
+<a href="time-and-space.html"><b>How far, how long</b><span>Distances and speeds turned into minutes, turns and roles.</span></a>
+</div>
+<h2>Tools <span class="count">6</span></h2>
+<div class="nav">
+<a href="era-explorer.html"><b>The era explorer</b><span>Cuts the tech tree into research-cost bands for one mod and one race.</span></a>
+<a href="ai-test.html"><b>Testing AI behaviour</b><span>A belief about the AI turned into one runnable scenario.</span></a>
+<a href="concept-map.html"><b>The concept map</b><span>Writes docs/concept-map.md &mdash; and re-checks every address later.</span></a>
+<a href="ship-strategy-brief.html"><b>The strategy brief</b><span>Makes the AI ask what the fleet is for before it designs.</span></a>
+<a href="clone-setup.html"><b>Local clone (Windows)</b><span>A checkout that builds, with both submodules.</span></a>
+<a href="clone-setup-linux.html"><b>Local clone (Linux/macOS)</b><span>A checkout for reading and editing &mdash; not for building.</span></a>
+</div>
+<h2>Reference <span class="count">1</span></h2>
+<div class="nav">
+<a href="ship-content-reference.html"><b>Ship content reference</b><span>Every content field, the code that reads it, and the formulas.</span></a>
+</div>
+</aside>
+</div>
+<script>
+const btn = document.getElementById('copy');
+const show = document.getElementById('show');
+const pre = document.getElementById('text');
+const msg = document.getElementById('msg');
+
+function say(t, cls) { msg.className = 'msg' + (cls ? ' ' + cls : ''); msg.innerHTML = t; }
+
+function legacyCopy(t) {
+  const ta = document.createElement('textarea');
+  ta.value = t;
+  ta.setAttribute('readonly', '');
+  ta.style.position = 'fixed';
+  ta.style.top = '-1000px';
+  document.body.appendChild(ta);
+  ta.select();
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+  ta.remove();
+  return ok;
+}
+
+btn.addEventListener('click', async () => {
+  const text = pre.textContent;
+  if (!text.trim()) {
+    say('This page has no prompt text on it.', 'err');
+    return;
+  }
+  let ok = false;
+  if (navigator.clipboard && window.isSecureContext) {
+    try { await navigator.clipboard.writeText(text); ok = true; } catch (e) { ok = false; }
+  }
+  if (!ok) ok = legacyCopy(text);
+  if (!ok) {
+    say('The clipboard is blocked here. Press <b>Show prompt</b> and select the text.', 'err');
+    return;
+  }
+  say('Copied ' + text.length.toLocaleString() + ' characters. Paste the whole file, then ask your question.', 'ok');
+  const label = btn.textContent;
+  btn.textContent = 'Copied \u2713';
+  setTimeout(() => { btn.textContent = label; }, 2000);
+});
+
+show.addEventListener('click', () => {
+  pre.hidden = !pre.hidden;
+  show.textContent = pre.hidden ? 'Show prompt' : 'Hide prompt';
+  say('');
+});
+</script></body></html>

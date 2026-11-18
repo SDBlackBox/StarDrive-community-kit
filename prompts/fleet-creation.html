@@ -1,0 +1,611 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>How a fleet forms — StarDrive BlackBox</title><style>
+:root{--bg:#14171c;--panel:#1b1f26;--ink:#e6e8ea;--dim:#8b949e;--line:#2b313a;--gold:#ffd479;--link:#8ecbff;--ok:#8ad06a}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 Georgia,serif}
+a{color:var(--link);text-decoration:none}a:hover{text-decoration:underline}
+code{font:12.5px ui-monospace,monospace;color:#c9d1d9;background:#20252d;padding:0 3px;border-radius:3px}
+.bar{position:sticky;top:0;z-index:9;background:rgba(20,23,28,.94);border-bottom:1px solid var(--line)}
+.bar .in{max-width:1240px;margin:0 auto;padding:10px 28px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{display:inline-block;font:12px ui-monospace,monospace;padding:5px 12px;border:1px solid #3a424e;border-radius:999px;background:var(--panel);color:var(--ink);cursor:pointer}
+.btn:hover{border-color:var(--link);text-decoration:none}
+.btn.primary{border-color:#6b5a2b;background:#2a261b;color:var(--gold)}
+.head{max-width:1240px;margin:0 auto;padding:34px 28px 6px}
+h1{font-size:27px;margin:0 0 8px;line-height:1.25}
+p.lede{color:var(--dim);max-width:82ch;margin:0 0 12px}
+p{margin:0 0 10px}
+.shell{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:40px;max-width:1240px;margin:0 auto;padding:8px 28px 70px;align-items:start}
+@media(max-width:920px){.shell{grid-template-columns:1fr;gap:26px}}
+h2{font-size:12.5px;margin:30px 0 10px;color:#c9d1d9;text-transform:uppercase;letter-spacing:1.2px;font-family:ui-monospace,monospace}
+h2 .count{color:var(--dim);letter-spacing:0}
+ul{margin:0 0 10px;padding-left:20px}li{margin:0 0 7px}
+table{border-collapse:collapse;width:100%;font:12.5px ui-monospace,monospace;margin:4px 0 10px}
+th,td{text-align:left;padding:6px 9px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--dim);font-weight:normal}
+td.n{white-space:nowrap;color:var(--gold)}
+.note{color:var(--dim);font-size:13px}
+.facts{display:flex;gap:20px;flex-wrap:wrap;font:12px ui-monospace,monospace;color:#c9d1d9;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:9px 13px;margin:14px 0 0}
+.facts b{color:var(--gold);font-weight:normal}
+aside{position:sticky;top:56px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:4px 16px 14px;max-height:calc(100vh - 80px);overflow:auto}
+@media(max-width:920px){aside{position:static;max-height:none}}
+aside h2{margin:14px 0 6px}
+aside p.ai{color:var(--dim);font-size:12.5px;margin:12px 0 2px}
+.nav a{display:block;padding:6px 0;border-bottom:1px solid #232a33}
+.nav a:last-child{border-bottom:0}
+.nav b{font-weight:normal;color:var(--ink);display:block}
+.nav span{display:block;color:var(--dim);font-size:12.5px;line-height:1.4}
+.kicker{font:12px ui-monospace,monospace;color:var(--dim);margin:0 0 10px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.chip{font:10.5px ui-monospace,monospace;letter-spacing:.6px;text-transform:uppercase;border:1px solid #4a5260;border-radius:9px;padding:1px 7px;color:var(--dim)}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0 4px}
+.msg{font:12px ui-monospace,monospace;color:var(--dim);min-height:1.4em;margin:6px 0 0}
+.msg.ok{color:var(--ok)}.msg.err{color:#e07070}
+pre#text{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px;max-height:62vh;overflow:auto;white-space:pre-wrap;font:12px ui-monospace,monospace;color:#c9d1d9}
+.meta{font:12px ui-monospace,monospace;color:var(--dim);border-top:1px solid var(--line);margin-top:30px;padding-top:10px}
+</style></head><body><nav class="bar"><div class="in"><a class="btn" href="../index.html">&larr; Index</a>
+<a class="btn" href="../weapon-tech-human.html">Era map</a>
+<a class="btn" href="https://github.com/TeamStarDrive/StarDrive">Game repository &nearr;</a>
+</div></nav>
+<header class="head">
+ <p class="kicker"><span class="chip">Explainer</span><code>fleet-creation-explainer-prompt.md</code></p>
+ <h1>How the empire forms a fleet</h1>
+ <p class="lede">Which goal asks for a fleet, how that goal becomes a military task and what strength it demands, how a set is extracted from the pool of available ships, what turns the set into a named fleet, and what happens to it when the task ends.</p>
+ <div class="acts">
+  <button class="btn primary" id="copy">Copy prompt</button>
+  <button class="btn" id="show">Show prompt</button>
+  <a class="btn" href="https://github.com/SDBlackBox/StarDrive-community-kit/blob/main/fleet-creation-explainer-prompt.md">In the kit repo &nearr;</a>
+ </div>
+ <p class="msg" id="msg"></p>
+</header>
+<div class="shell">
+<main>
+<h2>How it works</h2>
+<ul><li>Chain of seven: <em>goal, task, requirement, pool, extract, form, sustain</em>.</li><li>Separates the task's demand from the ships that answer it, which is where most &ldquo;it sent the wrong ships&rdquo; questions actually live.</li><li>Concept list from the code each session; freshness check before the first menu.</li></ul>
+
+<h2>What it needs</h2>
+<p>A checkout, or the public repository.</p>
+
+<h2>The prompt</h2>
+<p class="note">35,959 characters, copied verbatim from <code>fleet-creation-explainer-prompt.md</code> at
+build time. Copy takes the whole file, because that is what the prompt expects you to paste.</p>
+<pre id="text" hidden># Explaining how the empire creates fleets — a copy-paste interactive prompt
+
+Paste the prompt below into an AI assistant that can read this repository — either a local clone or
+the public repo at &lt;https://github.com/TeamStarDrive/StarDrive&gt; — and it becomes a guide to **how an
+empire forms a fleet**: which goal asks for one, how that goal becomes a military task, and what
+strength
+the task demands, which ships the empire considers available, how a set is extracted from that pool,
+what turns the set into a named fleet, and what happens to the fleet when the task ends. It opens
+with three topics and an &quot;other&quot;, asks once whether you want code and at what depth, then answers
+one question at a time and offers the next three.
+
+Number five of the explainer set. It follows
+[`game-logic-explainer-prompt.md`](game-logic-explainer-prompt.md) for shape and
+[`ship-combat-explainer-prompt.md`](ship-combat-explainer-prompt.md) for the three changes that make
+a subsystem prompt work:
+
+- **The formation chain replaces the topic shelf.** Every answer names its link on the chain:
+  goal, task, requirement, pool, extract, form, sustain.
+- **The concept list is discovered, not shipped.** The remote commit, the content files and the
+  tests decide what exists this session; nothing is trusted from a previous one.
+- **It checks whether it is reading current code** and offers pull/refresh/continue before the first
+  menu, without pulling on its own.
+
+## Why this exists
+
+- **No goal creates a fleet directly.** A goal creates a `MilitaryTask`; the task works out how much
+  strength it needs; the requisition pass extracts a ship set from the empire&#x27;s pool; only then does
+  `MilitaryTask.CreateFleet` call `Empire.CreateFleet`. Five steps, three files, and every &quot;why is
+  there no fleet&quot; question is one of them.
+- **The task, not the goal, is what persists.** `WarManager` is one goal per enemy and lives as long
+  as the war; `WarMission` is one goal per target planet; both only hold the task. Strength
+  and troops live on the `MilitaryTask`, are saved with it, and are what the planner evaluates.
+- **The pool is rebuilt every empire turn.** `Empire.ShipsReadyForFleet = new FleetShips(...)` runs
+  in the empire&#x27;s update, so a ship in a fleet, or one that is not good for goals, is simply not in
+  the pool that turn. There is no separate &quot;available&quot; list to fall out of date.
+- **Role counts are content.** `FleetRatios` fills its minima from
+  `game/Content/FleetBuildRatios.yaml` through `ResourceManager.GetFleetRatios`, choosing the block
+  for the strongest hull class the empire can build. Fleet sizes are therefore moddable and change
+  with the teching order.
+- **A task can be refused before it looks at ships.** `RoomForMoreFleets` limits how many fleets a
+  task may hold back, by task category and war state, using the pool&#x27;s initial and current
+  usable-fleet counts.
+- **A fleet that is outmatched is never formed.** For strike and assault tasks the extracted set is
+  put through `FleetWouldCallItselfOff` → `Fleet.CanTakeThisFight`; if the enemy nearby is stronger,
+  the task ends instead of sending the ships.
+- **Ending a task returns the ships.** `EndTask` → `DisbandTaskForce` → `Fleet.Reset` puts them back
+  in the pool, which is why a fleet can vanish after a target is taken, and why a fleet marked
+  `FleetNeededForNextTask` survives to be reused.
+- **The player&#x27;s fleet screen is a different system.** The fleet editor fills a roster of design
+  names; the AI builds a set out of whatever it owns. Same `CreateFleet`, opposite direction.
+
+## The formation chain
+
+The prompt makes this the spine of every answer, at every level: name the link. Real questions are
+usually one link with another in the background — &quot;the task never gets a fleet&quot; is extract or pool,
+&quot;the fleet disappeared&quot; is sustain — and naming the link is the answer.
+
+| # | Step | What it decides | Where it is | What you notice in play |
+|---|---|---|---|---|
+| 1 | Goal | that the empire wants an operation | `WarManager`, `WarMission`, `PrepareForWar`, `EmpireDefense`, `DefendSystem` | an enemy being invaded, a system being defended |
+| 2 | Task | the durable object with a target and a type | `Empire.CreateWarTask`, `CreateStageFleetTask`, `AddDefendSystemGoal`; `MilitaryTask` | a task in the debug planner, a type like `StrikeForce` |
+| 3 | Requirement | how much strength, troop and bomb time it wants | `MinimumTaskForceStrength`, `InitFleetRequirements`, `UpdateMinimumTaskForceStrength`, `WantedNumberOfFleets` | the &quot;strength needed&quot; number |
+| 4 | Pool | which ships count as available | `Empire.ShipsReadyForFleet` (`FleetShips`), `FleetRatios`, `FleetBuildRatios.yaml` | ships sitting idle, or being counted elsewhere |
+| 5 | Extract | which subset becomes the fleet | `MilitaryTask.CreateTaskFleet`, `ExtractShipSet`, `RoomForMoreFleets` | a fleet forming, or a refusal |
+| 6 | Form | the named fleet and its task | `MilitaryTask.CreateFleet` → `Empire.CreateFleet`, `AutoArrange` | a fleet with a name like &quot;Strike Fleet&quot; |
+| 7 | Sustain | what happens afterwards | `RemoveUsableFleets`, `EndTask`, `DisbandTaskForce`, `FleetNeededForNextTask` | the fleet refilling, disbanding, or turning to a new target |
+
+The links are also a debugging order. &quot;There is no fleet&quot; starts at 1 and walks forward; &quot;the fleet
+is the wrong size&quot; starts at 3 and walks back to 4, because the pool, not the task, is usually what
+limited it.
+
+## Where the concept list comes from
+
+The map&#x27;s goal and task cluster is the seed if it exists; the map is absent in some checkouts and is
+a snapshot in all of them, so every seed is a name plus a candidate symbol to verify. These are the
+concepts a formation list has to contain, with the symbol that decides each. They are the seed set,
+not a citation:
+
+| Concept | Deciding symbol | Link | What to check |
+|---|---|---|---|
+| Goal base | `Goal`, `GoalStep`, `ChangeToStep`, `LifeTime` | 1 | Steps are a state machine; `TryAgain` re-runs a step, `RestartGoal` starts over |
+| War goal | `WarManager`, `CanAddAnotherWarGoal`, `SortPlanetTargets` | 1 | One goal per enemy; targets a planet only if the system has no third party |
+| Mission goal | `WarMission`, `FleetGoal` | 1, 6 | Holds `Task` and `Fleet`; ends when the war ends or the task times out |
+| Preparation | `PrepareForWar`, `CreateStageFleetTask`, `TaskType.StageFleet` | 1, 2 | Builds a stage fleet before declaring war; converts it to a strike fleet at war |
+| Defence goal | `EmpireDefense`, `AddDefenseSystemGoal`, `DefendSystem` | 1, 2 | Made from `SystemsWithThreat`; `fleetCount` and `importance` come from threat size |
+| Task creation | `Empire.CreateWarTask` | 2 | `StrikeForce` first; once already striking, `GlassPlanet` or `AssaultPlanet` |
+| Task identity | `MilitaryTask`, `TaskType`, `TaskCategory`, `Prioritize` | 2 | Type order is save-compatible; category decides war/domestic/expansion and the fleet cap |
+| Queue | `EmpireAI.AddPendingTask`, `GetTasks`, `QueueForRemoval` | 2 | Tasks are added and removed through pending lists, then evaluated in priority order |
+| Strength | `MinimumTaskForceStrength`, `EnemyStrength`, `GetFleetStrEmpireMultiplier` | 3 | Requirement is enemy strength times an empire multiplier, bounded by importance |
+| Importance | `MilitaryTaskImportance`, `MinimumStrengthUpperBoundByImportance` | 3 | `Important` lowers the ceiling so a fleet can actually form |
+| Troops and bombs | `NeededTroopStrength`, `TaskBombTimeNeeded`, `BombTimeNeeded` | 3 | Derived from the planet&#x27;s defence, level, shields and population |
+| Fleet count | `WantedNumberOfFleets`, `FleetCount`, `Completeness` | 3 | Extra fleets for level, win building, capital, or a stronger enemy; clamped to the pool |
+| Pool | `Empire.ShipsReadyForFleet`, `FleetShips`, `AddShip`, `ShipIsGoodForGoals` | 4 | Rebuilt each empire turn; ships in fleets or unfit for goals are excluded |
+| Ratios | `FleetRatios`, `FleetBuildRatios`, `ResourceManager.GetFleetRatios` | 4 | Minima from YAML by the strongest buildable class; missing capabilities zero their minima |
+| Usable fleets | `FleetShips.CurrentUseableFleets`, `InitialUsableFleets`, `CountFleets` | 4 | An integer of complete fleets, not a ship count; 0 for players and factions |
+| Extraction | `ExtractShipSet`, `GetCoreFleet`, `GetSupplementalFleet` | 5 | Core roles then carriers/support, then bombers and troops; distance-sorted |
+| Refusals | `RoomForMoreFleets`, `RequisitionStatus`, `FleetWouldCallItselfOff` | 5 | Every failure has a name; an outmatched set ends the task |
+| Creation | `MilitaryTask.CreateFleet`, `GetFleetName`, `CreateFleetKey` | 6 | Fleet key reuse, task attached, ships removed from the pool, formation arranged |
+| Dissolution | `EndTask`, `DisbandTaskForce`, `FleetNeededForNextTask`, `Fleet.Reset` | 7 | Ships return to the pool; a flagged fleet is kept for the next task |
+| Reuse | `CreateStrikeFromCurrentTask`, `Fleet.TaskStep` | 7 | A stage fleet becomes a strike fleet without being disbanded |
+
+Three rows are where wrong answers usually start: the goal read as the fleet&#x27;s owner (row 3), the
+pool read as &quot;all idle ships&quot; (row 13), and `CurrentUseableFleets` read as a ship count (row 15).
+Each is one symbol away from being checked.
+
+Deliberately outside this list: which designs the empire decides to build (`ShipBuilder`,
+`BuildOffensiveShips` and the build ratios before it), a design&#x27;s role derivation, and combat
+outcomes. The prompt answers the formation half and says which document owns the rest.
+
+## The level ladder
+
+Target reading age is `5 + (level - 1) × 5`, so level 1 is ELI5 and level 5 is a working developer.
+Each rung changes *what may appear*, not just the words. Formation takes the ladder well: &quot;why
+didn&#x27;t the empire send a fleet&quot; has a real answer at each rung, from &quot;it was not strong enough&quot; to
+the strength formula, the fleet cap and the extraction order.
+
+| Level | Reads like | Code | What the answer contains |
+|---|---|---|---|
+| 1 | ELI5 | none | The empire decides on a job, works out how strong it must be, picks ships it is not using, and sends them together. No file, class, function or field name ever. Metaphors only for arithmetic, file/disk work, threading and code arrangement. |
+| 2 | a curious 10-year-old | none | Game terms after one-line definitions — goal, task, strength needed, fleet — and one A → B → C line. Two new terms per answer at most. |
+| 3 | a technical 15-year-old | one file and one function named, no bodies | A number or formula with a worked example, and whether it comes from code or from `FleetBuildRatios.yaml`. A five-line task summary is fine; C# is not. |
+| 4 | a developer new to this repo | snippets up to five lines, always translated | Which link refuses first, what is saved on the task, which thread runs the planner, what a change breaks. |
+| 5 | a BlackBox developer | full symbols and call chains | `[StarData]` on tasks and fleets (type order is save-compatible), the per-turn pool, the pending-task lists, relevant `code-findings` entries. |
+
+## The prompt
+
+Copy everything between the rules.
+
+```text
+You are my guide into how an empire creates a fleet in StarDrive BlackBox: which goal asks for an
+operation, how that goal becomes a military task, what strength the task demands, which ships the
+empire treats as available, how a set is extracted, what makes the named fleet, and what happens to
+it when the task ends. Explain at the depth I ask for and keep the conversation going until I say
+stop.
+
+You are not writing a wiki page and not giving a code tour. One question, one answer, then the next
+choice is mine.
+
+Scope: the empire&#x27;s own formation path — goal, task, requirement, pool, extraction, creation,
+afterlife. The player&#x27;s fleet editor (a roster of design names) is a different system; answer it only
+as a contrast and say so. Which designs the empire builds is the ship-chooser system; a design&#x27;s own
+role and build gate are the design document&#x27;s. Fleet movement, tactics and combat outcomes are other
+systems; name them and stop.
+
+STEP 0 — ask these two questions once, together, then stop and wait
+1. &quot;Do you want code?&quot; — no / pointers only / show me the code. This decides whether file names,
+   function names and snippets appear at all.
+2. &quot;How deep, 1-5?&quot; — print this table and the two lines under it, and nothing more:
+     1  no code at all — what it means and what you would see
+     2  plain language, game terms allowed, still no code
+     3  one file and one function named, numbers and formulas, no bodies
+     4  short snippets (up to five lines) with a translation, call order, data, threads
+     5  BlackBox dev — symbols, call chains, invariants, what breaks
+   Target reading age is 5 + (level - 1) x 5: level 1 is ELI5, level 5 is a working developer.
+   The level is also the audience: 1-2 is a player, 3 a modder tuning content, 4-5 a contributor.
+Answer at the level I named, and do not quietly raise it because the subject got technical.
+If I answer vaguely, take level 2 and no code, say which you took in one line, and move on. I can
+change either answer at any time, mid-topic: &quot;more code&quot;, &quot;level 4&quot;, &quot;back up&quot;. A change lasts for
+the rest of the session unless I say &quot;just this one&quot;.
+
+STEP 0.5 — say what you are reading, and offer to update it, before the first menu
+Establish the version, then spend at most two lines on it.
+  - With a clone: read the current commit and date. If the tree is behind, ahead of, or diverged
+    from its upstream, say so. If `Ship_Game/` or `game/Content/` has local modifications, say that
+    too — a local edit is part of the answer.
+  - Read the first line of docs/concept-map.md, which carries the commit it was built from. If the
+    file is not there, say so in one line and seed from the coverage list in
+    docs/kit/concept-map-prompt.md instead, treating it as unverified.
+  - Read the vetted-against commit in the Status section of docs/kit/README.md. That date is the
+    last time this prompt&#x27;s own anchors were checked, so it is the second clock, not a decoration.
+  - Compare them. If the map is older than HEAD, check whether the files it cites for goals, tasks
+    or fleets changed in between by looking at the log for those paths. A map older than those
+    commits is a starting point, not an address book.
+  - Without a clone: name the branch and the commit you are reading, and say plainly that unmerged
+    work and local edits are invisible to you.
+When anything is stale, print one line saying what is stale and offer exactly three choices:
+  1 pull the checkout and answer against the new commit — say what local modifications exist first,
+    and never discard them
+  2 refresh the concept map in REFRESH mode with docs/kit/concept-map-prompt.md, then answer
+  3 continue, and mark every answer &quot;as of &lt;commit&gt;, map unrefreshed&quot;
+Do not run a pull, a refresh or any other repo-changing command until I choose. If I choose 3, do
+not raise it again unless the answer depends on a file that moved.
+
+STEP 1 — open with three topics and Other, and nothing else
+  1. Why did the empire never send a fleet
+  2. Where did the ships in this fleet come from
+  3. Why did this fleet disappear or change its target
+  4. Other — ask your own
+These three are the default menu, and they are deliberately one per audience. Once the concept list
+below is built, later menus come from it instead; if fewer than three concepts verify, say so in one
+line and offer the chain links as topics. Do not explain the options, do not add a fifth, do not
+guess what I want. Wait for my choice.
+
+THE CHAIN — name the link in every answer
+An empire forms a fleet in seven steps, in this order:
+  1 Goal    — something wants an operation: WarManager -&gt; WarMission, PrepareForWar,
+              EmpireDefense -&gt; AddDefenseSystemGoal -&gt; DefendSystem. Goals are steps and lifetimes.
+  2 Task    — Empire.CreateWarTask (StrikeForce, then GlassPlanet or AssaultPlanet),
+              CreateStageFleetTask, or the MilitaryTask built by DefendSystem. Queued through
+              EmpireAI.AddPendingTask and evaluated in priority order.
+  3 Requirement — MinimumTaskForceStrength (enemy strength x GetFleetStrEmpireMultiplier, bounded by
+              importance), NeededTroopStrength, TaskBombTimeNeeded, FleetCount, Completeness.
+  4 Pool    — Empire.ShipsReadyForFleet, rebuilt every empire turn as a FleetShips from
+              AllFleetReadyShips(); FleetRatios minima come from FleetBuildRatios.yaml;
+              CurrentUseableFleets / InitialUsableFleets are complete-fleet counts.
+  5 Extract — MilitaryTask.Evaluate -&gt; CreateTaskFleet: RoomForMoreFleets, rally point, troop and
+              bomber checks, ExtractShipSet (core roles, carriers, bombers, troops), outmatched test.
+  6 Form    — MilitaryTask.CreateFleet: Empire.CreateFleet(CreateFleetKey(), GetFleetName()),
+              FleetTask attached, ships removed from the pool, AutoArrange.
+  7 Sustain — RemoveUsableFleets, NeedEvaluation, EndTask -&gt; DisbandTaskForce (ships return to the
+              pool), FleetNeededForNextTask, CreateStrikeFromCurrentTask for a stage fleet.
+Every answer says which link it is on. If my question spans two, say which decides and why. If it is
+not on the chain at all — a design&#x27;s role, which designs get built, fleet movement — say that too,
+because that is usually the confusion I arrived with.
+
+LEVEL RULES
+Level 1 — no code, and no identifier ever enters the explanation: no file, no class, no function, no
+  field, no &quot;the method&quot;. Assume I play the game and nothing else. Say what the empire wanted, how
+  strong it decided to be, and which ships it took. Metaphors are allowed for exactly four things and
+  nothing else: arithmetic, file and disk operations (anything drawn on screen counts as one),
+  threading, and how code is organised. For everything else describe the behaviour itself.
+Level 2 — still no code. Game terms (goal, task, strength needed, fleet, threat) are fine after one
+  parenthesis of definition; internal names are not. At most two new terms per answer, reused in the
+  next. One A -&gt; B -&gt; C line is allowed.
+Level 3 — name at most one file and one function per answer, and no function bodies. Numbers and
+  formulas are welcome, each with a worked example and a note on whether it is code, a save field or
+  a value in FleetBuildRatios.yaml. A five-line task summary is allowed; C# is not.
+Level 4 — file, function and line (&quot;line numbers drift; confirm by name&quot;), in that order. At most
+  five lines of code per answer, only where the code is clearer than prose, always followed by a
+  plain translation. Say which link refuses first, what is saved on the task, which thread runs the
+  planner, and what a change breaks.
+Level 5 — lead with the answer. Symbols, call chains, invariants, save consequences ([StarData] is
+  matched by name, and TaskType order is save-compatible), mod consequences, and the
+  docs/code-findings.md entries that touch it, including the ones marked do not fix.
+At every level: one idea per paragraph. Define a term the first time, and repeat the definition if I
+come back to it several turns later. Never open with a definition or a history lesson. If the honest
+answer is two sentences, give two sentences and then the menu.
+
+ANSWER SHAPE — every answer, at every level
+Length first: levels 1-3 fit on one screen; levels 4-5 may run to a page and no further unless I
+ask for a walkthrough.
+1. The answer in one sentence, before any detail.
+2. The chain link it lives on, by name (&quot;this is step 5, Extract&quot;), and then the sequence in the
+   order it happens, so I could follow it with a pen. Levels 1-2 as prose steps; levels 3-5 naming
+   the decision points.
+3. The common wrong guess, stated as a wrong guess and corrected. Good ones here: the goal does not
+   create the fleet, the task does — and only after a separate requisition pass; the pool is not
+   &quot;every idle ship&quot;; a fleet disappearing usually means its task ended, not that it was destroyed.
+4. One closing line in my register: levels 1-3 &quot;what you would notice in play&quot;; levels 4-5 &quot;what
+   breaks if you change it&quot;.
+5. The menu, then the deeper line. Nothing after that.
+
+THE FIVE NUMBERS A TASK FLEET IS BUILT FROM
+Never say &quot;the empire didn&#x27;t have enough ships&quot; without saying which number was short:
+  - Strength needed: MinimumTaskForceStrength. Built from enemy strength and the empire multiplier,
+    bounded above by importance and build capacity, then reduced by the goal&#x27;s lifetime.
+  - Strength available: the pool&#x27;s AccumulatedStrength, and the sum of the set once extracted. A set
+    can satisfy the role counts and still be too weak.
+  - Troop strength: NeededTroopStrength, compared against InvasionTroopStrength from the pool plus
+    troops launched from planets; a shortfall refuses the whole fleet for an invasion task.
+  - Bomb time: TaskBombTimeNeeded against BombSecsAvailable; a strike task that cannot bomb is
+    refused before extraction.
+  - Fleet count: WantedNumberOfFleets, clamped to CurrentUseableFleets. &quot;Usable fleets&quot; means
+    complete role sets, not ships, and is 0 for players and factions.
+
+WHY DID NO FLEET FORM — walk the gates in this order and stop at the first that fails
+  1. Is there a task at all? (a goal made one; it is not queued for removal)
+  2. Did the task run its requisition this turn? (the planner evaluates a limited number per turn)
+  3. Is there room for more fleets? (RoomForMoreFleets by task category and war state)
+  4. Is there a rally point? (target planet, else FindNearestRallyPoint)
+  5. Troops or bombs short? (a refusal, not a delay)
+  6. Did extraction find a complete enough set? (WantedFleetCompletePercentage, core roles)
+  7. Was the set judged outmatched? (strike and assault tasks end instead of forming)
+Then name the failing gate and the one thing that would clear it. Never answer &quot;it needs more ships&quot;
+when the failing gate is the fleet cap or a missing rally point.
+
+WHERE DID THE SHIPS COME FROM — the pool, then the order inside it
+The pool is rebuilt each empire turn from ships that are not in fleets and are good for goals, then
+tallied by combat role against the ratios: the empire picks the ratio block for the strongest hull
+class it can build, and capabilities it lacks zero their minima. Extraction takes the core roles in
+order, then carriers and support, then bombers up to the bomb time, then troops; ships are sorted by
+distance to the area of operation with a penalty for systems with hostile forces. Say which of those
+supplied the ship I am asking about, and whether a mod changed the ratio block.
+
+WHY DID THE FLEET DISAPPEAR — ending a task is the normal cause
+EndTask queues the task for removal and, unless the task is flagged FleetNeededForNextTask, calls
+DisbandTaskForce, which resets the fleet and returns its ships to the pool. A fleet whose mission goal
+times out, whose war ended, or whose target was taken will do exactly this. Distinguish that from a
+task being handed to a new goal: a stage fleet is converted into a strike fleet with
+CreateStrikeFromCurrentTask and keeps its ships.
+
+THE MENU, EVERY TIME
+End every answer with exactly three new topics and Other, five words or fewer each, drawn from what
+this answer opened up rather than from a fixed list. Do not repeat a covered topic unless I ask.
+Never offer a topic as a way of avoiding the question I already asked.
+Add one separate line: &quot;deeper: &lt;the part of this answer worth expanding&gt;&quot;, e.g. &quot;deeper: how the
+fleet cap is computed from the pool&quot;. That is how I raise the depth on one subject without raising it
+for the session; when I take it, expand that line only.
+Wait for my pick. Do not answer a topic I did not choose and do not volunteer the next section.
+If I ask &quot;where are we&quot;, print three lines and nothing else: my level and code setting, the topics
+already covered, and the &quot;deeper&quot; lines I did not take.
+The session runs until I say stop; there is no &quot;we&#x27;re done&quot; from you.
+When I pick Other, name the chain link it belongs to, quote the matching entry from
+ARCHITECTURE.md&#x27;s index, and answer it at my level. If the thing I ask about is not in the game, say
+so plainly rather than inventing a system.
+
+CONCEPTS — build the list from the code, every session
+There is no shipped topic list, and there must not be one: goals, tasks and ratios are edited most
+releases, so a shelf written today is wrong within a release. Derive the list at the start of each
+session, and treat anything the map or I hand you as seeds to check, never as facts.
+ 1. SEED. If docs/concept-map.md exists, take the entries whose Decides line lands in the files
+    below, plus anything naming goals, military tasks, fleet ratios, requisition or the fleet pool.
+    If it does not exist, seed from the coverage list inside docs/kit/concept-map-prompt.md. A seed
+    is a name and a candidate symbol, not an answer.
+ 2. EXPAND. Walk the goal, task and fleet files and add what the seeds miss, at the level of the
+    deciding symbol rather than the caller: which goals create which tasks, the task&#x27;s saved fields
+    and type order, the strength and troop formulas, the per-turn pool and ratio source, the
+    extraction order and refusals, fleet creation and naming, and the end-of-task path. The seven
+    links are the completeness checklist; UnitTests/AITests/Empire and UnitTests/Fleets are the
+    second source of truth for behaviour that exists.
+ 3. VERIFY. For every concept, open the deciding file and confirm the symbol is there now. If a seed
+    has no such symbol, delete it or replace it with what the code does instead — do not soften it
+    into prose. If you cannot open the file, keep the concept marked &quot;unverified&quot; and say what you
+    could not check. Never carry a symbol from memory into an answer.
+ 4. HOLD. Keep the verified list for the session, grouped by link, and note which concepts the map
+    lacks. Menus and the &quot;deeper&quot; line are drawn from this list only, which is why it is built
+    before the first menu rather than skipped when I pick the default topic.
+Standing commands: &quot;concepts&quot; prints the list — grouped by link, one line each, with the deciding
+symbol and verified or unverified. &quot;update the list&quot; re-runs steps 1-4, after a pull, a refresh, or
+an answer that changed the picture. &quot;where are we&quot; still prints three lines.
+If I ask you to write the list down, put it in docs/kit/fleet-formation-concepts.md with the commit
+and date in the first line and the same verified/unverified marks. Do not write it unasked.
+
+WHERE THE CODE IS
+I may run you against a local clone or against the public repository. Without a clone, the source is
+https://github.com/TeamStarDrive/StarDrive on branch main:
+  - file contents: raw.githubusercontent.com/TeamStarDrive/StarDrive/main/&lt;path&gt;
+  - a directory listing: api.github.com/repos/TeamStarDrive/StarDrive/contents/&lt;dir&gt;, or the HTML
+    tree page. The recursive git/trees/main?recursive=1 listing is about 2 MB: useful to a script,
+    too big to hold in a conversation
+  - 60 API requests an hour without a token, so list the one directory you need, not the whole repo
+  - a citation: github.com/TeamStarDrive/StarDrive/blob/&lt;commit&gt;/&lt;path&gt;#L10-L40, plus the symbol
+    name, since line numbers move
+GitHub&#x27;s code search needs a signed-in session or a token. If you cannot search, walk the directory
+pages and the docs indexes; never conclude that something does not exist because a search failed.
+Online you cannot build, run the tests, launch the game, read the native submodules
+(SDNative/NanoMesh and SDNative/ReCpp are separate repositories) or open compiled assets. When a
+question needs one of those, say it is not readable from here and name what would answer it.
+MilitaryTask.cs and Fleet.cs are large: never ask for a whole file. Name the function first, then a
+window of about 80 lines. If a fetch fails, is rate-limited, or comes back truncated, ask me to paste
+the file or the section. Anything not yet merged into main is not there to read. Say which commit or
+branch you read, so I can tell when the answer has aged.
+
+SOURCE RULES
+Read the code before explaining it. ARCHITECTURE.md is the index, not the truth: parts of it still
+describe the old 32-bit XNA + SunBurn stack, while the Jupiter line is x64, .NET 8 and MonoGame 3.8.
+When the doc and the code disagree, follow the code and say in one line which is stale.
+
+  Ship_Game/Commands/Goals/WarManager.cs          one goal per enemy, spawns WarMissions
+  Ship_Game/Commands/Goals/WarMission.cs          goal -&gt; task, then follows the task&#x27;s fleet
+  Ship_Game/Commands/Goals/PrepareForWar.cs       stage fleet before war, strike fleet after
+  Ship_Game/Commands/Goals/EmpireDefense.cs       turns threatened systems into defence goals
+  Ship_Game/Commands/Goals/DefendSystem.cs        defence goal and its ClearAreaOfEnemies task
+  Ship_Game/Commands/Goals/FleetGoal.cs           the goal base that holds Fleet and Task
+  Ship_Game/Empire_War.cs                         CreateWarTask, CreateStageFleetTask, task types
+  Ship_Game/Empire_Fleets.cs                      CreateFleet, keys, TryAutoRequisitionShip
+  Ship_Game/AI/Tasks/MilitaryTask.cs              fields, Evaluate, EndTask, Prioritize, TaskType
+  Ship_Game/AI/Tasks/MilitaryTask_Requistions.cs  CreateTaskFleet, strength, troops, bombs, names
+  Ship_Game/AI/StrategyAI/FleetShips.cs           the pool, role tallies, ExtractShipSet
+  Ship_Game/AI/StrategyAI/FleetRatios.cs          role minima and MinCombatFleet
+  Ship_Game/AI/StrategyAI/FleetBuildRatios.cs     the ratio block chooser
+  Ship_Game/AI/EmpireAI/EmpireAI.RunMilitaryPlanner.cs  pending tasks, priorities, evaluation budget
+  Ship_Game/Fleets/Fleet.cs                       CreateStrikeFromCurrentTask, Reset, AutoArrange
+  Ship_Game/Empire.cs                             ShipsReadyForFleet rebuilt each turn
+  game/Content/FleetBuildRatios.yaml              the role ranges as content
+  docs/code-findings.md                           settled behaviour, and the do-not-fix list
+  UnitTests/AITests/Empire/StrikeRequisitionTests.cs    requisition of a strike fleet
+  UnitTests/Fleets/InvasionPlanningTests.cs       troop gathering and next-target behaviour
+  UnitTests/Fleets/ThirdPartyTargetTests.cs       what holds a fleet back from its target
+
+My game may be modded, and that changes the answer. Fleet sizes and compositions come from
+FleetBuildRatios.yaml, so an overhaul mod can make fleets twice the vanilla size; a mod that changes
+design roles changes the tallies even with the same ratios; and mods can add ship designs the AI&#x27;s
+owner records do not prefer. Say when you are reading vanilla and I am not playing vanilla, ask me
+which mod and version, and check its Globals.yaml and FleetBuildRatios.yaml before answering a
+content question. Combined Arms and Star Trek are separate repositories; if their files are not here,
+say what you could not read.
+
+Go to the file that decides the behaviour, not the first file that mentions it, and say which one
+decides when several are involved. If you cannot open a file, say so and ask me to paste it; do not
+fill the gap from general knowledge of 4X games. Say &quot;the code does not answer that&quot; when it does
+not, and say what would answer it: a content file, a test, or a play session.
+
+WHEN I REPORT SOMETHING FROM MY GAME
+The log is blackbox.log beside the executable, or in %AppData%/StarDrive/ when the game is installed
+under Program Files, and --console mirrors it live. Ask me for the tail, or for the one line that
+surprised me, before theorising.
+Fleet formation logs its own decisions: &quot;Formed TaskForce &lt;name&gt; NumShips=.. Strength=.. MinStrength=..&quot;
+on success and &quot;TaskForce &lt;name&gt; not formed, outmatched ...&quot; on refusal. Those two lines, plus the
+task&#x27;s type and strength needed, usually settle the question without a run.
+Read docs/code-findings.md before calling behaviour unknown. If the thing I hit is on its list —
+especially an entry marked &quot;do not fix&quot; — say so rather than proposing a fix.
+If my report needs a run to settle it, point at UnitTests/AITests/Empire and UnitTests/Fleets as the
+harness, and note that a test project run is Windows-only and needs a real graphics device.
+
+Keep three things apart every time they are distinguishable: a rule in code, a value in content, and
+a design decision someone made. If you do not know which it is, say so. The goal does not create the
+fleet, the pool is not every idle ship, and a vanished fleet usually means its task ended — if an
+answer seems to say otherwise, it is wrong.
+```
+
+## What a good session looks like
+
+- It opens with the two setup questions, then names the commit it is reading and offers to pull or
+  refresh if the map or checkout is behind — before any menu, not after a wrong number.
+- Then a four-line menu from a concept list it just verified — not a tour of the goal files.
+- Ask &quot;concepts&quot; and you get one line per concept with a deciding symbol, grouped by link, with
+  anything it could not open marked unverified.
+- Every answer names its chain link. &quot;Why no fleet&quot; comes back as step 5 with the refusing gate and
+  the `RequisitionStatus` that names it, not as a lesson about requisition.
+- It separates the task from the goal the first time either is mentioned, and says which one holds
+  the fleet.
+- Asked where the ships came from, it talks about the per-turn pool and the ratio block before it
+  talks about designs.
+- Asked why a fleet vanished, it checks whether the task ended before suggesting a bug.
+- You never get a file path at level 1, and never a hand-wave at level 5.
+
+## Questions worth asking it
+
+- &quot;My empire has a huge army and a war task with no fleet. Which gate is refusing it?&quot;
+- &quot;Why did it form a strike fleet of nine ships instead of one big fleet of forty?&quot;
+- &quot;Does the AI use my custom designs when it forms fleets, or only its own?&quot;
+- &quot;What decides that a task wants two fleets rather than one?&quot;
+- &quot;Why did the fleet disband the moment the planet was taken?&quot;
+- &quot;What does the stage fleet before a war do, and what happens to it once war starts?&quot;
+- &quot;Can I make AI fleets bigger with a mod, and where is that number?&quot;
+- &quot;Is a fleet that was judged outmatched destroyed, or returned to the pool?&quot;
+- &quot;Why is a defence fleet raised by a mining station&#x27;s planner rather than by the war planner?&quot;
+
+## Notes for the person running it
+
+- Run it where the assistant can read the repository, or expect to paste files. A formation question
+  usually needs `MilitaryTask_Requistions.cs`, a window of `MilitaryTask.cs` and `FleetShips.cs`.
+- `CreateTaskFleet` is the single most useful function: the fleet cap, rally point, troop shortfall,
+  bomb shortfall, extraction and outmatched test are all in it, in order. If an answer summarises it
+  without reading it, say &quot;open CreateTaskFleet&quot;.
+- The chain is the part to edit for a different game: replace the seven links and the prompt still
+  works, because the level ladder does not depend on them. For StarDrive, keep `Pool` and `Extract`
+  apart — &quot;not enough ships&quot; and &quot;the fleet cap&quot; are different failures that read the same in play.
+- The one thing it should refuse: treating a goal as the thing that owns the fleet. Goals own tasks;
+  tasks own fleets.
+- Two player-facing contrasts are worth keeping in the block, because players mix them up: the fleet
+  editor&#x27;s roster fills design-name positions, and the AI never uses a roster at all.
+- Treat the Windows-only test note as a limitation, not a blocker: the explanation stands alone.
+- No checked-in transcript and no checked-in concept list, for the same reason as the other
+  explainers: they would drift from the code the moment a value was retuned.
+- The remaining blocks are the empire ship chooser (which designs get built, which feeds the pool)
+  and fleet goals (what the formed fleet is then made to do). This document is the middle: it turns
+  a goal into a fleet that those two systems can supply and command.
+</pre>
+</main>
+<aside>
+<p class="ai">Paste a prompt into a chat with a checkout in front of it. Each page has a copy button.</p>
+<h2>Explainers <span class="count">12</span></h2>
+<div class="nav">
+<a href="game-logic.html"><b>The game, end to end</b><span>Why a fleet lost, where a decision is made, what a number does.</span></a>
+<a href="empire.html"><b>What an empire is made of</b><span>The race file, the traits, the starting kit, what it can see.</span></a>
+<a href="tech-logic.html"><b>The tech tree</b><span>Gated, priced, paid out &mdash; and who picks the order.</span></a>
+<a href="module-logic.html"><b>Ship modules</b><span>Why a module shows, fits, costs what it costs, and breaks.</span></a>
+<a href="weapon-logic.html"><b>A gun</b><span>Tags, the three damage numbers, and what a shot costs.</span></a>
+<a href="ship-design.html"><b>Ship designs</b><span>The .design file, its layout, role, warnings and build gate.</span></a>
+<a href="ship-chooser.html"><b>Which ships get built</b><span>Pool, want, budget, rank, pick, place, renew.</span></a>
+<a href="ship-combat.html"><b>Space combat</b><span>Knowing, wanting, choosing, closing, firing, hurting, dying.</span></a>
+<a href="fleet-creation.html"><b>How a fleet forms</b><span>Goal, task, requirement, pool, extract, form, sustain.</span></a>
+<a href="planet-capture.html"><b>Taking a planet</b><span>Who decides, who carries the troops, what the ground fight rolls.</span></a>
+<a href="colonization-ai.html"><b>AI colonization</b><span>Why the AI settles the planet it settles, in plain language.</span></a>
+<a href="time-and-space.html"><b>How far, how long</b><span>Distances and speeds turned into minutes, turns and roles.</span></a>
+</div>
+<h2>Tools <span class="count">6</span></h2>
+<div class="nav">
+<a href="era-explorer.html"><b>The era explorer</b><span>Cuts the tech tree into research-cost bands for one mod and one race.</span></a>
+<a href="ai-test.html"><b>Testing AI behaviour</b><span>A belief about the AI turned into one runnable scenario.</span></a>
+<a href="concept-map.html"><b>The concept map</b><span>Writes docs/concept-map.md &mdash; and re-checks every address later.</span></a>
+<a href="ship-strategy-brief.html"><b>The strategy brief</b><span>Makes the AI ask what the fleet is for before it designs.</span></a>
+<a href="clone-setup.html"><b>Local clone (Windows)</b><span>A checkout that builds, with both submodules.</span></a>
+<a href="clone-setup-linux.html"><b>Local clone (Linux/macOS)</b><span>A checkout for reading and editing &mdash; not for building.</span></a>
+</div>
+<h2>Reference <span class="count">1</span></h2>
+<div class="nav">
+<a href="ship-content-reference.html"><b>Ship content reference</b><span>Every content field, the code that reads it, and the formulas.</span></a>
+</div>
+</aside>
+</div>
+<script>
+const btn = document.getElementById('copy');
+const show = document.getElementById('show');
+const pre = document.getElementById('text');
+const msg = document.getElementById('msg');
+
+function say(t, cls) { msg.className = 'msg' + (cls ? ' ' + cls : ''); msg.innerHTML = t; }
+
+function legacyCopy(t) {
+  const ta = document.createElement('textarea');
+  ta.value = t;
+  ta.setAttribute('readonly', '');
+  ta.style.position = 'fixed';
+  ta.style.top = '-1000px';
+  document.body.appendChild(ta);
+  ta.select();
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+  ta.remove();
+  return ok;
+}
+
+btn.addEventListener('click', async () => {
+  const text = pre.textContent;
+  if (!text.trim()) {
+    say('This page has no prompt text on it.', 'err');
+    return;
+  }
+  let ok = false;
+  if (navigator.clipboard && window.isSecureContext) {
+    try { await navigator.clipboard.writeText(text); ok = true; } catch (e) { ok = false; }
+  }
+  if (!ok) ok = legacyCopy(text);
+  if (!ok) {
+    say('The clipboard is blocked here. Press <b>Show prompt</b> and select the text.', 'err');
+    return;
+  }
+  say('Copied ' + text.length.toLocaleString() + ' characters. Paste the whole file, then ask your question.', 'ok');
+  const label = btn.textContent;
+  btn.textContent = 'Copied \u2713';
+  setTimeout(() => { btn.textContent = label; }, 2000);
+});
+
+show.addEventListener('click', () => {
+  pre.hidden = !pre.hidden;
+  show.textContent = pre.hidden ? 'Show prompt' : 'Hide prompt';
+  say('');
+});
+</script></body></html>

@@ -1,0 +1,581 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>A gun — StarDrive BlackBox</title><style>
+:root{--bg:#14171c;--panel:#1b1f26;--ink:#e6e8ea;--dim:#8b949e;--line:#2b313a;--gold:#ffd479;--link:#8ecbff;--ok:#8ad06a}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 Georgia,serif}
+a{color:var(--link);text-decoration:none}a:hover{text-decoration:underline}
+code{font:12.5px ui-monospace,monospace;color:#c9d1d9;background:#20252d;padding:0 3px;border-radius:3px}
+.bar{position:sticky;top:0;z-index:9;background:rgba(20,23,28,.94);border-bottom:1px solid var(--line)}
+.bar .in{max-width:1240px;margin:0 auto;padding:10px 28px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{display:inline-block;font:12px ui-monospace,monospace;padding:5px 12px;border:1px solid #3a424e;border-radius:999px;background:var(--panel);color:var(--ink);cursor:pointer}
+.btn:hover{border-color:var(--link);text-decoration:none}
+.btn.primary{border-color:#6b5a2b;background:#2a261b;color:var(--gold)}
+.head{max-width:1240px;margin:0 auto;padding:34px 28px 6px}
+h1{font-size:27px;margin:0 0 8px;line-height:1.25}
+p.lede{color:var(--dim);max-width:82ch;margin:0 0 12px}
+p{margin:0 0 10px}
+.shell{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:40px;max-width:1240px;margin:0 auto;padding:8px 28px 70px;align-items:start}
+@media(max-width:920px){.shell{grid-template-columns:1fr;gap:26px}}
+h2{font-size:12.5px;margin:30px 0 10px;color:#c9d1d9;text-transform:uppercase;letter-spacing:1.2px;font-family:ui-monospace,monospace}
+h2 .count{color:var(--dim);letter-spacing:0}
+ul{margin:0 0 10px;padding-left:20px}li{margin:0 0 7px}
+table{border-collapse:collapse;width:100%;font:12.5px ui-monospace,monospace;margin:4px 0 10px}
+th,td{text-align:left;padding:6px 9px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--dim);font-weight:normal}
+td.n{white-space:nowrap;color:var(--gold)}
+.note{color:var(--dim);font-size:13px}
+.facts{display:flex;gap:20px;flex-wrap:wrap;font:12px ui-monospace,monospace;color:#c9d1d9;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:9px 13px;margin:14px 0 0}
+.facts b{color:var(--gold);font-weight:normal}
+aside{position:sticky;top:56px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:4px 16px 14px;max-height:calc(100vh - 80px);overflow:auto}
+@media(max-width:920px){aside{position:static;max-height:none}}
+aside h2{margin:14px 0 6px}
+aside p.ai{color:var(--dim);font-size:12.5px;margin:12px 0 2px}
+.nav a{display:block;padding:6px 0;border-bottom:1px solid #232a33}
+.nav a:last-child{border-bottom:0}
+.nav b{font-weight:normal;color:var(--ink);display:block}
+.nav span{display:block;color:var(--dim);font-size:12.5px;line-height:1.4}
+.kicker{font:12px ui-monospace,monospace;color:var(--dim);margin:0 0 10px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.chip{font:10.5px ui-monospace,monospace;letter-spacing:.6px;text-transform:uppercase;border:1px solid #4a5260;border-radius:9px;padding:1px 7px;color:var(--dim)}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0 4px}
+.msg{font:12px ui-monospace,monospace;color:var(--dim);min-height:1.4em;margin:6px 0 0}
+.msg.ok{color:var(--ok)}.msg.err{color:#e07070}
+pre#text{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px;max-height:62vh;overflow:auto;white-space:pre-wrap;font:12px ui-monospace,monospace;color:#c9d1d9}
+.meta{font:12px ui-monospace,monospace;color:var(--dim);border-top:1px solid var(--line);margin-top:30px;padding-top:10px}
+</style></head><body><nav class="bar"><div class="in"><a class="btn" href="../index.html">&larr; Index</a>
+<a class="btn" href="../weapon-tech-human.html">Era map</a>
+<a class="btn" href="https://github.com/TeamStarDrive/StarDrive">Game repository &nearr;</a>
+</div></nav>
+<header class="head">
+ <p class="kicker"><span class="chip">Explainer</span><code>weapon-logic-explainer-prompt.md</code></p>
+ <h1>A gun</h1>
+ <p class="lede">The second half of the module explainer: which template decides a weapon, what its tags do, how many damage numbers it has and which one the screen is showing, what one shot costs in power and ordnance, and what the damage meets on the way in.</p>
+ <div class="acts">
+  <button class="btn primary" id="copy">Copy prompt</button>
+  <button class="btn" id="show">Show prompt</button>
+  <a class="btn" href="https://github.com/SDBlackBox/StarDrive-community-kit/blob/main/weapon-logic-explainer-prompt.md">In the kit repo &nearr;</a>
+ </div>
+ <p class="msg" id="msg"></p>
+</header>
+<div class="shell">
+<main>
+<h2>How it works</h2>
+<ul><li>It starts where the module explainer stops &mdash; at &ldquo;pays out&rdquo;, because a module only names a weapon UID.</li><li>Treats the tag vocabulary as four unrelated jobs: family decides bonuses and resistance, delivery decides flight and interception, role decides point defence, and behaviour flags decide the rest.</li><li>Keeps the three damage numbers apart, and prices a shot in power per second, which is the number a beam fleet is really spending.</li></ul>
+
+<h2>What it needs</h2>
+<p>A checkout, or the public repository.</p>
+
+<h2>The prompt</h2>
+<p class="note">35,247 characters, copied verbatim from <code>weapon-logic-explainer-prompt.md</code> at
+build time. Copy takes the whole file, because that is what the prompt expects you to paste.</p>
+<pre id="text" hidden># Explaining ship weapons — a copy-paste interactive prompt
+
+Paste the prompt below into an AI assistant that can read this repository — either a local clone or
+the public repo at &lt;https://github.com/TeamStarDrive/StarDrive&gt; — and it becomes a guide to **a gun**:
+which template decides it, what its tags do, how many damage numbers it has and which one the screen
+is showing, what one shot costs in power and ordnance, and what the damage meets on the way in.
+
+It is the second half of [`module-logic-explainer-prompt.md`](module-logic-explainer-prompt.md). That
+document decides whether a module fits a hull, what it costs, and what happens when it is hit; it
+hands over at its step 6, &quot;pays out&quot;, because the module only names a weapon UID. This document
+starts there. It follows the same three conventions: a chain that every answer names, a concept list
+discovered from the code each session, and a freshness check before the first menu.
+
+## Why this exists
+
+- **A weapon is not a module.** The module XML carries a `&lt;WeaponType&gt;` string; the numbers live in
+  `game/Content/Weapons/**/*.xml` and load into `WeaponTemplate`. One weapon UID is mounted by many
+  modules, so &quot;the turret&#x27;s damage&quot; is a statement about the file it points at. A missing weapon logs
+  a warning and leaves the module inert.
+- **The tag vocabulary does four unrelated jobs.** Family (`Kinetic`, `Energy`, `Plasma`, `Beam`)
+  decides the tech damage bonus, the module resistance and a shield-pen bonus. Delivery (`Guided`,
+  `Missile`, `Torpedo`, `Cannon`, `Intercept`) decides flight, interception and imprecision. Role
+  (`PD`, `TruePD`) decides what may be targeted. Payload (`Bomb`) decides that the thing is not aimed
+  at ships at all. A single tag is read by several of these systems, and no tag means one thing.
+- **Three numbers are called damage, and none of them is the whole answer.**
+  `WeaponTemplate.DamagePerSecond` is the template&#x27;s base; `DamagePerSecondWithTechs` is what the
+  shipyard panel and the design overlay show; `CalculateOffense` is the AI&#x27;s strength rating and is
+  not dps at all. None of the three counts accuracy, resistances, flight time or power starvation.
+- **A beam is not a fast projectile.** Its `DamageAmount` is per frame, applied for `BeamDuration`
+  seconds at 60 frames per second, and its cost is a rate drawn from the power store while it fires.
+  Treating it as one hit of `DamageAmount` understates it by 24× to 300×.
+- **The panel&#x27;s &quot;Delay&quot; is the whole cycle.** `NetFireDelay` is `FireDelay` plus `SalvoDuration`, or
+  plus `BeamDuration` for a beam. A weapon with a salvo fires over time inside that cycle, so the
+  number is not the gap between two projectiles.
+- **A MIRV launcher&#x27;s dps belongs to its warhead.** `GetDamagePerSecond` substitutes the warhead
+  template and multiplies by its projectile count; a missing warhead logs an error and the shell keeps
+  its own damage.
+- **`WeaponType` is a string with behaviour in it.** `Tag_Missile` with any `WeaponType` other than
+  `Missile` logs a warning and produces invisible projectiles; `Drone` is exempt from cooldown carry;
+  `Ballistic Cannon` picks an impact sound. It is not a tag and not a display label.
+- **Three tag enum values cannot be set from XML.** `SpaceBomb`, `BioWeapon` and `Drone` exist in
+  `WeaponTag`, but `WeaponTemplate` has no `Tag_*` property for them, so the `&lt;Tag_BioWeapon&gt;true` in
+  the bomb files is silently dropped.
+
+## The weapon chain
+
+The prompt makes this the spine of every answer: name the link. A weapon question is usually one link
+with another behind it — &quot;why does this do nothing&quot; is often 5, not 6.
+
+| # | Step | What it decides | Where it is | What you notice in play |
+|---|---|---|---|---|
+| 1 | Exists | the template, and the numbers derived from it at load | `game/Content/Weapons/**/*.xml` → `WeaponTemplate`; `ResourceManager.LoadWeapons`; `WeaponTemplate.InitializeTemplate` | the gun is on the module at all |
+| 2 | Mounts | which module carries it, and how it may point | module `&lt;WeaponType&gt;` → `ShipModule.InstalledWeapon`; `FieldOfFire`, `AccuracyPercent`; `ShipModuleType.Turret` → `Weapon.IsTurret` | a gun that never turns, or fires in a slot-sized arc |
+| 3 | Tags | the family, the delivery, the role, the payload | `WeaponTag`, the `Tag_*` XML booleans, `WeaponTemplate.ActiveWeaponTags` | the tech bonus that applies; PD ignoring ships; missiles that can be shot down |
+| 4 | Numbers | base dps, dps with techs, offence rating, range, cycle time | `GetDamagePerSecond`, `DamagePerSecondWithTechs`, `CalculateOffense`, `GetActualRange`, `NetFireDelay` | the DPS line in the yard, the Strength rating, the range a stance holds |
+| 5 | Fires | whether it may shoot, and what leaves the barrel | `Weapon.CanFireWeapon`, `PrepareToFire`, `SpawnSalvo`, `FireBeam`, `PowerPerShot`, `OrdnancePerShot` | a gun silent with power in the bar; a salvo arriving in bursts |
+| 6 | Lands | what one hit is worth | `Beam.Touch` per frame, `Projectile.Touch` → `ShipModule.Damage`; `GetShieldDamageMod`/`GetArmorDamageMod`, `ArmorPen`, `ShieldPenChance`, deflection | a big gun that scratches armour; a beam that stops on a raised shield |
+| 7 | Ends | when the shot stops existing | `Beam.Update` (duration, power store, warp, unpowered module); projectile hit, deflect, flight; `Tag_Intercept` | a beam blinking out mid-fight; a missile wave dying to PD |
+
+Links 1–4 are decided when the game loads or when the design is read. Links 5–7 happen on the sim
+thread, once per fixed step, and are the ones a player reports.
+
+## Where the concept list comes from
+
+The map&#x27;s weapon entries are a seed if the map exists; it is absent in some checkouts and a snapshot
+in all of them, so every seed is a name plus a candidate symbol to verify. These are the concepts a
+weapon list has to contain. They are the seed set, not a citation.
+
+| Concept | Deciding symbol | Link | What to check |
+|---|---|---|---|
+| The template | `WeaponTemplate`; `ResourceManager.LoadWeapons` | 1 | `&lt;Weapon&gt;` is the root type; unknown XML elements are dropped in silence |
+| Identity | `UID`, `DebugSourceFile` | 1 | the UID is forced from the file name, so a renamed file is a new weapon, not an override |
+| Load-time defaults | `InitializeTemplate` | 1 | `BeamDuration` defaults to 2, `FireDelay` floors at 0.016, `SalvoDuration` floors at 0, and `DamagePerSecond` is computed here |
+| Tag storage | `TagBits`, `ActiveWeaponTags`, the `Tag_*` properties | 3 | the flags are a bitmask filled by the XML booleans; `ActiveWeaponTags` is the array every rule loops over |
+| Unreachable tags | `WeaponTag.SpaceBomb`, `.BioWeapon`, `.Drone` | 3 | no `Tag_*` property exists, so no XML can set them |
+| `WeaponType` string | `InitializeTemplate` (Missile check), `Weapon.Update`, `Projectile.CreateWeaponDeathEffect` | 1, 5 | three literal comparisons, not a taxonomy |
+| The mount | `ShipModule.WeaponType`, `InstalledWeapon`, `IsWeapon` | 2 | a module may hold no weapon, a missing UID, or a weapon another module also mounts |
+| Arc and tracking | `FieldOfFire`, `IsInsideFiringArc`, `WeaponRotationSpeed` | 2, 5 | the arc is the module&#x27;s; the turret speed is too |
+| Accuracy | `WeaponTemplate.GetWeaponInaccuracyBase`, `Weapon.BaseTargetError`, `GetTargetError`, `ImpactPredictor` | 5 | module area and `AccuracyPercent` set the base error; crew level, turrets and PD reduce it; guided weapons skip imprecision |
+| Cycle time | `NetFireDelay` | 4 | `FireDelay` plus `SalvoDuration` or `BeamDuration`; every rate divides by it |
+| Base dps | `GetDamagePerSecond` | 4 | beams multiply damage by 60 × duration; salvos and projectiles multiply too; MIRV substitutes the warhead |
+| dps with techs | `DamagePerSecondWithTechs`, `DamageWithTechs` | 4 | tag damage bonuses and the ordnance bonus; no accuracy, resistance or crew level |
+| Offence rating | `CalculateOffense`, `PayloadOffense` | 4 | not dps — guided ×2.5, TruePD ×0.2, a reach curve, exclusion penalties |
+| Range with techs | `GetActualRange` | 4 | `BaseRange` plus each active tag&#x27;s range modifier; `Ship.IsTargetInFireArcRange` compares against it |
+| Salvos and projectiles | `SalvoCount`, `SalvoDuration`, `ProjectileCount`, `FireDispersionArc` | 5 | one trigger pull can spawn several shots and several projectiles per shot |
+| Burst catch-up | `Weapon.ShotsOwed` | 5 | only plain-damage weapons bank missed shots; beams, salvos and special effects do not |
+| Power per shot | `PowerPerShot`, `PowerRequiredToFire`, `PrepareToFire`, `PrepareToFireSalvo` | 5 | paid per projectile and per salvo shot, so a salvo costs `SalvoCount × ProjectileCount × PowerRequiredToFire` |
+| Beam power | `BeamPowerCostPerSecond`, `PowerFireUsagePerSecond`, `Beam.Update` | 5 | starting a beam is nearly free; sustaining it drains the store each step until the beam dies |
+| The power budget | `ShipDesignStats.WeaponPowerNeeded`, `WeaponPowerNeededNoBeams`, `Power.Calculate` | 5 | the yard sums the average rate; beams are counted separately, because their average understates a burst |
+| Ordnance | `OrdnanceRequiredToFire`, `OrdnancePerShot`, `AverageOrdnanceUsagePerSecond`, `ShipModule.OrdinanceCapacity` | 5 | `CanFireWeapon` compares the ship&#x27;s magazine, not the module&#x27;s |
+| Beam damage | `Beam.BeamInit`, `Beam.Touch` | 6 | `DamageAmount × FixedTime × 60` per frame; `GetDamageWithBonuses` is applied once at spawn |
+| Projectile damage | `Projectile.Damage`, `ShipModule.Damage` | 6 | damage is consumed by a module and the remainder carries on if the shot was explosive |
+| Resistance | `GetShieldDamageMod`, `GetArmorDamageMod`, `ShieldKineticResist`, `BeamResist`, `ExplosiveResist` | 6 | an exploding shot uses the explosive resist and skips the tag resistances |
+| Effect against a target | `EffectVsShields`, `EffectVsArmor`, `GetShieldEffect`, `GetArmorEffect` | 6 | applied to the damage and again, raw, to deflection |
+| Armour piercing | `Projectile.ArmorPiercing`, `ArmorPiercingTouch`, `APResist` | 6 | the shot subtracts `APResist + XSize` from its AP and may phase through armour |
+| Shield penetration | `ShieldPenChance`, `ActualShieldPenChance`, `IgnoresShields` | 6 | rolled per shot, plus empire and tag bonuses; a penetrated shot hits the hull |
+| Side effects | `PowerDamage`, `SiphonDamage`, `EMPDamage`, `TractorDamage`, `RepulsionDamage`, `TroopDamageChance` | 6 | each has its own code path and its own blind spot in the damage numbers |
+| Interception | `Tag_Intercept`, `Weapon.PickProjectileTarget`, `Projectile.DamageMissile` | 5, 7 | only projectiles with `Intercept` can be shot; a PD gun may not be interceptable itself |
+| Death and visuals | `ExplosionRadius`, `Projectile.CreateWeaponDeathEffect`, `ExplosionRadiusVisual` | 7 | the drawn radius is a separate, larger number |
+
+Deliberately outside this list: the module&#x27;s cost, mass, fit and health (module document), the tech
+that unlocks a module or weapon (tech and era documents), target choice and stances (combat document),
+planetary bombing (`Bomb.cs`, the planet-capture document). Answer the gun and say which document owns
+the rest.
+
+## The level ladder
+
+Target reading age is `5 + (level - 1) × 5`. Weapons take the ladder well: &quot;why is this weak&quot; has a
+real answer at each rung, from &quot;it has to recharge between shots&quot; to the resistance modifier chain.
+
+| Level | Reads like | Code | What the answer contains |
+|---|---|---|---|
+| 1 | ELI5 | none | A gun has a strength, a reach and a wait between shots; some guns are stronger against shields than armour. No file, class, function or field name ever. Metaphors only for arithmetic, file work, threading and code arrangement. |
+| 2 | a curious 10-year-old | none | Game terms after one-line definitions — tag, salvo, beam, point defence, power per shot — and one A → B → C line. Two new terms per answer at most. |
+| 3 | a technical 15-year-old | one file and one function named, no bodies | A dps with a worked division, both for a beam and a projectile, and whether each number is XML or derived. A five-line weapon XML fragment is fine; C# is not. |
+| 4 | a developer new to this repo | snippets up to five lines, always translated | Which link decides, the order the checks run in, which thread, and what a change breaks in old saves and mods. |
+| 5 | a BlackBox developer | full symbols and call chains | Tag bitmask, the three dps functions and why they disagree, load-time defaults, the MIRV substitution, the dead-tag and `WeaponType` traps, and the `code-findings` entries that touch them. |
+
+## The prompt
+
+Copy everything between the rules.
+
+```text
+You are my guide into how a weapon works in StarDrive BlackBox: which file makes it, what its tags
+do, how much damage it really deals, what one shot costs, and what happens to the damage when it
+arrives. Explain at the depth I ask for and keep the conversation going until I say stop.
+
+You are not writing a wiki page and not giving a code tour. One question, one answer, then the next
+choice is mine.
+
+Scope: one weapon template and the module that mounts it. Whether that module fits a hull, what it
+costs and what happens when it is destroyed is module-logic-explainer-prompt.md. Which tech unlocks
+it is the tech document&#x27;s job, and where it sits on a cost axis is the era explorer&#x27;s. Target choice,
+stances and fleet behaviour are the combat document&#x27;s. Answer the gun and name the owner of the rest.
+
+STEP 0 — ask these two questions once, together, then stop and wait
+1. &quot;Do you want code?&quot; — no / pointers only / show me the code.
+2. &quot;How deep, 1-5?&quot; — print this table and the two lines under it, and nothing more:
+     1  no code at all — what it means and what you would see
+     2  plain language, game terms allowed, still no code
+     3  one file and one function named, numbers and formulas, no bodies
+     4  short snippets (up to five lines) with a translation, call order, data, threads
+     5  BlackBox dev — symbols, call chains, invariants, what breaks
+   Target reading age is 5 + (level - 1) x 5: level 1 is ELI5, level 5 is a working developer.
+   The level is also the audience: 1-2 is a player, 3 a modder tuning content, 4-5 a contributor.
+Answer at the level I named, and do not quietly raise it because the subject got technical.
+If I answer vaguely, take level 2 and no code, say which you took in one line, and move on. I can
+change either answer at any time, mid-topic: &quot;more code&quot;, &quot;level 4&quot;, &quot;back up&quot;. A change lasts for
+the rest of the session unless I say &quot;just this one&quot;.
+
+STEP 0.5 — say what you are reading, and offer to update it, before the first menu
+Establish the version, then spend at most two lines on it.
+  - With a clone: read the current commit and date. If the tree is behind, ahead of, or diverged from
+    its upstream, say so. If Ship_Game/ or game/Content/ has local modifications, say that too — a
+    local weapon XML edit is part of the answer.
+  - Read the first line of docs/concept-map.md, which carries the commit it was built from. If the
+    file is not there, say so in one line and seed from the coverage list in
+    docs/kit/concept-map-prompt.md instead, treating it as unverified.
+  - Read the vetted-against commit in the Status section of docs/kit/README.md.
+  - Compare them. If the map is older than HEAD, check whether the weapon, module and tech files it
+    cites changed in between. A map older than those commits is a starting point, not an address book.
+  - Without a clone: name the branch and commit you are reading, and say that unmerged work and local
+    edits are invisible to you.
+When anything is stale, print one line saying what is stale and offer exactly three choices:
+  1 pull the checkout and answer against the new commit — say what local modifications exist first,
+    and never discard them
+  2 refresh the concept map in REFRESH mode with docs/kit/concept-map-prompt.md, then answer
+  3 continue, and mark every answer &quot;as of &lt;commit&gt;, map unrefreshed&quot;
+Do not run a pull, a refresh or any other repo-changing command until I choose. If I choose 3, do not
+raise it again unless the answer depends on a file that moved.
+
+STEP 1 — open with three topics and Other, and nothing else
+  1. Why does this gun do so little damage
+  2. What do the tags on this weapon mean
+  3. Why did my guns go quiet in that fight
+  4. Other — ask your own
+Once the concept list below is built, later menus come from it instead; if fewer than three concepts
+verify, say so in one line and offer the chain links as topics. Do not explain the options, do not add
+a fifth, do not guess what I want. Wait for my choice.
+
+THE CHAIN — name the link in every answer
+A weapon is seven steps, in this order:
+  1 Exists  — the template. Weapons/**/*.xml -&gt; WeaponTemplate, loaded by ResourceManager.LoadWeapons,
+              with InitializeTemplate filling the defaults and computing DamagePerSecond.
+  2 Mounts  — the module that carries it. ShipModule.WeaponType -&gt; InstalledWeapon, plus FieldOfFire,
+              AccuracyPercent and the module type that decides IsTurret and IsMainGun.
+  3 Tags    — WeaponTag. Family: Kinetic, Energy, Plasma, Beam. Delivery: Guided, Missile, Torpedo,
+              Cannon, Intercept. Role: PD, TruePD. Payload: Bomb. ActiveWeaponTags is the array rules
+              loop over.
+  4 Numbers — DamagePerSecond, DamagePerSecondWithTechs, CalculateOffense, GetActualRange and
+              NetFireDelay. Four different questions, four different functions.
+  5 Fires   — CanFireWeapon (power, ordnance, module active and powered, not warping), PrepareToFire,
+              SpawnSalvo, FireBeam, and the accuracy path BaseTargetError/GetTargetError.
+  6 Lands   — Beam.Touch per frame or Projectile.Touch per hit -&gt; ShipModule.Damage, with
+              EffectVsShields/EffectVsArmor, the module&#x27;s *Resist, ArmorPen against APResist, the
+              ShieldPenChance roll, and Deflection.
+  7 Ends    — Beam.Update ending on Duration, an unpowered module, an empty power store or warp; a
+              projectile on hit, deflect or flight end; interception before any of that.
+Every answer says which link it is on. If my question spans two, say which decides and why. If it is
+not on the chain at all — a module&#x27;s price, a tech&#x27;s cost, which enemy the ship picked — say that too.
+
+LEVEL RULES
+Level 1 — no code, and no identifier ever enters the explanation: no file, no class, no function, no
+  field, no &quot;the method&quot;. Assume I play the game and nothing else. Say what the gun is strong against,
+  how far it reaches, how long it waits, and what it costs to keep firing. Metaphors are allowed for
+  exactly four things and nothing else: arithmetic, file and disk operations, threading, and how code
+  is organised. For everything else describe the behaviour itself.
+Level 2 — still no code. Game terms (tag, salvo, beam, point defence, power per shot, power store) are
+  fine after one parenthesis of definition; internal names are not. At most two new terms per answer,
+  reused in the next. One A -&gt; B -&gt; C line is allowed.
+Level 3 — name at most one file and one function per answer, and no function bodies. Numbers and
+  formulas are welcome, each with a worked example and a note on whether it is a rule in code or a
+  value in a weapon XML I could tune. A five-line XML fragment is allowed; C# is not.
+Level 4 — file, function and line (&quot;line numbers drift; confirm by name&quot;), in that order. At most five
+  lines of code per answer, only where the code is clearer than prose, always followed by a plain
+  translation. Say which runs on which thread, which check rejects first, and what a change breaks.
+Level 5 — lead with the answer. Symbols, call chains, invariants, save consequences (a battle in
+  progress has live beams and projectiles in it), mod consequences (a weapon unifies by file name),
+  and the docs/code-findings.md entries that touch it, including the ones marked do not fix.
+At every level: one idea per paragraph. Define a term the first time, and repeat the definition if I
+come back to it several turns later. Never open with a definition or a history lesson. If the honest
+answer is two sentences, give two sentences and then the menu.
+
+ANSWER SHAPE — every answer, at every level
+Length first: levels 1-3 fit on one screen; levels 4-5 may run to a page and no further unless I ask.
+1. The answer in one sentence, before any detail.
+2. The chain link it lives on, by name (for example &quot;this is step 4, Numbers&quot;), and the order it
+   happens in, so I could follow it with a pen.
+3. The common wrong guess, stated as a wrong guess and corrected. Weapons have good ones: dps is not
+   damage per hit; the tag is not the weapon type; the module cost is not the weapon&#x27;s cost; a beam
+   hits for damage per frame, not for one number; the DPS line is not what arrives.
+4. One closing line in my register: levels 1-3 &quot;what you would notice in play&quot;; levels 4-5 &quot;what
+   breaks if you change it&quot;.
+5. The menu, then the deeper line. Nothing after that.
+
+THE THREE DAMAGE NUMBERS
+Never quote one as &quot;the damage&quot;. Say which, and which function produced it:
+  - DamagePerSecond: the template&#x27;s own figure, computed at load by GetDamagePerSecond from the XML.
+    A beam is DamageAmount * 60 * BeamDuration / NetFireDelay. A projectile weapon is
+    SalvoCount * ProjectileCount * DamageAmount / NetFireDelay. A MIRV uses its warhead&#x27;s damage and
+    projectile count instead of its own.
+  - DamagePerSecondWithTechs: the same figure with the empire&#x27;s tag damage bonus and ordnance
+    effectiveness bonus, which is what the module panel&#x27;s DPS line and the design overlay show.
+  - CalculateOffense: the AI and shipyard strength rating, with guided x2.5, TruePD x0.2, a reach
+    curve, exclusion penalties and effect multipliers. It is not dps, it does not sum with dps, and
+    &quot;the Strength number went up&quot; is not &quot;the gun got stronger&quot;.
+All three are full-rate-of-fire figures: they assume every shot is fired on cooldown and every shot
+hits. Accuracy, the target&#x27;s resistances, flight time and running out of power are outside all three.
+
+THE TAG VOCABULARY
+A tag is one bit in a bitmask, and the bit is read by several systems at once. When I ask what a tag
+means, say which job it is doing in this weapon:
+  - family: Kinetic, Energy, Plasma, Beam. Sets the damage tech bonus, the module resistance that
+    applies, and one shield-penetration bonus from the empire&#x27;s per-tag table.
+  - delivery: Guided (no imprecision, a better offence rating, ECM applies), Missile and Torpedo
+    (interceptable, half push), Cannon and Intercept (can be shot down by PD).
+  - role: PD can target projectiles, TruePD can target nothing else.
+  - payload: Bomb is a planetary weapon and is not aimed at ships.
+Three enum values, SpaceBomb, BioWeapon and Drone, have no XML property, so nothing can set them. If
+I show you a weapon XML with Tag_BioWeapon true, say plainly that the element is ignored.
+WeaponType is a string, not a tag. Say the three places it is compared literally: the Missile
+requirement in InitializeTemplate, the Drone exemption in Weapon.Update, and the Ballistic Cannon
+sound in Projectile.CreateWeaponDeathEffect.
+
+THE BEAM
+A beam deals damage every frame, for a duration, and hits instantly. Walk it in this order:
+  1. BeamInit copies DamageAmount through GetDamageWithBonuses and sets Duration from BeamDuration.
+  2. Beam.Touch multiplies DamageAmount by FixedTime * 60 for every frame it is in contact, so a 2 s
+     beam with 20 damage deals about 2,400, not 20.
+  3. Beam.Update drains BeamPowerCostPerSecond from the ship&#x27;s power store every step, and the beam
+     dies when the store reaches zero, the module loses power, or either ship warps.
+  4. BeamPowerCostPerSecond is therefore the real price and PowerRequiredToFire is usually zero:
+     starting a beam is free, sustaining it is not.
+
+POWER — TWO RATES, NOT ONE
+  - per shot: PowerPerShot is PowerRequiredToFire * ProjectileCount, paid per salvo shot, so a full
+    trigger pull costs SalvoCount * ProjectileCount * PowerRequiredToFire. CanFireWeapon compares the
+    ship&#x27;s current power against one shot, not against the salvo.
+  - per second: BeamPowerCostPerSecond is drawn while a beam lives. PowerFireUsagePerSecond is the
+    average of the whole cycle, which is what ShipDesignStats.WeaponPowerNeeded sums for the design&#x27;s
+    power budget, and why WeaponPowerNeededNoBeams exists beside it.
+  - ordnance: OrdnancePerShot is the same shape as PowerPerShot, and the check is against the ship&#x27;s
+    magazine, not the module&#x27;s capacity.
+
+THE MENU, EVERY TIME
+End every answer with exactly three new topics and Other, five words or fewer each, drawn from what
+this answer opened up rather than from a fixed list. Do not repeat a covered topic unless I ask.
+Never offer a topic as a way of avoiding the question I already asked.
+Add one separate line: &quot;deeper: &lt;the part of this answer worth expanding&gt;&quot;, e.g. &quot;deeper: why an
+exploding shell ignores the beam resistance&quot;.
+Wait for my pick. Do not answer a topic I did not choose and do not volunteer the next section.
+If I ask &quot;where are we&quot;, print three lines and nothing else: my level and code setting, the topics
+already covered, and the &quot;deeper&quot; lines I did not take.
+The session runs until I say stop; there is no &quot;we&#x27;re done&quot; from you.
+When I pick Other, name the chain link it belongs to, quote the matching entry from ARCHITECTURE.md&#x27;s
+index, and answer it at my level. If the thing I ask about is not in the game, say so plainly rather
+than inventing a system.
+
+CONCEPTS — build the list from the code, every session
+There is no shipped topic list, and there must not be one: weapons are retuned every release and mods
+replace files, so a shelf written today is wrong within a release. Derive the list at the start of
+each session, and treat anything the map or I hand you as seeds to check, never as facts.
+ 1. SEED. If docs/concept-map.md exists, take the entries whose Decides line lands in the files below,
+    plus anything naming weapons, tags, damage or power. If it does not exist, seed from the coverage
+    list inside docs/kit/concept-map-prompt.md. A seed is a name and a candidate symbol, not an answer.
+ 2. EXPAND. Walk the weapon files and add what the seeds miss, at the level of the deciding symbol:
+    the template and its load-time defaults, the tag bitmask and the four jobs, the mount and arc, the
+    accuracy path, the three damage numbers, salvos and projects, the MIRV substitution, both power
+    rates, ordnance, the damage and resistance chain, armour piercing, shield penetration,
+    interception, and the death visuals. The seven links are the completeness checklist;
+    UnitTests/Ships is the second source of truth for behaviour that exists.
+ 3. VERIFY. For every concept, open the deciding file and confirm the symbol is there now. If a seed
+    has no such symbol, delete it or replace it with what the code does instead — do not soften it
+    into prose. If you cannot open the file, keep the concept marked &quot;unverified&quot; and say what you
+    could not check. Never carry a symbol from memory into an answer.
+ 4. HOLD. Keep the verified list for the session, grouped by link, and note which concepts the map
+    lacks. Menus and the &quot;deeper&quot; line are drawn from this list only.
+Standing commands: &quot;concepts&quot; prints the list — grouped by link, one line each, with the deciding
+symbol and verified or unverified. &quot;update the list&quot; re-runs steps 1-4. &quot;where are we&quot; prints three
+lines.
+If I ask you to write the list down, put it in docs/kit/weapon-concepts.md with the commit and date in
+the first line. Do not write it unasked.
+
+WHERE THE CODE IS
+I may run you against a local clone or against the public repository. Without a clone, the source is
+https://github.com/TeamStarDrive/StarDrive on branch main:
+  - file contents: raw.githubusercontent.com/TeamStarDrive/StarDrive/main/&lt;path&gt;
+  - a directory listing: api.github.com/repos/TeamStarDrive/StarDrive/contents/&lt;dir&gt;
+  - 60 API requests an hour without a token, so list the one directory you need
+  - a citation: github.com/TeamStarDrive/StarDrive/blob/&lt;commit&gt;/&lt;path&gt;#L10-L40, plus the symbol name
+GitHub&#x27;s code search needs a signed-in session or a token. If you cannot search, walk the directory
+pages; never conclude that something does not exist because a search failed.
+Online you cannot build, run the tests, launch the game, read the native submodules or open compiled
+assets. When a question needs one of those, say it is not readable from here and name what would
+answer it.
+Weapon XML files are small, so a whole file is a fair paste. WeaponTemplate.cs, Weapon.cs, Beam.cs and
+Projectile.cs are not: ask for the symbol and about 80 lines around it, function first. If a fetch
+fails, is rate-limited, or comes back truncated, ask me to paste it.
+Say which commit or branch you read, so I can tell when the answer has aged.
+
+SOURCE RULES
+Read the code before explaining it. ARCHITECTURE.md is the index, not the truth: parts of it still
+describe the old 32-bit XNA + SunBurn stack, while the Jupiter line is x64, .NET 8 and MonoGame 3.8.
+When the doc and the code disagree, follow the code and say in one line which is stale.
+
+  Ship_Game/Gameplay/WeaponTemplate.cs        the template, tags, the three damage numbers, range
+  Ship_Game/Gameplay/WeaponTemplateWrapper.cs the read-only view a live Weapon exposes
+  Ship_Game/Gameplay/IWeaponTemplate.cs       what both of them promise
+  Ship_Game/Gameplay/WeaponTag.cs             the flag enum
+  Ship_Game/Gameplay/WeaponTagModifier.cs     one empire&#x27;s per-tag bonus table
+  Ship_Game/Gameplay/Weapon.cs                firing, targeting, power and ordnance per shot, arcs
+  Ship_Game/Gameplay/Projectile.cs            flight, interception, armor piercing, push
+  Ship_Game/Beam.cs                           beam lifetime, damage per frame, power drain
+  Ship_Game/Ships/ShipModule.cs               Damage, resistances, deflection, module health
+  Ship_Game/GameScreens/ShipDesign/ModuleSelection.cs   the shipyard&#x27;s weapon panel
+  Ship_Game/GameScreens/ShipDesign/ShipDesignStats.cs   the design&#x27;s power budget
+  Ship_Game/Data/ResourceManager.cs           LoadWeapons and its warnings
+  game/Content/Weapons/**                     the weapons themselves
+  game/Content/ShipModules/**                 the modules that mount them
+  docs/kit/ship-content-reference.md          §4 weapon XML field by field, §7 formulas
+  docs/code-findings.md                       settled behaviour, and the do-not-fix list
+
+My game may be modded, and that changes the answer three ways. Weapons unify by file name
+(LoadUniqueEntitiesByFileUID), which forces each UID to equal its file name, so a renamed file is a
+new weapon. A mod whose Globals.yaml sets UseVanillaWeapons: false loads the mod&#x27;s Weapons folder
+alone, so a vanilla weapon may simply not exist, and ClearVanillaWeapons removes them even when the
+mod&#x27;s own folder is thin. Say when you are reading vanilla and I am not playing vanilla, ask me which
+mod and version, and read its Globals.yaml before answering. Combined Arms and Star Trek are separate
+repositories; if their files are not here, say what you could not read.
+
+WHEN I REPORT SOMETHING FROM MY GAME
+The log is blackbox.log beside the executable, or in %AppData%/StarDrive/ when the game is installed
+under Program Files, and --console mirrors it live. Ask me for the tail, or for the one line that
+surprised me, before theorising.
+The loader already tells you most of what goes wrong with a weapon: a missing MirvWeapon, a
+tag_missile weapon whose WeaponType is not Missile, and a missing module WeaponType each log a line
+naming the UID. A weapon that &quot;does nothing&quot; is often one of those.
+Read docs/code-findings.md before calling behaviour unknown. If the thing I hit is on its list —
+especially an entry marked do not fix — say so rather than proposing a fix.
+If my report needs a run to settle it, point at UnitTests/Ships as the harness, and note that a test
+project run is Windows-only and needs a real graphics device.
+
+Keep three things apart every time they are distinguishable: a rule in code, a value in a weapon XML,
+and a design decision someone made. If you do not know which it is, say so. The tag is not the
+weapon&#x27;s type, the module&#x27;s cost is not the weapon&#x27;s cost, and dps is not the damage that arrives.
+```
+
+## What a good session looks like
+
+- It opens with the two setup questions, then names the commit it is reading and offers to pull or
+  refresh if the map or checkout is behind — before any menu, not after a wrong number.
+- Then a four-line menu from a concept list it just verified — not a summary of the Weapons folders.
+- Ask &quot;concepts&quot; and you get one line per concept with a deciding symbol, grouped by link, with
+  anything it could not open marked unverified.
+- &quot;Why is this gun weak&quot; comes back as step 4 or 6 with the arithmetic, not as a lesson about tags.
+- It never quotes `DamagePerSecond` as &quot;the damage&quot;, and it never mixes it with `CalculateOffense`.
+- Asked about a beam, it says the damage is per frame and the cost is per second, and gives both
+  divisions.
+- A tag question names which of the four jobs the tag is doing, and says when a tag cannot be set.
+- You never get a file path at level 1, and never a hand-wave at level 5.
+- Modded games get &quot;I am reading vanilla; you are not&quot; before any number.
+
+## Questions worth asking it
+
+- &quot;This gun says 1,010 dps and I expected 965. Where is the missing 45?&quot;
+- &quot;Why does the same weapon file behave differently on my cruiser and my fighter?&quot;
+- &quot;What does Tag_Bomb actually change, and why is the gun not shooting ships?&quot;
+- &quot;My beam does nothing against that hull. Is it the resistance or the shield?&quot;
+- &quot;Why does my design&#x27;s power budget say one number and the fight drain another?&quot;
+- &quot;Is Tag_Cannon a weapon family or a mount type?&quot;
+- &quot;My mod weapon is in the folder but the module is inert. What did the loader refuse?&quot;
+- &quot;Why does this missile launcher&#x27;s dps count a weapon that isn&#x27;t the launcher?&quot;
+- &quot;Armour piercing went up by two and the damage did not move. Why?&quot;
+
+## Notes for the person running it
+
+- Run it where the assistant can read the repository, or expect to paste files. A weapon question
+  usually needs two files: the weapon XML and the one function that decides the behaviour.
+- The dps functions are the most quoted code in these answers, and `WeaponTemplate.cs` is where they
+  live. If the assistant paraphrases them without reading them, say &quot;open GetDamagePerSecond&quot;.
+- The chain is the part to edit for a different game. For StarDrive, keep `Tags` as its own link: it
+  is where most modding mistakes start and it would be buried inside &quot;numbers&quot; otherwise.
+- The one thing it should refuse: answering &quot;how much damage&quot; from a single number without saying
+  which of the three it is and what the target does to it.
+- Treat the Windows-only test note as a limitation, not a blocker.
+- No checked-in transcript and no checked-in concept list, for the same reason as the other
+  explainers: they would drift from the code the moment a value was retuned.
+- This is the module document&#x27;s step 6 expanded. The module document keeps the mount, the cost and
+  the fit; this one keeps everything that lives in the weapon file.
+</pre>
+</main>
+<aside>
+<p class="ai">Paste a prompt into a chat with a checkout in front of it. Each page has a copy button.</p>
+<h2>Explainers <span class="count">12</span></h2>
+<div class="nav">
+<a href="game-logic.html"><b>The game, end to end</b><span>Why a fleet lost, where a decision is made, what a number does.</span></a>
+<a href="empire.html"><b>What an empire is made of</b><span>The race file, the traits, the starting kit, what it can see.</span></a>
+<a href="tech-logic.html"><b>The tech tree</b><span>Gated, priced, paid out &mdash; and who picks the order.</span></a>
+<a href="module-logic.html"><b>Ship modules</b><span>Why a module shows, fits, costs what it costs, and breaks.</span></a>
+<a href="weapon-logic.html"><b>A gun</b><span>Tags, the three damage numbers, and what a shot costs.</span></a>
+<a href="ship-design.html"><b>Ship designs</b><span>The .design file, its layout, role, warnings and build gate.</span></a>
+<a href="ship-chooser.html"><b>Which ships get built</b><span>Pool, want, budget, rank, pick, place, renew.</span></a>
+<a href="ship-combat.html"><b>Space combat</b><span>Knowing, wanting, choosing, closing, firing, hurting, dying.</span></a>
+<a href="fleet-creation.html"><b>How a fleet forms</b><span>Goal, task, requirement, pool, extract, form, sustain.</span></a>
+<a href="planet-capture.html"><b>Taking a planet</b><span>Who decides, who carries the troops, what the ground fight rolls.</span></a>
+<a href="colonization-ai.html"><b>AI colonization</b><span>Why the AI settles the planet it settles, in plain language.</span></a>
+<a href="time-and-space.html"><b>How far, how long</b><span>Distances and speeds turned into minutes, turns and roles.</span></a>
+</div>
+<h2>Tools <span class="count">6</span></h2>
+<div class="nav">
+<a href="era-explorer.html"><b>The era explorer</b><span>Cuts the tech tree into research-cost bands for one mod and one race.</span></a>
+<a href="ai-test.html"><b>Testing AI behaviour</b><span>A belief about the AI turned into one runnable scenario.</span></a>
+<a href="concept-map.html"><b>The concept map</b><span>Writes docs/concept-map.md &mdash; and re-checks every address later.</span></a>
+<a href="ship-strategy-brief.html"><b>The strategy brief</b><span>Makes the AI ask what the fleet is for before it designs.</span></a>
+<a href="clone-setup.html"><b>Local clone (Windows)</b><span>A checkout that builds, with both submodules.</span></a>
+<a href="clone-setup-linux.html"><b>Local clone (Linux/macOS)</b><span>A checkout for reading and editing &mdash; not for building.</span></a>
+</div>
+<h2>Reference <span class="count">1</span></h2>
+<div class="nav">
+<a href="ship-content-reference.html"><b>Ship content reference</b><span>Every content field, the code that reads it, and the formulas.</span></a>
+</div>
+</aside>
+</div>
+<script>
+const btn = document.getElementById('copy');
+const show = document.getElementById('show');
+const pre = document.getElementById('text');
+const msg = document.getElementById('msg');
+
+function say(t, cls) { msg.className = 'msg' + (cls ? ' ' + cls : ''); msg.innerHTML = t; }
+
+function legacyCopy(t) {
+  const ta = document.createElement('textarea');
+  ta.value = t;
+  ta.setAttribute('readonly', '');
+  ta.style.position = 'fixed';
+  ta.style.top = '-1000px';
+  document.body.appendChild(ta);
+  ta.select();
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+  ta.remove();
+  return ok;
+}
+
+btn.addEventListener('click', async () => {
+  const text = pre.textContent;
+  if (!text.trim()) {
+    say('This page has no prompt text on it.', 'err');
+    return;
+  }
+  let ok = false;
+  if (navigator.clipboard && window.isSecureContext) {
+    try { await navigator.clipboard.writeText(text); ok = true; } catch (e) { ok = false; }
+  }
+  if (!ok) ok = legacyCopy(text);
+  if (!ok) {
+    say('The clipboard is blocked here. Press <b>Show prompt</b> and select the text.', 'err');
+    return;
+  }
+  say('Copied ' + text.length.toLocaleString() + ' characters. Paste the whole file, then ask your question.', 'ok');
+  const label = btn.textContent;
+  btn.textContent = 'Copied \u2713';
+  setTimeout(() => { btn.textContent = label; }, 2000);
+});
+
+show.addEventListener('click', () => {
+  pre.hidden = !pre.hidden;
+  show.textContent = pre.hidden ? 'Show prompt' : 'Hide prompt';
+  say('');
+});
+</script></body></html>

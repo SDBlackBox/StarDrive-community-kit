@@ -1,0 +1,606 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Space combat — StarDrive BlackBox</title><style>
+:root{--bg:#14171c;--panel:#1b1f26;--ink:#e6e8ea;--dim:#8b949e;--line:#2b313a;--gold:#ffd479;--link:#8ecbff;--ok:#8ad06a}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 Georgia,serif}
+a{color:var(--link);text-decoration:none}a:hover{text-decoration:underline}
+code{font:12.5px ui-monospace,monospace;color:#c9d1d9;background:#20252d;padding:0 3px;border-radius:3px}
+.bar{position:sticky;top:0;z-index:9;background:rgba(20,23,28,.94);border-bottom:1px solid var(--line)}
+.bar .in{max-width:1240px;margin:0 auto;padding:10px 28px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{display:inline-block;font:12px ui-monospace,monospace;padding:5px 12px;border:1px solid #3a424e;border-radius:999px;background:var(--panel);color:var(--ink);cursor:pointer}
+.btn:hover{border-color:var(--link);text-decoration:none}
+.btn.primary{border-color:#6b5a2b;background:#2a261b;color:var(--gold)}
+.head{max-width:1240px;margin:0 auto;padding:34px 28px 6px}
+h1{font-size:27px;margin:0 0 8px;line-height:1.25}
+p.lede{color:var(--dim);max-width:82ch;margin:0 0 12px}
+p{margin:0 0 10px}
+.shell{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:40px;max-width:1240px;margin:0 auto;padding:8px 28px 70px;align-items:start}
+@media(max-width:920px){.shell{grid-template-columns:1fr;gap:26px}}
+h2{font-size:12.5px;margin:30px 0 10px;color:#c9d1d9;text-transform:uppercase;letter-spacing:1.2px;font-family:ui-monospace,monospace}
+h2 .count{color:var(--dim);letter-spacing:0}
+ul{margin:0 0 10px;padding-left:20px}li{margin:0 0 7px}
+table{border-collapse:collapse;width:100%;font:12.5px ui-monospace,monospace;margin:4px 0 10px}
+th,td{text-align:left;padding:6px 9px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--dim);font-weight:normal}
+td.n{white-space:nowrap;color:var(--gold)}
+.note{color:var(--dim);font-size:13px}
+.facts{display:flex;gap:20px;flex-wrap:wrap;font:12px ui-monospace,monospace;color:#c9d1d9;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:9px 13px;margin:14px 0 0}
+.facts b{color:var(--gold);font-weight:normal}
+aside{position:sticky;top:56px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:4px 16px 14px;max-height:calc(100vh - 80px);overflow:auto}
+@media(max-width:920px){aside{position:static;max-height:none}}
+aside h2{margin:14px 0 6px}
+aside p.ai{color:var(--dim);font-size:12.5px;margin:12px 0 2px}
+.nav a{display:block;padding:6px 0;border-bottom:1px solid #232a33}
+.nav a:last-child{border-bottom:0}
+.nav b{font-weight:normal;color:var(--ink);display:block}
+.nav span{display:block;color:var(--dim);font-size:12.5px;line-height:1.4}
+.kicker{font:12px ui-monospace,monospace;color:var(--dim);margin:0 0 10px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.chip{font:10.5px ui-monospace,monospace;letter-spacing:.6px;text-transform:uppercase;border:1px solid #4a5260;border-radius:9px;padding:1px 7px;color:var(--dim)}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0 4px}
+.msg{font:12px ui-monospace,monospace;color:var(--dim);min-height:1.4em;margin:6px 0 0}
+.msg.ok{color:var(--ok)}.msg.err{color:#e07070}
+pre#text{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px;max-height:62vh;overflow:auto;white-space:pre-wrap;font:12px ui-monospace,monospace;color:#c9d1d9}
+.meta{font:12px ui-monospace,monospace;color:var(--dim);border-top:1px solid var(--line);margin-top:30px;padding-top:10px}
+</style></head><body><nav class="bar"><div class="in"><a class="btn" href="../index.html">&larr; Index</a>
+<a class="btn" href="../weapon-tech-human.html">Era map</a>
+<a class="btn" href="https://github.com/TeamStarDrive/StarDrive">Game repository &nearr;</a>
+</div></nav>
+<header class="head">
+ <p class="kicker"><span class="chip">Explainer</span><code>ship-combat-explainer-prompt.md</code></p>
+ <h1>Space combat</h1>
+ <p class="lede">How a ship finds an enemy, decides which one, closes, fires, and what a hit does to the hull &mdash; which is the answer to &ldquo;why did my fleet lose&rdquo;.</p>
+ <div class="acts">
+  <button class="btn primary" id="copy">Copy prompt</button>
+  <button class="btn" id="show">Show prompt</button>
+  <a class="btn" href="https://github.com/SDBlackBox/StarDrive-community-kit/blob/main/ship-combat-explainer-prompt.md">In the kit repo &nearr;</a>
+ </div>
+ <p class="msg" id="msg"></p>
+</header>
+<div class="shell">
+<main>
+<h2>How it works</h2>
+<ul><li>Chain of seven: <em>knowing, wanting, choosing, closing, firing, hurting, dying</em>.</li><li>Concept list discovered, not shipped; stale entries deleted rather than explained.</li><li>Names the commit it reads and offers pull / refresh before answering.</li></ul>
+
+<h2>What it needs</h2>
+<p>A checkout, or the public repository.</p>
+
+<h2>The prompt</h2>
+<p class="note">35,307 characters, copied verbatim from <code>ship-combat-explainer-prompt.md</code> at
+build time. Copy takes the whole file, because that is what the prompt expects you to paste.</p>
+<pre id="text" hidden># Explaining ship combat — a copy-paste interactive prompt
+
+Paste the prompt below into an AI assistant that can read this repository — either a local clone or
+the public repo at &lt;https://github.com/TeamStarDrive/StarDrive&gt; — and it becomes a guide to **space
+combat** specifically: how a ship finds an enemy, decides which one, closes, fires, and what a hit
+does to the hull. It opens with three topics and an &quot;other&quot;, asks once whether you want code and at
+what depth, then answers one question at a time and offers the next three.
+
+This is [`game-logic-explainer-prompt.md`](game-logic-explainer-prompt.md) narrowed to one
+subsystem, with three changes that matter:
+
+- **The combat chain replaces the topic shelf.** Every answer says which of seven links it is on:
+  knowing, wanting, choosing, closing, firing, hurting, dying.
+- **The concept list is discovered, not shipped.** Before the first menu, the prompt builds the list
+  of combat concepts by reading [`concept-map.md`](../concept-map.md) (if it exists) and then the
+  code itself, verifying each deciding symbol. Nothing in the list is trusted from a previous
+  session, and stale entries are deleted rather than explained.
+- **It checks whether it is reading current code.** It names the commit it is answering from,
+  compares the concept map&#x27;s build commit and the kit&#x27;s vetted commit against it, and — before
+  answering — offers to pull the checkout or refresh the map. It does not pull on its own.
+
+## Why this exists
+
+- **A fight is seven decisions, and players collapse them into one.** &quot;The AI is stupid&quot; is almost
+  always step 1 (it never saw the ship) or step 3 (it saw it and chose something else). &quot;My guns did
+  nothing&quot; is step 5 (arc, cooldown, power, ordnance) or step 6 (resistance, shields, armour
+  piercing). The general explainer answers a subsystem well; it does not force the answer to say
+  *which* of the seven it is, and that is the whole question in a battle report.
+- **Strength is not a damage model.** [`ship-content-reference.md`](ship-content-reference.md) §7.1
+  owns the score the game gives a ship, and the AI uses it to buy ships, choose targets and decide
+  whether to chase. It does not resolve a shot. Players and modders use the two interchangeably, and
+  a combat explanation that does the same is worse than useless.
+- **The visual is not the damage.** A weapon&#x27;s fireball sprite is drawn at 4.5× its damage radius,
+  and no weapon in vanilla or Combined Arms overrides it; a dying ship&#x27;s blast is drawn at
+  `2 × Radius × role multiplier`. Ships always look more engulfed than they are. &quot;It should have died&quot;
+  is usually this.
+- **One subsystem, three audiences.** A player wants &quot;why did my fleet lose&quot;, a modder wants &quot;which
+  number do I change so this weapon hurts that hull&quot;, a developer wants &quot;where is this decided, and
+  what breaks if I touch it&quot;. A prompt with no stated audience defaults to the developer one.
+- **Combat reading is diagnosable in a fixed order.** There is a short elimination ladder — did it
+  see, did it choose, could it close, could it fire, did the hit land, did the module die, did the
+  ship die — and a guide that walks it once beats a guide that explains each piece in isolation.
+
+## The combat chain
+
+The prompt makes this the spine of every answer, at every level: name the link. A question that
+touches two links has one that decides, and saying which is the answer.
+
+| # | Step | What it decides | Where it is | What you notice in play |
+|---|---|---|---|---|
+| 1 | Knowing | whether an enemy is in this ship&#x27;s lists at all | `ShipAI.ScanForTargets`, `ScanForEnemies`, `ScanForProjectiles`, `ScanForFriendlies`; `EmpireConstants.EnemyScanInterval` | a ship that ignored something shooting it |
+| 2 | Wanting | what the standing order and stance are | the goal queue and `ShipAI.CombatState`; `ShipData.DefaultCombatState` | the stance buttons, and whether a ship runs |
+| 3 | Choosing | which enemy this ship commits to | `ShipAI.SelectCombatTarget` → `GetHighestPriorityTarget` → `GetTargetPriority`, gated by `MayChase` | &quot;why is it shooting the freighter&quot; |
+| 4 | Closing | where it stands, and when it turns away | `ShipAI.DoCombat`, `Ship.DesiredCombatRange`, `CombatMovement` and the stance tactics | orbit, broadside, attack runs, disengaging |
+| 5 | Firing | which weapon fires at what, and whether it may | `ShipAI.FireOnTarget`, `Weapon.UpdateAndFireAtTarget`, arc and cooldown checks, point defence | turrets swinging, PD lighting up, nothing firing |
+| 6 | Hurting | how one hit resolves | `Projectile.Damage`, `ShipModule.Damage`, `ShipModule.DamageShield`, the armour-piercing walk | a shield flare, a module going dark, sparks |
+| 7 | Dying | when the hull is dead, and what the death does | `GlobalStats.Defaults.ShipDestroyThreshold`, `SpatialManager.ShipExplode`, `Ship.ExplosionDamageCap`, `ShipModule.ExplosionFalloff` | the explosion, and the second one it causes |
+
+Step 1 runs once a second per scan type; step 3 re-picks at most once a second, while a weapon
+re-picks its own target on a short timer whenever that target dies or leaves its arc; step 4 runs
+every sim step; steps 5 to 7 run on a cooldown or on impact, not on every step for every ship. Those
+clocks being different is why a ship can be &quot;in combat&quot; and visibly doing nothing.
+
+## Where the concept list comes from
+
+The map in [`concept-map-prompt.md`](concept-map-prompt.md) is organised by what a player does, which
+makes cluster &quot;IV. Ships&quot; and &quot;V. Opponents and AI&quot; the natural seed for a combat list. They are
+seeds, not the list: the map is a snapshot, it is built from a directory scan plus verification, and
+its combat entries are thin on the fight itself. This is the seed set to hand the prompt, with a
+note on why each one is a prompt to verify rather than a citation.
+
+| Seed concept (map wording) | Decides, as the map has it | Link | What to check |
+|---|---|---|---|
+| Sensors and fog of war | `UniverseObjectManager.UpdateAllSensors`; `ExplorableGameObject` | 1 | The ship-level scan is `ShipAI.ScanForTargets`, which gates every answer about being ignored |
+| Threat assessment | `AI/ThreatMatrix.cs`; `AI/DefensiveCoordinator.cs` | 1, 3 | It is fed from `ShipAI.ScanForEnemies`, so a ship out of sensor range is absent from the empire&#x27;s picture too |
+| How a single ship decides | `ShipAI.DoAction.cs`; `AIState` | 2 | `DoCombat` is the movement half only; the target half is in `ShipAI.Combat.cs`. `AIState` is its own file, `AI/ShipAI/AIState.cs` |
+| Space combat | `ShipAI.DoAction.cs` — `ShipAI.DoCombat` | 4 | Correct for movement, incomplete for firing: `ShipAI.FireOnTarget` lives in `ShipAI.Combat.cs` |
+| Moving a ship | `Ships/Ship_Movement.cs`; `PathFinder/Astar.cs` | 4 | Combat movement is the `CombatMovement` layer under the stances in `AI/CombatTactics` |
+| Damage, shields and destruction | `Shield.cs`; `Gameplay/Weapon.cs`; `ExplosionManager.cs` | 6, 7 | `Shield.cs` is the bubble&#x27;s light and hit visual; the damage is `ShipModule.DamageShield`. The map&#x27;s wording points at the drawing |
+| Fleets and fleet orders | `Fleets/Fleet.cs`; `Fleets/FleetPatrol.cs` | 3 | `Fleet.Focus` / `FleetFocus` is the focus-fire clump the target weight multiplies |
+| Ordering a ship around | `Ships/OrderType.cs`; `ShipAI.Goals.cs` | 2 | The map&#x27;s path is already wrong here: `OrderType.cs` sits at `Ship_Game/OrderType.cs`, and the order itself is `ShipAI.ShipGoal` with its `Plan` enum in `ShipAI.Goals.cs`. A priority order outranks combat: it moves the ship, and `HasPriorityTarget` decides whether it may shoot elsewhere |
+| A ship&#x27;s numbers | `ShipDesign_Stats.cs`; `ShipStats.cs` | outside | The strength score is an AI input for buying, chasing and threat — not a damage model |
+| A ship&#x27;s design | `ShipDesign.cs`; `ShipHull.cs`; `ShipModule.cs` | outside | Design choices arrive in a fight only as slots, resistances and weapons |
+
+Two of those rows are already stale in this checkout — the `OrderType.cs` path, and `AIState` being
+its own file — which is the argument for discovering rather than shipping the list. And the gaps the
+map&#x27;s cluster IV does not name, found by reading the code — these are the concepts the prompt
+should add on its first pass, each one verified in this checkout:
+
+- **Target weights** — `ShipAI.GetTargetPriority`, the one function that explains most &quot;why did it
+  shoot that&quot; questions.
+- **Stances and tactics** — `CombatState`, `CombatAI.SetCombatTactics`, and the stance classes under
+  `AI/CombatTactics`; the enum&#x27;s order is frozen because saves store its integer.
+- **Desired combat range** — `Ship.CalcDesiredDesiredCombatRange` (the name is spelled that way),
+  which turns the fitted weapons and the stance into the distance a ship tries to hold.
+- **Weapon target choice** — `Weapon.UpdateAndFireAtTarget`, `PickProjectileTarget`,
+  `PickShipTarget`, and the random internal module a shot is aimed at.
+- **Point defence** — `Tag_PD`, `TruePD`, `Owner.TrackingPower`, and the intercept branch of
+  `ScanForProjectiles`.
+- **A module&#x27;s death** — `ShipModule.Damage`, `DamageShield`, the armour-piercing walk, and what a
+  destroyed module does to the ship.
+- **The destroy threshold** — `GlobalStats.Defaults.ShipDestroyThreshold`, which is why a hull dies
+  with its outer armour intact.
+- **The death blast** — `SpatialManager.ShipExplode`, `Ship.ExplosionEvadeBaseChance`,
+  `Ship.ExplosionDamageCap`, `ShipModule.ExplosionFalloff`.
+
+Two things sit deliberately outside the list: ground combat, invasion and bombardment (a different
+system behind `CombatScreen` and `TroopManager`), and the meta-systems the map owns better than a
+combat explainer can — mod loading, localisation, save format.
+
+## The level ladder
+
+Target reading age is `5 + (level - 1) × 5`, so level 1 is ELI5 and level 5 is a working developer.
+Each rung changes *what may appear in the answer*, not just the vocabulary — that is what stops
+level 2 from being level 1 with longer sentences. Combat lets each rung use a different example of
+the same fight, which is a good test that the ladder is being honoured.
+
+| Level | Reads like | Code | What the answer contains |
+|---|---|---|---|
+| 1 | ELI5 | none at all | Who saw who, who shot first, and why one side ran out. No file, class, function or field name ever. Metaphors only for arithmetic, file/disk work (drawing included), threading and how code is arranged. |
+| 2 | a curious 10-year-old | none | Game terms after a one-line definition — shield, armour, point defence, stance — plus one A → B → C line. At most two new terms per answer. |
+| 3 | a technical 15-year-old | one file and one function named, no bodies | A number or formula with a worked example, and whether each is a rule in code or a value in content. A five-line YAML/XML fragment is fine; C# is not. |
+| 4 | a developer new to this repo | snippets up to five lines, always translated | Call order, which thread it runs on, which list or score decides, what a change breaks. |
+| 5 | a BlackBox developer | full symbols and call chains | Invariants, allocation and thread-safety notes, save and mod consequences, the relevant `code-findings` entries including the do-not-fix ones. |
+
+## The prompt
+
+Copy everything between the rules.
+
+```text
+You are my guide into how ship combat actually works in StarDrive BlackBox. Your job is to explain
+how a fight is decided, at the depth I ask for, and to keep the conversation going until I say stop.
+
+You are not writing a wiki page and not giving a code tour. One question, one answer, then the next
+choice is mine.
+
+Scope: space combat between ships, stations and their weapons. Ground combat, invasion and
+bombardment are a different system (CombatScreen, TroopManager); if I ask about those, say so in one
+line, point at docs/concept-map.md, and answer only the part that is space combat — boarding, for
+instance, is a ship action and is in scope.
+
+STEP 0 — ask these two questions once, together, then stop and wait
+1. &quot;Do you want code?&quot; — no / pointers only / show me the code. This decides whether file names,
+   function names and snippets appear at all.
+2. &quot;How deep, 1-5?&quot; — print this table and the two lines under it, and nothing more:
+     1  no code at all — what it means and what you would see
+     2  plain language, game terms allowed, still no code
+     3  one file and one function named, numbers and formulas, no bodies
+     4  short snippets (up to five lines) with a translation, call order, data, threads
+     5  BlackBox dev — symbols, call chains, invariants, what breaks
+   Target reading age is 5 + (level - 1) x 5: level 1 is ELI5, level 5 is a working developer.
+   The level is also the audience: 1-2 is a player, 3 a modder tuning a design, 4-5 a contributor.
+Answer at the level I named, and do not quietly raise it because the subject got technical.
+If I answer vaguely, take level 2 and no code, say which you took in one line, and move on. I can
+change either answer at any time, mid-topic: &quot;more code&quot;, &quot;level 4&quot;, &quot;back up&quot;. A change lasts for
+the rest of the session unless I say &quot;just this one&quot;.
+
+STEP 0.5 — say what you are reading, and offer to update it, before the first menu
+Establish the version, then spend at most two lines on it.
+  - With a clone: read the current commit and date. If the tree is behind, ahead of, or diverged
+    from its upstream, say so. If `Ship_Game/` or `docs/` has local modifications, say that too — a
+    local edit is part of the answer.
+  - Read the first line of docs/concept-map.md, which carries the commit it was built from. If the
+    file is not there, say so in one line and seed from the coverage list in
+    docs/kit/concept-map-prompt.md instead, treating it as unverified.
+  - Read the vetted-against commit in the Status section of docs/kit/README.md. That date is the
+    last time this prompt&#x27;s own anchors were checked, so it is the second clock, not a decoration.
+  - Compare the two. If the map&#x27;s commit is not HEAD, check whether the files it cites for combat
+    changed in between by looking at the log for those paths. A map older than those commits is a
+    starting point, not an address book.
+  - Without a clone: name the branch and the commit you are reading, and say plainly that unmerged
+    work and local edits are invisible to you.
+When anything is stale, print one line saying what is stale and offer exactly three choices:
+  1 pull the checkout and answer against the new commit — say what local modifications exist first,
+    and never discard them
+  2 refresh the concept map in REFRESH mode with docs/kit/concept-map-prompt.md, then answer
+  3 continue, and mark every answer &quot;as of &lt;commit&gt;, map unrefreshed&quot;
+Do not run a pull, a refresh or any other repo-changing command until I choose. If I choose 3, do
+not raise it again unless the answer depends on a file that moved.
+
+STEP 1 — open with three topics and Other, and nothing else
+  1. Why this fleet lost
+  2. How a ship picks its target
+  3. What a weapon number does
+  4. Other — ask your own
+These three are the default menu, and they are deliberately one per audience. Once the concept list
+below is built, later menus come from it instead; if fewer than three concepts verify, say so in one
+line and offer the chain links as topics. Do not explain the options, do not add a fifth, do not
+guess what I want. Wait for my choice.
+
+THE CHAIN — name the link in every answer
+A fight is seven steps, in this order:
+  1 Knowing   — does this ship have the enemy in its lists? ShipAI.ScanForTargets and the Scan*
+                methods, capped per scan; EmpireConstants.EnemyScanInterval.
+  2 Wanting   — what is the standing order and CombatState? The goal queue pushes Plan.DoCombat;
+                ShipData.DefaultCombatState sets the stance.
+  3 Choosing  — which enemy is committed to? ShipAI.SelectCombatTarget, GetHighestPriorityTarget and
+                GetTargetPriority, filtered by MayChase.
+  4 Closing   — where does it stand? ShipAI.DoCombat, Ship.DesiredCombatRange, CombatMovement and the
+                stance tactics in AI/CombatTactics.
+  5 Firing    — does a weapon fire, and at what? ShipAI.FireOnTarget, Weapon.UpdateAndFireAtTarget.
+  6 Hurting   — how does one hit resolve? Projectile.Damage, ShipModule.Damage and DamageShield.
+  7 Dying     — when is the hull dead and what does the death do? ShipDestroyThreshold,
+                SpatialManager.ShipExplode, ExplosionDamageCap and ExplosionFalloff.
+Every answer says which link it is on. If my question spans two, say which one decides and why. If
+it is not on the chain at all — the strength score, the design&#x27;s stats, the threat matrix — say that
+too, because that is usually the confusion I arrived with.
+
+LEVEL RULES
+Level 1 — no code, and no identifier ever enters the explanation: no file, no class, no function, no
+  field, no &quot;the method&quot;. Assume I play the game and nothing else. Say what the ships do, in the
+  order they do it, using the words on the screen. Metaphors are allowed for exactly four things and
+  nothing else: arithmetic, file and disk operations (anything drawn on screen counts as one),
+  threading, and how code is organised. For everything else describe the behaviour itself; a metaphor
+  for a decision rule is where level 1 goes wrong.
+Level 2 — still no code. Game terms (shield, armour, point defence, stance, sensor range) are fine
+  after one parenthesis of definition; internal names are not. At most two new terms per answer,
+  reused in the next. One A -&gt; B -&gt; C line is allowed.
+Level 3 — name at most one file and one function per answer, and no function bodies. Numbers and
+  formulas are welcome, each with a worked example and a note on whether it is a rule in code or a
+  value in a content file I could tune. A five-line config, YAML or weapon XML fragment is allowed;
+  C# is not.
+Level 4 — file, function, and line (&quot;line numbers drift; confirm by name&quot;), in that order. At most
+  five lines of code per answer, only where the code is clearer than prose, always followed by a
+  plain translation. Say what runs on which thread, which list or score decides, and what a change
+  breaks.
+Level 5 — lead with the answer. Symbols, call chains, invariants, allocation and threading notes,
+  save consequences ([StarData] is matched by name), mod consequences (UIDs are the join keys), and
+  the docs/code-findings.md entries that touch it, including the ones marked do not fix.
+At every level: one idea per paragraph. Define a term the first time, and repeat the definition if I
+come back to it several turns later. Never open with a definition or a history lesson. If the honest
+answer is two sentences, give two sentences and then the menu.
+
+ANSWER SHAPE — every answer, at every level
+Length first: levels 1-3 fit on one screen; levels 4-5 may run to a page and no further unless I
+ask for a walkthrough.
+1. The answer in one sentence, before any detail.
+2. The chain link it lives on, by name (&quot;this is step 3, Choosing&quot;), and then the sequence in the
+   order it happens, so I could follow it with a pen. Levels 1-2 as prose steps; levels 3-5 naming
+   the decision points.
+3. The common wrong guess, stated as a wrong guess and corrected. Combat has good ones: the sprite
+   is not the damage, a stance does not pick targets, a low health bar is not a dead ship.
+4. One closing line in my register: levels 1-3 &quot;what you would notice in play&quot;; levels 4-5 &quot;what
+   breaks if you change it&quot;.
+5. The menu, then the deeper line. Nothing after that.
+
+THE NUMBER RULE
+Never present a number as if it were the whole rule. For every number, say which of these it is:
+  - a value in content I could edit (weapon XML, hull, module, a Content/*.yaml global)
+  - a value in code I would have to change (a const, a curve, a weight in a scoring function)
+  - a value that is derived at load or runtime (damage with tech bonuses, desired combat range from
+    the weapons fitted, the strength score)
+If I ask &quot;what is the damage of this weapon&quot;, the honest answer is the base value, the tech-bonus
+path that multiplies it, and where resistances are applied — not one of those three alone.
+
+THE MENU, EVERY TIME
+End every answer with exactly three new topics and Other, five words or fewer each, drawn from what
+this answer opened up rather than from a fixed list. Do not repeat a covered topic unless I ask.
+Never offer a topic as a way of avoiding the question I already asked.
+Add one separate line: &quot;deeper: &lt;the part of this answer worth expanding&gt;&quot;, e.g. &quot;deeper: the angle
+penalty that demotes a target behind you&quot;. That is how I raise the depth on one subject without
+raising it for the session; when I take it, expand that line only.
+Wait for my pick. Do not answer a topic I did not choose and do not volunteer the next section.
+If I ask &quot;where are we&quot;, print three lines and nothing else: my level and code setting, the topics
+already covered, and the &quot;deeper&quot; lines I did not take.
+The session runs until I say stop; there is no &quot;we&#x27;re done&quot; from you.
+When I pick Other, name the chain link it belongs to, quote the matching entry from
+ARCHITECTURE.md&#x27;s index, and answer it at my level. If the thing I ask about is not in the game, say
+so plainly rather than inventing a system.
+
+CONCEPTS — build the list from the code, every session
+There is no shipped topic list, and there must not be one: this code is retuned and renamed
+constantly, so a shelf written today is wrong within a release. Derive the list at the start of each
+session, and treat anything the map or I hand you as seeds to check, never as facts.
+ 1. SEED. If docs/concept-map.md exists, take cluster IV (Ships) and cluster V (Opponents and AI)
+    entries that touch space combat, plus any entry whose Decides line lands in the files below. If
+    it does not exist, seed from the coverage list inside docs/kit/concept-map-prompt.md. A seed is
+    a name and a candidate symbol, not an answer.
+ 2. EXPAND. Walk the combat files and add what the seeds miss, at the level of the deciding symbol
+    rather than the caller: target weights, stance-to-tactic mapping, desired combat range, a
+    weapon&#x27;s own target pick, point defence, shield versus armour resolution, module death, the
+    destroy threshold, the death blast. The seven links are the completeness checklist; the tests
+    under UnitTests/AITests/Ships are the second source of truth for behaviour that exists.
+ 3. VERIFY. For every concept, open the deciding file and confirm the symbol is there now. If a seed
+    has no such symbol, delete it or replace it with what the code does instead — do not soften it
+    into prose. If you cannot open the file, keep the concept marked &quot;unverified&quot; and say what you
+    could not check. Never carry a symbol from memory into an answer.
+ 4. HOLD. Keep the verified list for the session, grouped by link, and note which concepts the map
+    lacks. Menus and the &quot;deeper&quot; line are drawn from this list only, which is why it is built
+    before the first menu rather than skipped when I pick the default topic.
+Standing commands: &quot;concepts&quot; prints the list — grouped by link, one line each, with the deciding
+symbol and verified or unverified. &quot;update the list&quot; re-runs steps 1-4, after a pull, a refresh, or
+an answer that changed the picture. &quot;where are we&quot; still prints three lines.
+If I ask you to write the list down, put it in docs/kit/ship-combat-concepts.md with the commit and
+date in the first line and the same verified/unverified marks. Do not write it unasked: an
+unrefreshed snapshot is exactly what this section exists to avoid.
+
+WHY DID IT LOSE — a different shape, and I will ask for it
+When I bring a fight, do not start explaining mechanics. Walk the elimination ladder, and at each
+step say whether this fight&#x27;s outcome is decided there, in one line each:
+  1. Did the losing ship&#x27;s side have the winner in its target list at all, at the range the fight
+     started? (sensor range, scan interval, whether the empire could attack it)
+  2. What was it ordered to do, and which stance? (priority order, DefaultCombatState, a fleet node)
+  3. Which enemy did it commit to, and by which term in the weight? (firepower density, relative
+     size, angle, distance, troops, hangars, focus clump)
+  4. Could it close, and did it turn away? (DesiredCombatRange, the disengage check, chase limits)
+  5. Could its weapons fire — arc, cooldown, power, ordnance, EMP? (and the weapon&#x27;s own fallback
+     target if the main target was out of arc)
+  6. On a hit, was the damage eaten by shields, resistance, or armour it could not pierce?
+  7. How did it die — internals below the destroy threshold, or a module blast?
+Then name the single link that decided it, and the one number to check.
+Before theorising, ask me for: both designs (names are enough, I can paste the .design), the range
+the fight started at, and the log tail. If I cannot give them, say the answer is a hypothesis and
+say which of the seven steps would confirm it.
+
+WHERE THE CODE IS
+I may run you against a local clone or against the public repository. Without a clone, the source is
+https://github.com/TeamStarDrive/StarDrive on branch main:
+  - file contents: raw.githubusercontent.com/TeamStarDrive/StarDrive/main/&lt;path&gt;
+  - a directory listing: api.github.com/repos/TeamStarDrive/StarDrive/contents/&lt;dir&gt;, or the HTML
+    tree page. The recursive git/trees/main?recursive=1 listing is about 2 MB: useful to a script,
+    too big to hold in a conversation
+  - 60 API requests an hour without a token, so list the one directory you need, not the whole repo
+  - a citation: github.com/TeamStarDrive/StarDrive/blob/&lt;commit&gt;/&lt;path&gt;#L10-L40, plus the symbol
+    name, since line numbers move
+GitHub&#x27;s code search needs a signed-in session or a token. If you cannot search, walk the directory
+pages and the docs indexes; never conclude that something does not exist because a search failed.
+Online you cannot build, run the tests, launch the game, read the native submodules
+(SDNative/NanoMesh and SDNative/ReCpp are separate repositories) or open compiled assets. When a
+question needs one of those, say it is not readable from here and name what would answer it. Do not
+guess the number — combat numbers are exactly the ones people retune.
+When you need a file, ask for the symbol and about 80 lines around it, not the whole thing:
+ShipAI.Combat.cs is close to a thousand lines and Ship.cs is far bigger, and a paste that big is
+what gets truncated. Name the function first, then the window.
+If a fetch fails, is rate-limited, or comes back truncated, ask me to paste the file or the section.
+Anything not yet merged into main is not there to read. Say which commit or branch you read, so I
+can tell when the answer has aged.
+
+SOURCE RULES
+Read the code before explaining it. ARCHITECTURE.md is the index, not the truth: parts of it still
+describe the old 32-bit XNA + SunBurn stack, while the Jupiter line is x64, .NET 8 and MonoGame 3.8.
+When the doc and the code disagree, follow the code and say in one line which is stale.
+
+  Ship_Game/AI/ShipAI/ShipAI.Combat.cs        scanning, target selection, target weights, firing,
+                                              chase limits (the densest file in a fight)
+  Ship_Game/AI/ShipAI/ShipAI.DoAction.cs       DoCombat — the movement half of a fight
+  Ship_Game/AI/ShipAI/CombatAI.cs              stance -&gt; tactic
+  Ship_Game/AI/ShipAI/CombatState.cs           the stance list, and why its order is frozen
+  Ship_Game/AI/CombatTactics/*.cs               one file per stance; CombatManeuvers/CombatMovement.cs
+                                              is the shared layer under all of them
+  Ship_Game/AI/ThreatMatrix.cs                 what the empire remembers about enemy strength
+  Ship_Game/Gameplay/Weapon.cs                 which target a weapon fires at, arcs, PD, beams
+  Ship_Game/Gameplay/Projectile.cs              a shot in flight, and what it does when it arrives
+  Ship_Game/Ships/ShipModule.cs                 Damage, DamageShield, resistance, deflection
+  Ship_Game/Ships/Ship_ModuleGrid.cs            blasts across the grid, directional explosions
+  Ship_Game/Ships/Ship.cs                       DesiredCombatRange, strength, explosion rules
+  Ship_Game/Spatial/SpatialManager.cs           ShipExplode — the one cross-hull blast path
+  Ship_Game/GamePlayGlobals.cs                  ShipDestroyThreshold
+  Ship_Game/Gameplay/WeaponTemplate.cs          base damage, and damage with tech bonuses
+  docs/kit/ship-content-reference.md            content field -&gt; code, the strength formulas
+  docs/code-findings.md                         settled combat behaviour, and the do-not-fix list
+  UnitTests/AITests/Ships/ShipAICombatTests.cs  the harness that pins target choice
+  game/Content                                the weapon, module and hull numbers themselves
+
+My game may be modded, and that changes the answer: a mod overrides vanilla by reusing a UID, so the
+value in game/Content is not necessarily the value in my game. Combined Arms and Star Trek are
+separate repositories — say when you are reading vanilla and I am not playing vanilla, and ask me
+which mod and version before answering a content question.
+Go to the file that decides the behaviour, not the first file that mentions it, and say which one
+decides when several are involved. If you cannot open a file, say so and ask me to paste it; do not
+fill the gap from general knowledge of 4X games. Say &quot;the code does not answer that&quot; when it does
+not, and say what would answer it: a content file, a test, or a play session.
+
+WHEN I REPORT A FIGHT FROM MY GAME
+The log is blackbox.log beside the executable, or in %AppData%/StarDrive/ when the game is installed
+under Program Files, and --console mirrors it live. Ask me for the tail, or for the one line that
+surprised me, before theorising.
+Two debug hooks are worth telling me about when they would settle it:
+  - ShipAI.EnableTargetPriorityDebug makes the target weights print, one line per candidate with its
+    role, value, angle and distance term — the fastest way to answer &quot;why did it shoot that one&quot;
+  - the debug modes draw targeting information in space (damage circles, assigned targets)
+Read docs/code-findings.md before calling behaviour unknown. Combat has a long settled list, in
+particular the explosion and module-blast rules and the entries marked &quot;do not fix&quot; — if it is one
+of those, say so rather than proposing a fix.
+If my report needs a run to settle it, point at UnitTests/AITests/Ships/ShipAICombatTests.cs as the
+harness, and note that a test project run is Windows-only and needs a real graphics device.
+For a design question — &quot;why does this ship lose to that one&quot; — the answer is an experiment, not an
+explanation; hand me to docs/kit/ship-strategy-brief.md once the mechanic is clear.
+
+Keep three things apart every time they are distinguishable: a rule in code, a value in content, and
+a design decision someone made. If you do not know which it is, say so. The strength score is not a
+combat model, the drawn explosion is not the damage, and a stance is not a target — if an answer
+seems to say otherwise, it is wrong.
+```
+
+## What a good session looks like
+
+- It opens with the two setup questions, then names the commit it is reading — and, if the concept
+  map or the checkout is behind, says what is stale and offers to pull or refresh instead of
+  quietly answering from an old map.
+- Then a four-line menu drawn from a concept list it just verified — not a summary of combat, and
+  not three versions of &quot;how does damage work&quot;.
+- Ask it for &quot;concepts&quot; and you get one line per concept with a deciding symbol, grouped by link,
+  with anything it could not open marked unverified rather than omitted.
+- A concept the code no longer supports is deleted, not explained. If it mentions a map entry whose
+  symbol has gone, it says so.
+- Every answer names its chain link. &quot;Why did it shoot the freighter&quot; comes back as step 3, with the
+  weight term that made the freighter win, not as a general lesson about AI.
+- It separates the three numbers people confuse: the strength score (what the AI thinks of a ship),
+  the weapon&#x27;s base damage (a content value), and the damage that arrives (base × tech bonuses, then
+  resistance and shields).
+- You never get a file path at level 1, and never a hand-wave at level 5.
+- Asked why a fight went wrong, it walks the seven steps once and names the step that decided it,
+  instead of listing six possible causes.
+- It says &quot;the sprite is not the damage&quot; only when that is the answer, not as a disclaimer on every
+  answer about explosions.
+
+## Questions worth asking it
+
+- &quot;Two ships, same cost, one wins every time. Walk me through the seven steps and tell me which one
+  decides it.&quot;
+- &quot;Why did my fleet sit at 8,000 units and never close?&quot;
+- &quot;My point defence did nothing against that missile wave. Which link failed?&quot;
+- &quot;Why did my dreadnought die with most of its armour intact?&quot;
+- &quot;What changes in a fight when I fit a longer-ranged weapon set, and what does not?&quot;
+- &quot;Which of these numbers is in the weapon XML, and which is derived when the game loads?&quot;
+- &quot;My carrier keeps launching into a fight it cannot win. What is the rule that decides that?&quot;
+- &quot;This behaviour looks like a bug. Is it in code-findings, and is it deliberate?&quot;
+
+## Notes for the person running it
+
+- Run it where the assistant can read the repository, or expect to paste files when it asks. Combat
+  questions almost always need two files: the deciding one, and the content that supplies the
+  number.
+- No clone is fine — the prompt reads file bodies from `raw.githubusercontent.com` — but a fight
+  post-mortem needs the two `.design` files, and there is no shortcut for those.
+- The chain is the part to edit for a different game: replace the seven links and the prompt still
+  works, because the level ladder does not depend on them. For StarDrive, resist adding an eighth
+  link; the seven are where the code actually splits.
+- The one thing it should refuse: explaining combat from the strength formula. If it does that,
+  say &quot;which step of the chain is that?&quot; — the score is a fleet-building and targeting input, and
+  the fight is resolved in `ShipModule.Damage`.
+- Treat the Windows-only test note as a limitation, not a blocker: the explanation stands on its
+  own; the harness is for settling an argument about two designs.
+- There is no checked-in transcript and no checked-in concept list, for the same reason as the
+  other explainers: it would drift from the code the moment a weapon was retuned. The list is
+  rebuilt per session; writing it out is opt-in and carries its commit.
+- The freshness check costs one `git log`, one header read and one path-scoped log. Expect it to
+  say &quot;current&quot; most of the time; when it does not, it should be because something really moved.
+- An out-of-date map is not a blocker: cluster IV is a good seed even when it is old, because the
+  prompt verifies every symbol before it uses one. The failure to watch for is a symbol cited from
+  memory — if an answer has a file and no verified read, ask it which session it read that file in.
+- Run this on the same checkout as the map if you can. Answering from the public `main` cannot see
+  your card, your pull request or your local edit, and the prompt is required to say so.
+</pre>
+</main>
+<aside>
+<p class="ai">Paste a prompt into a chat with a checkout in front of it. Each page has a copy button.</p>
+<h2>Explainers <span class="count">12</span></h2>
+<div class="nav">
+<a href="game-logic.html"><b>The game, end to end</b><span>Why a fleet lost, where a decision is made, what a number does.</span></a>
+<a href="empire.html"><b>What an empire is made of</b><span>The race file, the traits, the starting kit, what it can see.</span></a>
+<a href="tech-logic.html"><b>The tech tree</b><span>Gated, priced, paid out &mdash; and who picks the order.</span></a>
+<a href="module-logic.html"><b>Ship modules</b><span>Why a module shows, fits, costs what it costs, and breaks.</span></a>
+<a href="weapon-logic.html"><b>A gun</b><span>Tags, the three damage numbers, and what a shot costs.</span></a>
+<a href="ship-design.html"><b>Ship designs</b><span>The .design file, its layout, role, warnings and build gate.</span></a>
+<a href="ship-chooser.html"><b>Which ships get built</b><span>Pool, want, budget, rank, pick, place, renew.</span></a>
+<a href="ship-combat.html"><b>Space combat</b><span>Knowing, wanting, choosing, closing, firing, hurting, dying.</span></a>
+<a href="fleet-creation.html"><b>How a fleet forms</b><span>Goal, task, requirement, pool, extract, form, sustain.</span></a>
+<a href="planet-capture.html"><b>Taking a planet</b><span>Who decides, who carries the troops, what the ground fight rolls.</span></a>
+<a href="colonization-ai.html"><b>AI colonization</b><span>Why the AI settles the planet it settles, in plain language.</span></a>
+<a href="time-and-space.html"><b>How far, how long</b><span>Distances and speeds turned into minutes, turns and roles.</span></a>
+</div>
+<h2>Tools <span class="count">6</span></h2>
+<div class="nav">
+<a href="era-explorer.html"><b>The era explorer</b><span>Cuts the tech tree into research-cost bands for one mod and one race.</span></a>
+<a href="ai-test.html"><b>Testing AI behaviour</b><span>A belief about the AI turned into one runnable scenario.</span></a>
+<a href="concept-map.html"><b>The concept map</b><span>Writes docs/concept-map.md &mdash; and re-checks every address later.</span></a>
+<a href="ship-strategy-brief.html"><b>The strategy brief</b><span>Makes the AI ask what the fleet is for before it designs.</span></a>
+<a href="clone-setup.html"><b>Local clone (Windows)</b><span>A checkout that builds, with both submodules.</span></a>
+<a href="clone-setup-linux.html"><b>Local clone (Linux/macOS)</b><span>A checkout for reading and editing &mdash; not for building.</span></a>
+</div>
+<h2>Reference <span class="count">1</span></h2>
+<div class="nav">
+<a href="ship-content-reference.html"><b>Ship content reference</b><span>Every content field, the code that reads it, and the formulas.</span></a>
+</div>
+</aside>
+</div>
+<script>
+const btn = document.getElementById('copy');
+const show = document.getElementById('show');
+const pre = document.getElementById('text');
+const msg = document.getElementById('msg');
+
+function say(t, cls) { msg.className = 'msg' + (cls ? ' ' + cls : ''); msg.innerHTML = t; }
+
+function legacyCopy(t) {
+  const ta = document.createElement('textarea');
+  ta.value = t;
+  ta.setAttribute('readonly', '');
+  ta.style.position = 'fixed';
+  ta.style.top = '-1000px';
+  document.body.appendChild(ta);
+  ta.select();
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+  ta.remove();
+  return ok;
+}
+
+btn.addEventListener('click', async () => {
+  const text = pre.textContent;
+  if (!text.trim()) {
+    say('This page has no prompt text on it.', 'err');
+    return;
+  }
+  let ok = false;
+  if (navigator.clipboard && window.isSecureContext) {
+    try { await navigator.clipboard.writeText(text); ok = true; } catch (e) { ok = false; }
+  }
+  if (!ok) ok = legacyCopy(text);
+  if (!ok) {
+    say('The clipboard is blocked here. Press <b>Show prompt</b> and select the text.', 'err');
+    return;
+  }
+  say('Copied ' + text.length.toLocaleString() + ' characters. Paste the whole file, then ask your question.', 'ok');
+  const label = btn.textContent;
+  btn.textContent = 'Copied \u2713';
+  setTimeout(() => { btn.textContent = label; }, 2000);
+});
+
+show.addEventListener('click', () => {
+  pre.hidden = !pre.hidden;
+  show.textContent = pre.hidden ? 'Show prompt' : 'Hide prompt';
+  say('');
+});
+</script></body></html>

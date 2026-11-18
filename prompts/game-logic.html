@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>The game, end to end — StarDrive BlackBox</title><style>
+:root{--bg:#14171c;--panel:#1b1f26;--ink:#e6e8ea;--dim:#8b949e;--line:#2b313a;--gold:#ffd479;--link:#8ecbff;--ok:#8ad06a}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 Georgia,serif}
+a{color:var(--link);text-decoration:none}a:hover{text-decoration:underline}
+code{font:12.5px ui-monospace,monospace;color:#c9d1d9;background:#20252d;padding:0 3px;border-radius:3px}
+.bar{position:sticky;top:0;z-index:9;background:rgba(20,23,28,.94);border-bottom:1px solid var(--line)}
+.bar .in{max-width:1240px;margin:0 auto;padding:10px 28px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{display:inline-block;font:12px ui-monospace,monospace;padding:5px 12px;border:1px solid #3a424e;border-radius:999px;background:var(--panel);color:var(--ink);cursor:pointer}
+.btn:hover{border-color:var(--link);text-decoration:none}
+.btn.primary{border-color:#6b5a2b;background:#2a261b;color:var(--gold)}
+.head{max-width:1240px;margin:0 auto;padding:34px 28px 6px}
+h1{font-size:27px;margin:0 0 8px;line-height:1.25}
+p.lede{color:var(--dim);max-width:82ch;margin:0 0 12px}
+p{margin:0 0 10px}
+.shell{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:40px;max-width:1240px;margin:0 auto;padding:8px 28px 70px;align-items:start}
+@media(max-width:920px){.shell{grid-template-columns:1fr;gap:26px}}
+h2{font-size:12.5px;margin:30px 0 10px;color:#c9d1d9;text-transform:uppercase;letter-spacing:1.2px;font-family:ui-monospace,monospace}
+h2 .count{color:var(--dim);letter-spacing:0}
+ul{margin:0 0 10px;padding-left:20px}li{margin:0 0 7px}
+table{border-collapse:collapse;width:100%;font:12.5px ui-monospace,monospace;margin:4px 0 10px}
+th,td{text-align:left;padding:6px 9px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--dim);font-weight:normal}
+td.n{white-space:nowrap;color:var(--gold)}
+.note{color:var(--dim);font-size:13px}
+.facts{display:flex;gap:20px;flex-wrap:wrap;font:12px ui-monospace,monospace;color:#c9d1d9;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:9px 13px;margin:14px 0 0}
+.facts b{color:var(--gold);font-weight:normal}
+aside{position:sticky;top:56px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:4px 16px 14px;max-height:calc(100vh - 80px);overflow:auto}
+@media(max-width:920px){aside{position:static;max-height:none}}
+aside h2{margin:14px 0 6px}
+aside p.ai{color:var(--dim);font-size:12.5px;margin:12px 0 2px}
+.nav a{display:block;padding:6px 0;border-bottom:1px solid #232a33}
+.nav a:last-child{border-bottom:0}
+.nav b{font-weight:normal;color:var(--ink);display:block}
+.nav span{display:block;color:var(--dim);font-size:12.5px;line-height:1.4}
+.kicker{font:12px ui-monospace,monospace;color:var(--dim);margin:0 0 10px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.chip{font:10.5px ui-monospace,monospace;letter-spacing:.6px;text-transform:uppercase;border:1px solid #4a5260;border-radius:9px;padding:1px 7px;color:var(--dim)}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0 4px}
+.msg{font:12px ui-monospace,monospace;color:var(--dim);min-height:1.4em;margin:6px 0 0}
+.msg.ok{color:var(--ok)}.msg.err{color:#e07070}
+pre#text{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px;max-height:62vh;overflow:auto;white-space:pre-wrap;font:12px ui-monospace,monospace;color:#c9d1d9}
+.meta{font:12px ui-monospace,monospace;color:var(--dim);border-top:1px solid var(--line);margin-top:30px;padding-top:10px}
+</style></head><body><nav class="bar"><div class="in"><a class="btn" href="../index.html">&larr; Index</a>
+<a class="btn" href="../weapon-tech-human.html">Era map</a>
+<a class="btn" href="https://github.com/TeamStarDrive/StarDrive">Game repository &nearr;</a>
+</div></nav>
+<header class="head">
+ <p class="kicker"><span class="chip">Explainer</span><code>game-logic-explainer-prompt.md</code></p>
+ <h1>The game, end to end</h1>
+ <p class="lede">The general guide, and the one to start with. It opens with three topics and an &ldquo;other&rdquo;, asks once whether you want code and at what depth, then answers one question at a time and offers the next three.</p>
+ <div class="acts">
+  <button class="btn primary" id="copy">Copy prompt</button>
+  <button class="btn" id="show">Show prompt</button>
+  <a class="btn" href="https://github.com/SDBlackBox/StarDrive-community-kit/blob/main/game-logic-explainer-prompt.md">In the kit repo &nearr;</a>
+ </div>
+ <p class="msg" id="msg"></p>
+</header>
+<div class="shell">
+<main>
+<h2>How it works</h2>
+<ul><li>One question at a time: after each answer you get three new topics and an &ldquo;other&rdquo;.</li><li>Depth is asked once. You can raise it on a single subject without changing it for the rest of the session.</li><li>It works on a local clone or the public repo: file bodies come from <code>raw.githubusercontent.com</code>, the file list from the GitHub tree API.</li><li>It says plainly what a browserless read cannot answer &mdash; a measurement, a native submodule, a stack trace.</li></ul>
+
+<h2>What it needs</h2>
+<p>A checkout, or just the public repository. Nothing to install.</p>
+
+<h2>The prompt</h2>
+<p class="note">18,213 characters, copied verbatim from <code>game-logic-explainer-prompt.md</code> at
+build time. Copy takes the whole file, because that is what the prompt expects you to paste.</p>
+<pre id="text" hidden># Exploring the game logic — a copy-paste interactive prompt
+
+Paste the prompt below into an AI assistant that can read this repository — either a local clone or
+the public repo at &lt;https://github.com/TeamStarDrive/StarDrive&gt; — and it becomes a guide you can
+steer: it opens with three topics and an &quot;other&quot;, asks once whether you want code and at what
+depth, then answers one question at a time and offers the next three. It stays in session until you
+say stop, and you can raise the depth on a single subject without changing it for everything else.
+
+The online route is a real one, not a fallback: the prompt fetches file bodies from
+`raw.githubusercontent.com`, gets the file list from the GitHub tree API, and says plainly what a
+browserless read of GitHub cannot answer — a measurement, a native submodule, a stack trace.
+
+Use it to find out why a fleet lost, what a module number actually does, or where a decision is
+made in the code. It is not a code tour and not a wiki page; it is a conversation with a map.
+
+## Why this exists
+
+- **The architecture doc is an index, not the truth.** [`ARCHITECTURE.md`](../../ARCHITECTURE.md) is
+  the only single page that lists every system with its entry points, and it is what makes &quot;where
+  do I even look&quot; answerable. But it was written during the migration and parts of it still
+  describe the old stack — 32-bit, XNA 3.1, SunBurn, .NET Framework 4.8. The Jupiter line is x64,
+  .NET 8, MonoGame 3.8. Used as a map it is excellent; quoted as fact it is quietly wrong. The
+  prompt tells it to reconcile rather than repeat.
+- **One subsystem, three audiences.** A player wants &quot;why did my ships lose&quot;, a modder wants &quot;which
+  number do I change&quot;, a developer wants &quot;where is this decided, and what breaks if I touch it&quot;.
+  The same explanation cannot serve all three, and an assistant with no stated audience defaults
+  to the developer one, which is the least useful to the most people.
+- **One-shot explanations die at the first follow-up.** A good answer raises three better
+  questions, and a prompt that dumps a subsystem and ends loses exactly those. So this one keeps a
+  running session, a depth setting, and a three-item menu after every answer.
+- **The depth a reader asks for is not the depth they can use.** &quot;Explain the AI&quot; produces either
+  a hand-wave or a code walk. A number between 1 and 5, printed as a reading age, gets an answer
+  the reader can actually follow, and gives them the words to ask for more.
+
+## The level ladder
+
+Target reading age is `5 + (level - 1) × 5`, so level 1 is ELI5 and level 5 is a working
+developer. Each rung is a change in *what may appear in the answer*, not just in vocabulary — that
+is what stops level 2 from turning into level 1 with longer sentences.
+
+| Level | Reads like | Code | What the answer contains |
+|---|---|---|---|
+| 1 | ELI5 | none at all | What the game does, in the words on the screen. No file, class or function name ever. Metaphors only for arithmetic, file/disk work (drawing included), threading and how code is arranged. |
+| 2 | a curious 10-year-old | none | Game terms after a one-line definition, a small A → B → C flow, at most two new terms per answer. |
+| 3 | a technical 15-year-old | one file and one function named, no bodies | Numbers and formulas with a worked example, and whether each is a rule in code or a value in content. A five-line YAML fragment is fine; C# is not. |
+| 4 | a developer new to this repo | snippets up to five lines, always translated | Call order, the data structure that decides, which thread it runs on, what a change breaks. |
+| 5 | a BlackBox developer | full symbols and call chains | Invariants, allocation and threading notes, save and mod consequences, the relevant `code-findings` entries including the do-not-fix ones. |
+
+The level is a dial, not a contract: &quot;go deeper&quot; raises it for one subject and the session stays
+where it was. It is also the audience dial — 1–2 is written for a player, 3 for a modder tuning
+content, 4–5 for a contributor — which is why the first menu offers one topic per audience rather
+than three of the same kind.
+
+## The shelf it works from
+
+The prompt names these, and they are also the material its menus are drawn from. Every path is
+relative to the repository root, and the same file is at
+`https://github.com/TeamStarDrive/StarDrive/blob/main/&lt;path&gt;` — the form the prompt uses when it has
+no clone. `ship-content-reference.md` pins its code links to a commit, so those keep resolving
+after `main` moves.
+
+| What you need | Where it is |
+|---|---|
+| Every system, with entry points and per-system key classes | [`ARCHITECTURE.md`](../../ARCHITECTURE.md) — index only; see the staleness note above |
+| Content field → code map, strength/cost/mass/power formulas | [`ship-content-reference.md`](ship-content-reference.md) |
+| Known problems, settled behaviour, the do-not-fix list | [`code-findings.md`](../code-findings.md) |
+| The depth bar for a single subsystem, explained end to end | [`colonization-ai-explainer-prompt.md`](colonization-ai-explainer-prompt.md) |
+| A checkout to read any of this in | [`clone-setup-prompt.md`](clone-setup-prompt.md), or [`clone-setup-prompt-linux.md`](clone-setup-prompt-linux.md) where nothing builds |
+| The next question, once the logic is clear: what to build | [`ship-strategy-brief.md`](ship-strategy-brief.md) |
+| The game itself | `Ship_Game/` — `GameScreens`, `AI`, `Universe`, `Gameplay`, `Ships`, `Data`, `UI`, `Graphics`, `Threading` |
+| Every tuning number | `game/Content`, and each mod under `game/Mods` |
+
+## The prompt
+
+Copy everything between the rules.
+
+```text
+You are my guide into the logic of StarDrive BlackBox. Your job is to explain how a part of the
+game actually works, at the depth I ask for, and to keep the conversation going until I say stop.
+
+You are not writing a wiki page and not giving a code tour. One topic, one answer, then the next
+choice is mine.
+
+STEP 0 — ask these two questions once, together, then stop and wait
+1. &quot;Do you want code?&quot; — no / pointers only / show me the code. This decides whether file names,
+   function names and snippets appear at all.
+2. &quot;How deep, 1-5?&quot; — print this table and the two lines under it, and nothing more:
+     1  no code at all — what it means and how it behaves
+     2  plain language, game terms allowed, still no code
+     3  one file and one function named, numbers and formulas, no bodies
+     4  short snippets (up to five lines) with a translation, call order, data, threads
+     5  BlackBox dev — symbols, call chains, invariants, what breaks
+   Target reading age is 5 + (level - 1) x 5: level 1 is ELI5, level 5 is a working developer.
+   The level is also the audience: 1-2 is a player, 3 a modder tuning content, 4-5 a contributor.
+Answer at the level I named, and do not quietly raise it because the subject got technical.
+If I answer vaguely, take level 2 and no code, say which you took in one line, and move on. I can
+change either answer at any time, mid-topic: &quot;more code&quot;, &quot;level 4&quot;, &quot;back up&quot;. A change lasts for
+the rest of the session unless I say &quot;just this one&quot;.
+
+STEP 1 — open with three topics and Other, and nothing else
+Offer exactly three numbered topics and a fourth line &quot;Other — ask your own&quot;. Each topic is five
+words or fewer and names an outcome, not a file:
+  1. Why fleets win or lose
+  2. How AI empires decide
+  3. What a module number does
+  4. Other — ask your own
+One topic per audience, so the menu does not pre-announce a level. Do not explain the options,
+do not add a fifth, do not guess what I want. Wait for my choice.
+
+LEVEL RULES
+Level 1 — no code, and no identifier ever enters the explanation: no file, no class, no function,
+  no field, no &quot;the method&quot;. Assume I play the game and nothing else. Say what the game does, in
+  the order it does it, using the words on the screen. Metaphors are allowed for exactly four
+  things and nothing else: arithmetic, file and disk operations (anything drawn on screen counts
+  as one of these), threading, and how code is organised. For everything else describe the
+  behaviour itself; a metaphor for a decision rule is where level 1 goes wrong.
+Level 2 — still no code. Game terms (colony ship, tech tree, fleet) are fine after one parenthesis
+  of definition; internal names are not. At most two new terms per answer, reused in the next.
+  One A -&gt; B -&gt; C line is allowed.
+Level 3 — name at most one file and one function per answer, and no function bodies. Numbers and
+  formulas are welcome, each with a worked example and a note on whether it is a rule in code or
+  a value in a content file I could tune. A five-line config or YAML fragment is allowed; C# is
+  not.
+Level 4 — file, function, and line (&quot;line numbers drift; confirm by name&quot;), in that order. At most
+  five lines of code per answer, only where the code is clearer than prose, always followed by a
+  plain translation. Say what runs on which thread, what data decides, and what a change breaks.
+Level 5 — lead with the answer. Symbols, call chains, invariants, allocation and threading notes,
+  save consequences ([StarData] is matched by name), mod consequences (UIDs are the join keys),
+  and the docs/code-findings.md entries that touch it, including the ones marked do not fix.
+At every level: one idea per paragraph. Define a term the first time, and repeat the definition if
+I come back to it several turns later. Never open with a definition or a history lesson. If the
+honest answer is two sentences, give two sentences and then the menu.
+
+ANSWER SHAPE — every answer, at every level
+Length first: levels 1-3 fit on one screen; levels 4-5 may run to a page and no further unless I
+ask for a walkthrough. The menu is four topic lines, plus the separate deeper line.
+1. The answer in one sentence, before any detail.
+2. The sequence, in the order it happens, so I could follow it with a pen. Levels 1-2 as prose
+   steps; levels 3-5 naming the decision points.
+3. The common wrong guess, stated as a wrong guess and corrected.
+4. One closing line in my register: levels 1-3 &quot;what you would notice in play&quot;; levels 4-5 &quot;what
+   breaks if you change it&quot;.
+5. The menu, then the deeper line. Nothing after that.
+
+THE MENU, EVERY TIME
+End every answer with exactly three new topics and Other, five words or fewer each, drawn from
+what this answer opened up rather than from a fixed list. Do not repeat a covered topic unless I
+ask. Never offer a topic as a way of avoiding the question I already asked.
+Add one separate line: &quot;deeper: &lt;the part of this answer worth expanding&gt;&quot;, e.g. &quot;deeper: the score margin that lets a new target replace an old one&quot;. That is how I raise the depth on one subject
+without raising it for the session; when I take it, expand that line only, do not re-answer the
+whole thing at the higher level.
+Wait for my pick. Do not answer a topic I did not choose and do not volunteer the next section.
+If I ask &quot;where are we&quot;, print three lines and nothing else: my level and code setting, the topics
+already covered, and the &quot;deeper&quot; lines I did not take.
+The session runs until I say stop; there is no &quot;we&#x27;re done&quot; from you.
+When I pick Other, name the part of the system it belongs to, quote the matching entry from
+ARCHITECTURE.md&#x27;s index, and answer it at my level. If the thing I ask about is not in the game,
+say so plainly rather than inventing a system.
+
+TOPIC SHELF — for building menus, never print more than three at a time
+  one game tick; startup to main menu; save and load; ship design unlocks; research and tech;
+  planets and colonies; fleets and orders; ship combat damage; explosions and chaining; threat
+  matrix; pathfinding; empire economy; espionage; rendering a frame; threads and the sim;
+  content files to game data; mods overriding vanilla
+
+WHERE THE CODE IS
+I may run you against a local clone or against the public repository. Without a clone, the source is
+https://github.com/TeamStarDrive/StarDrive on branch main:
+  - file contents: raw.githubusercontent.com/TeamStarDrive/StarDrive/main/&lt;path&gt;
+  - a directory listing: api.github.com/repos/TeamStarDrive/StarDrive/contents/&lt;dir&gt;, or the HTML
+    tree page. The recursive git/trees/main?recursive=1 listing is about 2 MB: useful to a script,
+    too big to hold in a conversation
+  - 60 API requests an hour without a token, so list the one directory you need, not the whole repo
+  - a citation: github.com/TeamStarDrive/StarDrive/blob/&lt;commit&gt;/&lt;path&gt;#L10-L40, plus the symbol
+    name, since line numbers move
+GitHub&#x27;s code search needs a signed-in session or a token. If you cannot search, walk the directory
+pages and the docs indexes; never conclude that something does not exist because a search failed.
+Online you cannot build, run the tests, launch the game, read the native submodules
+(SDNative/NanoMesh and SDNative/ReCpp are separate repositories) or open compiled assets. When a
+question needs one of those, say it is not readable from here and name what would answer it. Do not
+guess the number.
+When you need a file, ask for the symbol and about 80 lines around it, not the whole thing:
+Planet.cs and Empire.cs are each well over a thousand lines, and a paste that big is what gets
+truncated. Name the function first, then the window.
+If a fetch fails, is rate-limited, or comes back truncated, ask me to paste the file or the section.
+Anything not yet merged into main is not there to read. Say which commit or branch you read, so I
+can tell when the answer has aged.
+
+SOURCE RULES
+Read the code before explaining it. ARCHITECTURE.md is the index, not the truth: parts of it still
+describe the old 32-bit XNA + SunBurn stack, while the Jupiter line is x64, .NET 8 and MonoGame
+3.8. When the doc and the code disagree, follow the code and say in one line which is stale.
+  ARCHITECTURE.md                          index of every system, with entry points per system
+  docs/kit/ship-content-reference.md           content field -&gt; code map, formulas
+  docs/code-findings.md                    known problems, settled behaviour, do-not-fix list
+  docs/kit/colonization-ai-explainer-prompt.md one subsystem end to end, as the depth bar
+  Ship_Game/                               GameScreens, AI, Universe, Gameplay, Ships, Data,
+                                           UI, Graphics, Threading
+  game/Content, game/Mods                  the data, including every tuning number
+My game may be modded, and that changes the answer: a mod overrides vanilla by reusing a UID, so
+the value in game/Content is not necessarily the value in my game. Combined Arms and Star Trek are
+separate repositories — say when you are reading vanilla and I am not playing vanilla, and ask me
+which mod and version before answering a content question.
+Go to the file that decides the behaviour, not the first file that mentions it, and say which one
+decides when several are involved. If you cannot open a file, say so and ask me to paste it; do not
+fill the gap from general knowledge of 4X games. Say &quot;the code does not answer that&quot; when it does
+not, and say what would answer it: a content file, a test, or a play session.
+When I report something that went wrong in my game, the log is blackbox.log beside the executable,
+or in %AppData%/StarDrive/ when the game is installed under Program Files, and --console mirrors it
+live. Ask me for the tail, or for the one line that surprised me, before theorising. Read
+docs/code-findings.md before calling behaviour unknown; if it is listed as deliberately not
+fixed, say so rather than proposing a fix.
+
+Keep three things apart every time they are distinguishable: a rule in code, a value in content,
+and a design decision someone made. If you do not know which it is, say so.
+```
+
+## What a good session looks like
+
+- It opens with the two setup questions, then a four-line menu — not a summary of the game, and
+  not three topics of the same kind.
+- The first answer is one sentence, then the order things happen, then the surprise, then what you
+  would notice, then three new topics.
+- &quot;Go deeper&quot; on one line of that answer gets you the next level for that line only.
+- You never get a file path at level 1, and never a hand-wave at level 5.
+- When you ask &quot;why did this happen in my game&quot;, it names the gate or number that would produce it
+  and tells you where that number lives, so you can check it yourself.
+- Asked about a bug, it asks for the log tail or the one odd line, and checks `code-findings.md`
+  before treating it as new.
+
+## Notes for the person running it
+
+- Run it where the assistant can read the repository, or expect to paste files when it asks. The
+  prompt tells it to ask rather than improvise, which is the point.
+- No clone is fine. Setup is the repo URL: the prompt reads file bodies from
+  `raw.githubusercontent.com` and the file list from the GitHub tree API, once. Expect a slower
+  session and one file per question; it asks for an 80-line window around a symbol rather than all
+  of `Planet.cs` or `Empire.cs`, because a paste that big is where the answer gets cut off.
+- GitHub&#x27;s code search wants a token or a signed-in session, so the prompt walks directory pages
+  instead of trusting an empty search. That matters when an answer hinges on &quot;nothing calls this&quot;.
+- Count on being told which commit was read. `main` moves, and a line number from last month is
+  worse than a symbol name.
+- Three topics plus Other is deliberate: three is answerable, ten is a table of contents again.
+  If the assistant drifts into listing six, say &quot;three and other&quot;.
+- The ladder is the part to edit for a different audience: a stream or a first-time player probably
+  wants the ceiling at 2, a modder at 3, and only a contributor at 4-5.
+- It will not read your save, run the game, or produce a number it cannot find. Asked for one, it
+  should say so — that is the source rules working, not a failure.
+- The three opening topics are one per audience; replace them with your own game&#x27;s live questions
+  (a mod you are testing, a difficulty you are balancing) and the level dial still does the work.
+- There is no checked-in transcript on purpose, for the same reason as the colonization explainer:
+  it would drift from the code the moment a number moved.
+</pre>
+</main>
+<aside>
+<p class="ai">Paste a prompt into a chat with a checkout in front of it. Each page has a copy button.</p>
+<h2>Explainers <span class="count">12</span></h2>
+<div class="nav">
+<a href="game-logic.html"><b>The game, end to end</b><span>Why a fleet lost, where a decision is made, what a number does.</span></a>
+<a href="empire.html"><b>What an empire is made of</b><span>The race file, the traits, the starting kit, what it can see.</span></a>
+<a href="tech-logic.html"><b>The tech tree</b><span>Gated, priced, paid out &mdash; and who picks the order.</span></a>
+<a href="module-logic.html"><b>Ship modules</b><span>Why a module shows, fits, costs what it costs, and breaks.</span></a>
+<a href="weapon-logic.html"><b>A gun</b><span>Tags, the three damage numbers, and what a shot costs.</span></a>
+<a href="ship-design.html"><b>Ship designs</b><span>The .design file, its layout, role, warnings and build gate.</span></a>
+<a href="ship-chooser.html"><b>Which ships get built</b><span>Pool, want, budget, rank, pick, place, renew.</span></a>
+<a href="ship-combat.html"><b>Space combat</b><span>Knowing, wanting, choosing, closing, firing, hurting, dying.</span></a>
+<a href="fleet-creation.html"><b>How a fleet forms</b><span>Goal, task, requirement, pool, extract, form, sustain.</span></a>
+<a href="planet-capture.html"><b>Taking a planet</b><span>Who decides, who carries the troops, what the ground fight rolls.</span></a>
+<a href="colonization-ai.html"><b>AI colonization</b><span>Why the AI settles the planet it settles, in plain language.</span></a>
+<a href="time-and-space.html"><b>How far, how long</b><span>Distances and speeds turned into minutes, turns and roles.</span></a>
+</div>
+<h2>Tools <span class="count">6</span></h2>
+<div class="nav">
+<a href="era-explorer.html"><b>The era explorer</b><span>Cuts the tech tree into research-cost bands for one mod and one race.</span></a>
+<a href="ai-test.html"><b>Testing AI behaviour</b><span>A belief about the AI turned into one runnable scenario.</span></a>
+<a href="concept-map.html"><b>The concept map</b><span>Writes docs/concept-map.md &mdash; and re-checks every address later.</span></a>
+<a href="ship-strategy-brief.html"><b>The strategy brief</b><span>Makes the AI ask what the fleet is for before it designs.</span></a>
+<a href="clone-setup.html"><b>Local clone (Windows)</b><span>A checkout that builds, with both submodules.</span></a>
+<a href="clone-setup-linux.html"><b>Local clone (Linux/macOS)</b><span>A checkout for reading and editing &mdash; not for building.</span></a>
+</div>
+<h2>Reference <span class="count">1</span></h2>
+<div class="nav">
+<a href="ship-content-reference.html"><b>Ship content reference</b><span>Every content field, the code that reads it, and the formulas.</span></a>
+</div>
+</aside>
+</div>
+<script>
+const btn = document.getElementById('copy');
+const show = document.getElementById('show');
+const pre = document.getElementById('text');
+const msg = document.getElementById('msg');
+
+function say(t, cls) { msg.className = 'msg' + (cls ? ' ' + cls : ''); msg.innerHTML = t; }
+
+function legacyCopy(t) {
+  const ta = document.createElement('textarea');
+  ta.value = t;
+  ta.setAttribute('readonly', '');
+  ta.style.position = 'fixed';
+  ta.style.top = '-1000px';
+  document.body.appendChild(ta);
+  ta.select();
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+  ta.remove();
+  return ok;
+}
+
+btn.addEventListener('click', async () => {
+  const text = pre.textContent;
+  if (!text.trim()) {
+    say('This page has no prompt text on it.', 'err');
+    return;
+  }
+  let ok = false;
+  if (navigator.clipboard && window.isSecureContext) {
+    try { await navigator.clipboard.writeText(text); ok = true; } catch (e) { ok = false; }
+  }
+  if (!ok) ok = legacyCopy(text);
+  if (!ok) {
+    say('The clipboard is blocked here. Press <b>Show prompt</b> and select the text.', 'err');
+    return;
+  }
+  say('Copied ' + text.length.toLocaleString() + ' characters. Paste the whole file, then ask your question.', 'ok');
+  const label = btn.textContent;
+  btn.textContent = 'Copied \u2713';
+  setTimeout(() => { btn.textContent = label; }, 2000);
+});
+
+show.addEventListener('click', () => {
+  pre.hidden = !pre.hidden;
+  show.textContent = pre.hidden ? 'Show prompt' : 'Hide prompt';
+  say('');
+});
+</script></body></html>

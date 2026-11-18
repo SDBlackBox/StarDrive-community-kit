@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>The strategy brief — StarDrive BlackBox</title><style>
+:root{--bg:#14171c;--panel:#1b1f26;--ink:#e6e8ea;--dim:#8b949e;--line:#2b313a;--gold:#ffd479;--link:#8ecbff;--ok:#8ad06a}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 Georgia,serif}
+a{color:var(--link);text-decoration:none}a:hover{text-decoration:underline}
+code{font:12.5px ui-monospace,monospace;color:#c9d1d9;background:#20252d;padding:0 3px;border-radius:3px}
+.bar{position:sticky;top:0;z-index:9;background:rgba(20,23,28,.94);border-bottom:1px solid var(--line)}
+.bar .in{max-width:1240px;margin:0 auto;padding:10px 28px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{display:inline-block;font:12px ui-monospace,monospace;padding:5px 12px;border:1px solid #3a424e;border-radius:999px;background:var(--panel);color:var(--ink);cursor:pointer}
+.btn:hover{border-color:var(--link);text-decoration:none}
+.btn.primary{border-color:#6b5a2b;background:#2a261b;color:var(--gold)}
+.head{max-width:1240px;margin:0 auto;padding:34px 28px 6px}
+h1{font-size:27px;margin:0 0 8px;line-height:1.25}
+p.lede{color:var(--dim);max-width:82ch;margin:0 0 12px}
+p{margin:0 0 10px}
+.shell{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:40px;max-width:1240px;margin:0 auto;padding:8px 28px 70px;align-items:start}
+@media(max-width:920px){.shell{grid-template-columns:1fr;gap:26px}}
+h2{font-size:12.5px;margin:30px 0 10px;color:#c9d1d9;text-transform:uppercase;letter-spacing:1.2px;font-family:ui-monospace,monospace}
+h2 .count{color:var(--dim);letter-spacing:0}
+ul{margin:0 0 10px;padding-left:20px}li{margin:0 0 7px}
+table{border-collapse:collapse;width:100%;font:12.5px ui-monospace,monospace;margin:4px 0 10px}
+th,td{text-align:left;padding:6px 9px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--dim);font-weight:normal}
+td.n{white-space:nowrap;color:var(--gold)}
+.note{color:var(--dim);font-size:13px}
+.facts{display:flex;gap:20px;flex-wrap:wrap;font:12px ui-monospace,monospace;color:#c9d1d9;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:9px 13px;margin:14px 0 0}
+.facts b{color:var(--gold);font-weight:normal}
+aside{position:sticky;top:56px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:4px 16px 14px;max-height:calc(100vh - 80px);overflow:auto}
+@media(max-width:920px){aside{position:static;max-height:none}}
+aside h2{margin:14px 0 6px}
+aside p.ai{color:var(--dim);font-size:12.5px;margin:12px 0 2px}
+.nav a{display:block;padding:6px 0;border-bottom:1px solid #232a33}
+.nav a:last-child{border-bottom:0}
+.nav b{font-weight:normal;color:var(--ink);display:block}
+.nav span{display:block;color:var(--dim);font-size:12.5px;line-height:1.4}
+.kicker{font:12px ui-monospace,monospace;color:var(--dim);margin:0 0 10px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.chip{font:10.5px ui-monospace,monospace;letter-spacing:.6px;text-transform:uppercase;border:1px solid #4a5260;border-radius:9px;padding:1px 7px;color:var(--dim)}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0 4px}
+.msg{font:12px ui-monospace,monospace;color:var(--dim);min-height:1.4em;margin:6px 0 0}
+.msg.ok{color:var(--ok)}.msg.err{color:#e07070}
+pre#text{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px;max-height:62vh;overflow:auto;white-space:pre-wrap;font:12px ui-monospace,monospace;color:#c9d1d9}
+.meta{font:12px ui-monospace,monospace;color:var(--dim);border-top:1px solid var(--line);margin-top:30px;padding-top:10px}
+</style></head><body><nav class="bar"><div class="in"><a class="btn" href="../index.html">&larr; Index</a>
+<a class="btn" href="../weapon-tech-human.html">Era map</a>
+<a class="btn" href="https://github.com/TeamStarDrive/StarDrive">Game repository &nearr;</a>
+</div></nav>
+<header class="head">
+ <p class="kicker"><span class="chip">Tool</span><code>ship-strategy-brief.md</code></p>
+ <h1>The strategy brief</h1>
+ <p class="lede">A prompt that makes an AI ship-builder ask what your fleet is <em>for</em> before it designs anything, then hold that answer for the whole tech progression.</p>
+ <div class="acts">
+  <button class="btn primary" id="copy">Copy prompt</button>
+  <button class="btn" id="show">Show prompt</button>
+  <a class="btn" href="https://github.com/SDBlackBox/StarDrive-community-kit/blob/main/ship-strategy-brief.md">In the kit repo &nearr;</a>
+ </div>
+ <p class="msg" id="msg"></p>
+</header>
+<div class="shell">
+<main>
+<h2>How it works</h2>
+<ul><li>The question comes first, in writing, and no hull is proposed until it has been answered.</li><li>The written answer is the brief &mdash; the thing you re-read when a design looks wrong.</li><li>Mechanics stay in the content reference; this is the conversation that decides which mechanics to spend.</li></ul>
+
+<h2>What it needs</h2>
+<p>A checkout. The build and combat checks it names need Windows.</p>
+
+<h2>The prompt</h2>
+<p class="note">16,179 characters, copied verbatim from <code>ship-strategy-brief.md</code> at
+build time. Copy takes the whole file, because that is what the prompt expects you to paste.</p>
+<pre id="text" hidden># The strategy brief — an interactive prompt for AI ship-building
+
+A copy-paste prompt that makes an AI ship-builder *ask you what your fleet is for* before it
+designs anything, then hold that answer for the whole tech progression.
+
+Use it with the reference doc: [`ship-content-reference.md`](ship-content-reference.md) is the
+mechanics. This file is the conversation that decides which mechanics to spend.
+
+## Why this exists
+
+A design generator given no strategy produces the average of every design it has seen. It will
+give you a frigate with a bit of everything, at every tech era, forever. The output is legal and
+forgettable. The reason is not a knowledge gap — the AI knows the fields — it is that **a design is
+an answer, and it was never told the question.**
+
+So the question comes first, in writing, and the AI is not allowed to propose a hull until you have
+answered it. That written answer is the *strategy brief*, and it is the thing you re-read when a
+design looks wrong.
+
+## Is &quot;ships are characters&quot; the right frame?
+
+Half right, and worth keeping the useful half.
+
+Where the metaphor earns its place: a fleet that reads as a *cast* — a scout who is quick and
+nervous, an old battleship nobody replaces, a cheap escort built to be lost — produces designs that
+differ from each other on purpose. Names, silhouettes, roles and refits then have somewhere to hang.
+That is real, and it is what makes a fleet feel authored instead of enumerated.
+
+Where it misleads: a character can be interesting while being useless. In this game every design is
+scored, costed and bought by an AI opponent that does not care about its personality. Two hard
+mechanics decide whether your cast survives contact:
+
+- **Strength is the game&#x27;s own opinion of your ship** (§7.1 of the reference). It is
+  defence-aware but offence-weighted: a hull whose defence exceeds its offence *and* whose weapons
+  cover under 10% of its surface area scores as `2·offence + 0.1·defence`. A deliberately
+  turtle-ish &quot;character&quot; reads to the enemy AI as a weak ship and gets attacked. If you want a
+  defensive doctrine, it has to be defensive *and* offensively credible, or it has to be something
+  the enemy cannot profitably attack at all (range, speed, screening).
+- **A design that no tech lists is invisible** (§5.3). Unlockability is derived by walking module →
+  tech → prerequisites, with no field anywhere that says &quot;this design exists now&quot;. Your cast only
+  appears on stage if the tech ladder is written to bring it on.
+
+So: keep the cast, but the load-bearing sentence is not &quot;who is this ship&quot; — it is **&quot;what problem
+does this ship solve that the previous era&#x27;s ships could not, and what does it make obsolete?&quot;**
+That is a sentence a design can be wrong about, which the character framing never is.
+
+## The prompt
+
+Paste everything between the rules into a fresh conversation, with the reference doc attached or
+linked. It is written to run over several turns; it will refuse to design until Phase 0 is answered.
+
+---
+
+You are helping me build a fleet **as a strategy made concrete**, for StarDrive BlackBox.
+
+Attached is `ship-content-reference.md`: the authoritative mapping from content files to game code,
+including the strength, cost, mass, power and role formulas, the slot-restriction rules, and the
+invariants that break a design silently. Treat it as the mechanics. Do not contradict it, and cite
+the section number when a rule constrains a design decision.
+
+Your job is not to generate ship ideas. Your job is to extract **my** strategy from me, then express
+it as a tech-ordered sequence of ship designs, and then check that sequence against the mechanics
+before I build any of it.
+
+### Rules for you, the assistant
+
+1. **One question at a time.** No questionnaires, no numbered lists of ten questions. Ask the
+   single most load-bearing question, wait, then ask the next. Every question offers a default
+   guess so I can say &quot;yes&quot; and move on.
+2. **No designs before Phase 0 is complete.** If I ask for a ship early, say which unanswered
+   question blocks it and ask that.
+3. **Prefer my words over your taste.** If I say &quot;cheap and expendable&quot;, a design that is merely
+   adequate is a failure, and you should say so plainly.
+4. **Every design must name the era it appears in, the problem it solves, and the earlier design
+   it replaces or the gap it fills.** If it does none of those, delete it.
+5. **Cite mechanics, never invent them.** Hull role legality, module restrictions, command modules,
+   PD coverage, hangar launch chains and the strength formula are all in the reference. If a
+   question needs a number the reference does not have, say so instead of guessing.
+6. **Keep a running brief** in a single Markdown block you reprint when it changes: one sentence of
+   premise, then the era table. I will copy it out.
+7. **When I contradict myself, stop and name the contradiction** rather than averaging the two
+   answers into a design that is bad at both.
+
+### Phase 0 — the interrogation
+
+Get answers to all of these before designing. Ask them in whatever order the conversation makes
+natural, but do not skip any.
+
+- **The premise.** In one sentence: how does this empire win? Not &quot;conquer&quot; — the actual mechanism,
+  e.g. &quot;hold three chokepoints until the enemy&#x27;s economy starves&quot;, &quot;out-range everything and never
+  take a fair fight&quot;, &quot;arrive with more hulls than they can shoot&quot;.
+- **The enemy&#x27;s answer.** Who beats that plan, and what do they field? If my premise has no counter,
+  the premise is wrong — say so.
+- **What I refuse to do.** The doctrine&#x27;s prohibitions matter more than its goals: no carriers, no
+  capitals before turn N, nothing that needs a hull I do not own. These become hard constraints.
+- **The economy this has to fit in.** Which resources am I rich in, and what is my per-ship cost
+  ceiling at each era? Designs are bought, not awarded.
+- **Tempo.** Do I want to be dangerous at era 2 and spend eras 4–6 catching up, or the reverse?
+  This decides whether a design is an *interim* (cheap, obsolete soon, must not cost tech) or a
+  *keystone* (expensive, must stay relevant for three eras).
+- **The refit story.** Which ships am I willing to keep building for the whole game, and which are
+  disposable? A design that nobody would ever want a second of is a mistake unless it is meant to
+  be lost.
+- **The voice.** Names, factions, the aesthetic the cast belongs to — this is where the character
+  framing lives. It costs nothing and it makes the fleet legible to a human reading it.
+
+### Phase 1 — the era ladder
+
+Convert the premise into **eras defined by tech, not by turns.** For each era, produce a row:
+
+| Era | Techs taken (and why) | Modules that become legal | Designs that appear | Designs that die | Cost ceiling |
+
+Rules for this table:
+
+- **Order matters and closure is real.** A design is only unlockable if every module it uses is
+  reachable through some tech&#x27;s prerequisites, and the design&#x27;s research cost is the sum over that
+  closure (reference §5.3). A design using one module from the far end of the tree drags the whole
+  path into its cost. If the ladder says &quot;era 3 frigate&quot;, every module on it must be reachable by
+  era 3 — check it, do not assume.
+- **Each era must answer a threat the previous era could not.** If two eras&#x27; designs solve the same
+  problem, merge them and say which one you deleted.
+- **Name the module class, not the module.** &quot;PD that can actually kill missiles&quot;, &quot;a command
+  module that is not the cockpit&quot;, &quot;shields above X&quot;. Then I will pick the exact UIDs.
+- **Respect the hull.** Slot count *is* surface area (§2.2), which is the denominator of both the
+  strength formula and the PD-coverage warning (§7.8). A hull with few slots cannot carry a
+  broadside no matter what the brief wants.
+
+### Phase 2 — the design briefs
+
+For each design that survives Phase 1, produce exactly this block. No prose before it.
+
+```
+DESIGN: &lt;name&gt;            ERA: &lt;n&gt;   HULL: &lt;Style/HullName&gt;   ROLE INTENT: &lt;role&gt;
+SENTENCE: &lt;what problem this solves, and what it replaces&gt;
+ENEMY IT IS BUILT TO BEAT: &lt;specific threat, from Phase 0&gt;
+MUST HAVE:     &lt;modules/effects that define it — the things whose absence makes it a different ship&gt;
+MUST NOT HAVE: &lt;what would make it an average ship&gt;
+COST TARGET:   &lt;ceiling from the era table&gt;   MASS/POWER NOTE: &lt;if the hull is tight&gt;
+FAILS IF:      &lt;the single most likely way this design silently breaks&gt;
+CHECK:         &lt;which invariants from reference §8 apply here, by number&gt;
+```
+
+Then, for the set as a whole, one paragraph: **what the fleet cannot do.** A doctrine with no stated
+blind spot has not been decided, only described.
+
+### Phase 3 — the audit
+
+Before I build anything, audit your own output:
+
+1. Does every design appear in an era where all of its modules are actually reachable?
+2. Does every design pass reference §8 — one command module, one command module *plus* a backup on
+   large hulls, legal restrictions per slot, PD coverage on anything with 500+ slot area, targeting
+   coverage (anti-fighter *and* anti-capital) on large craft?
+3. Does any design&#x27;s strength profile read as weak under §7.1 — defence-heavy with under 10% of
+   surface area in weapons? If yes, either justify why that is the point, or fix it.
+4. Do the hangars launch things that exist *earlier* than the carrier that launches them? A carrier
+   whose fighter is a later era than itself is a bug, not a plan.
+5. If I deleted the cheapest design in each era, would the doctrine still work? If yes, that design
+   is decoration.
+6. Is there a design whose only purpose is a number going up? Delete it.
+
+Report the audit as a list of findings, each either CLEAN or a specific defect with the design name.
+
+### Phase 4 — handoff
+
+Produce, in this order: the one-sentence premise, the era table, the design blocks, the blind-spot
+paragraph, the audit. Then stop and ask me which single design to build first — not all of them.
+
+---
+
+## After the brief: making it true
+
+The brief is paper. Three things turn it into ships, and they answer different questions.
+
+**1. Does it parse and score as intended?** Compute cost, mass, power, role and strength offline
+from the text files (reference §9), then confirm the role with `StarDrive.exe --fix-roles` — the
+game&#x27;s own derivation is the only authority on what your design *is*. This catches the ten silent
+failures in §8 and nothing else.
+
+**2. Does it arrive at the right time?** Jump the tech ladder and look. `ResearchDebugUnlocks`
+(`Ship_Game/GameScreens/Universe/Debug/ResearchDebugUnlocks.cs`) already does this, as debug hotkeys
+plus static methods callable from a test: unlock everything, unlock one race&#x27;s tree, run the AI&#x27;s own
+research planner, or unlock only the current topic. The planner run is the useful one — if the AI&#x27;s
+research order disagrees with your era table, your ladder is a wish, not a plan.
+
+**3. Does it actually fight?** This is a different question, and it is not answerable from a
+spreadsheet. A design can pass every invariant and still lose to the thing it was built to beat.
+
+There is no need to add an in-game API for this — the project already has a headless combat harness
+in `UnitTests/`:
+
+- `UnitTests/StarDriveTest.cs` builds a universe, one player and one enemy empire, optionally at war
+  (`CreateUniverseAndPlayerEmpire`), a sandbox of any galaxy size with extra ships per empire
+  (`CreateCustomUniverseSandbox`), and loads only the content you ask for (`LoadStarterShips`,
+  `LoadAllGameData`).
+- `UnitTests/AITests/Ships/ShipAICombatTests.cs` is a working example of exactly the loop you want:
+  spawn ships at chosen positions with `SpawnShip(name, empire, pos)`, disable firing with
+  `AI.SetCombatTriggerDelay`, step the world a fixed amount with `RunObjectsSim` / `RunSimWhile`, and
+  read the outcome off ship health, module state and combat logs. `TestShip` wraps a spawned ship and
+  exposes its weapons for inspection — including temporary overrides, which is how you isolate one
+  variable instead of rebalancing the world.
+
+So the shape of a design experiment is: **one test method per hypothesis**, two arms differing in one
+thing, a fixed number of simulated seconds, and an assertion on the result rather than a screenshot.
+
+### What has to be compiled, and what does not
+
+There are two different loops here and it is worth being clear which one costs a build.
+
+**The design is data.** Tests do not contain ships. `StarDriveTestContext` sets the working directory
+to `game/`, and `ResourceManager.LoadStarterShipsForTesting` scans
+`Content/ShipDesigns/**` with `GatherFilesUnified(&quot;ShipDesigns&quot;, &quot;design&quot;)`, caching each design
+under its **file name**. `LoadStarterShips(&quot;My Escort mk1&quot;)` then loads `My Escort mk1.design` from
+that scan, and throws `FileNotFoundException` naming the folder if it cannot find it. So a design is
+referenced by the file name, which must match the design&#x27;s own `Name` — the writer guarantees that,
+hand-edits do not.
+
+- **Editing a ship — no compile.** Drop the `.design` in `game/Content/ShipDesigns/`, run the test,
+  read the result. Only the content is re-read.
+- **Changing the experiment — compile.** A test is C#, and this project sets
+  `EnableDefaultCompileItems=false`, so a new file needs its own
+  `&lt;Compile Include=&quot;Ships\MyTests.cs&quot; /&gt;` in `UnitTests/SDUnitTests.csproj`, or it silently does
+  not exist.
+
+That is the honest answer to &quot;do we write the tests by hand and compile them&quot;: yes for the
+scenario, which you write once per hypothesis; no for the ships, which is where the iteration volume
+actually is.
+
+### A minimal experiment
+
+```csharp
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using UnitTests.Ships;
+using Vector2 = SDGraphics.Vector2;
+
+[TestClass]
+public class MyDesignMatchupTests : StarDriveTest
+{
+    public MyDesignMatchupTests()
+    {
+        LoadStarterShips(&quot;My Escort mk1&quot;, &quot;My Raider mk1&quot;);
+        CreateUniverseAndPlayerEmpire(&quot;Human&quot;);
+        UState.Objects.EnableParallelUpdate = false; // determinism beats speed here
+    }
+
+    [TestMethod]
+    public void EscortSurvivesTheRaider()
+    {
+        TestShip escort = SpawnShip(&quot;My Escort mk1&quot;, Player, new Vector2(0, 0));
+        TestShip raider = SpawnShip(&quot;My Raider mk1&quot;, Enemy,  new Vector2(0, -800));
+        escort.AI.SetCombatTriggerDelay(0f); // 0 = weapons hot now
+        raider.AI.SetCombatTriggerDelay(0f);
+
+        RunSimWhile((simTimeout: 60, fatal: false), () =&gt; raider.Active, () =&gt;
+        {
+            Assert.IsTrue(escort.Active, &quot;escort died before the raider&quot;);
+        });
+
+        Assert.IsFalse(raider.Active, &quot;raider survived 60 simulated seconds&quot;);
+    }
+}
+```
+
+Run it with `dotnet test UnitTests/SDUnitTests.csproj --filter &quot;FullyQualifiedName~MyDesignMatchupTests&quot;`.
+Every step is a fixed `1/60` second (`TestSimStep`), there is no simulation thread, and the outcome is
+read off `TestShip`&#x27;s own counters (`NumDieCalls`, `NumModuleDeaths`, `DeadModules`) or plain ship
+state rather than a rendering.
+
+Two practical notes. Compare arms **within one run**, not across runs: the universe has its own random
+state and floats drift. And `Log.Write` inside a test lands in the game log, so a failing run can be
+re-read after the fact rather than re-run with prints added.
+
+### Platform caveat
+
+The test project targets `net8.0-windows` with MonoGame `WindowsDX` and copies `SDNative.dll` and
+`libfbxsdk.dll` from `game/`, so this harness runs on **Windows on x64 only**. It does not run on
+Linux or macOS, and it needs a real graphics device even though `TestGameDummy` creates a hidden
+window. If the experiment loop needs to run somewhere else, that is a port, not a flag.
+
+If the scenario count grows past a handful, the next step is one compiled test that reads an
+**experiment file** (two design names, spawn distance, seconds, expected outcome) and writes a CSV row
+per run. Then a new experiment is data, the harness is compiled once, and an AI can propose, run and
+tabulate trials without touching C#.
+
+Keep the brief and the evidence apart. The brief says what you meant; the fight says whether you
+were right. When they disagree, the brief is what you change — after you understand why.
+</pre>
+</main>
+<aside>
+<p class="ai">Paste a prompt into a chat with a checkout in front of it. Each page has a copy button.</p>
+<h2>Explainers <span class="count">12</span></h2>
+<div class="nav">
+<a href="game-logic.html"><b>The game, end to end</b><span>Why a fleet lost, where a decision is made, what a number does.</span></a>
+<a href="empire.html"><b>What an empire is made of</b><span>The race file, the traits, the starting kit, what it can see.</span></a>
+<a href="tech-logic.html"><b>The tech tree</b><span>Gated, priced, paid out &mdash; and who picks the order.</span></a>
+<a href="module-logic.html"><b>Ship modules</b><span>Why a module shows, fits, costs what it costs, and breaks.</span></a>
+<a href="weapon-logic.html"><b>A gun</b><span>Tags, the three damage numbers, and what a shot costs.</span></a>
+<a href="ship-design.html"><b>Ship designs</b><span>The .design file, its layout, role, warnings and build gate.</span></a>
+<a href="ship-chooser.html"><b>Which ships get built</b><span>Pool, want, budget, rank, pick, place, renew.</span></a>
+<a href="ship-combat.html"><b>Space combat</b><span>Knowing, wanting, choosing, closing, firing, hurting, dying.</span></a>
+<a href="fleet-creation.html"><b>How a fleet forms</b><span>Goal, task, requirement, pool, extract, form, sustain.</span></a>
+<a href="planet-capture.html"><b>Taking a planet</b><span>Who decides, who carries the troops, what the ground fight rolls.</span></a>
+<a href="colonization-ai.html"><b>AI colonization</b><span>Why the AI settles the planet it settles, in plain language.</span></a>
+<a href="time-and-space.html"><b>How far, how long</b><span>Distances and speeds turned into minutes, turns and roles.</span></a>
+</div>
+<h2>Tools <span class="count">6</span></h2>
+<div class="nav">
+<a href="era-explorer.html"><b>The era explorer</b><span>Cuts the tech tree into research-cost bands for one mod and one race.</span></a>
+<a href="ai-test.html"><b>Testing AI behaviour</b><span>A belief about the AI turned into one runnable scenario.</span></a>
+<a href="concept-map.html"><b>The concept map</b><span>Writes docs/concept-map.md &mdash; and re-checks every address later.</span></a>
+<a href="ship-strategy-brief.html"><b>The strategy brief</b><span>Makes the AI ask what the fleet is for before it designs.</span></a>
+<a href="clone-setup.html"><b>Local clone (Windows)</b><span>A checkout that builds, with both submodules.</span></a>
+<a href="clone-setup-linux.html"><b>Local clone (Linux/macOS)</b><span>A checkout for reading and editing &mdash; not for building.</span></a>
+</div>
+<h2>Reference <span class="count">1</span></h2>
+<div class="nav">
+<a href="ship-content-reference.html"><b>Ship content reference</b><span>Every content field, the code that reads it, and the formulas.</span></a>
+</div>
+</aside>
+</div>
+<script>
+const btn = document.getElementById('copy');
+const show = document.getElementById('show');
+const pre = document.getElementById('text');
+const msg = document.getElementById('msg');
+
+function say(t, cls) { msg.className = 'msg' + (cls ? ' ' + cls : ''); msg.innerHTML = t; }
+
+function legacyCopy(t) {
+  const ta = document.createElement('textarea');
+  ta.value = t;
+  ta.setAttribute('readonly', '');
+  ta.style.position = 'fixed';
+  ta.style.top = '-1000px';
+  document.body.appendChild(ta);
+  ta.select();
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+  ta.remove();
+  return ok;
+}
+
+btn.addEventListener('click', async () => {
+  const text = pre.textContent;
+  if (!text.trim()) {
+    say('This page has no prompt text on it.', 'err');
+    return;
+  }
+  let ok = false;
+  if (navigator.clipboard && window.isSecureContext) {
+    try { await navigator.clipboard.writeText(text); ok = true; } catch (e) { ok = false; }
+  }
+  if (!ok) ok = legacyCopy(text);
+  if (!ok) {
+    say('The clipboard is blocked here. Press <b>Show prompt</b> and select the text.', 'err');
+    return;
+  }
+  say('Copied ' + text.length.toLocaleString() + ' characters. Paste the whole file, then ask your question.', 'ok');
+  const label = btn.textContent;
+  btn.textContent = 'Copied \u2713';
+  setTimeout(() => { btn.textContent = label; }, 2000);
+});
+
+show.addEventListener('click', () => {
+  pre.hidden = !pre.hidden;
+  show.textContent = pre.hidden ? 'Show prompt' : 'Hide prompt';
+  say('');
+});
+</script></body></html>

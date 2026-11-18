@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AI colonization — StarDrive BlackBox</title><style>
+:root{--bg:#14171c;--panel:#1b1f26;--ink:#e6e8ea;--dim:#8b949e;--line:#2b313a;--gold:#ffd479;--link:#8ecbff;--ok:#8ad06a}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 Georgia,serif}
+a{color:var(--link);text-decoration:none}a:hover{text-decoration:underline}
+code{font:12.5px ui-monospace,monospace;color:#c9d1d9;background:#20252d;padding:0 3px;border-radius:3px}
+.bar{position:sticky;top:0;z-index:9;background:rgba(20,23,28,.94);border-bottom:1px solid var(--line)}
+.bar .in{max-width:1240px;margin:0 auto;padding:10px 28px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{display:inline-block;font:12px ui-monospace,monospace;padding:5px 12px;border:1px solid #3a424e;border-radius:999px;background:var(--panel);color:var(--ink);cursor:pointer}
+.btn:hover{border-color:var(--link);text-decoration:none}
+.btn.primary{border-color:#6b5a2b;background:#2a261b;color:var(--gold)}
+.head{max-width:1240px;margin:0 auto;padding:34px 28px 6px}
+h1{font-size:27px;margin:0 0 8px;line-height:1.25}
+p.lede{color:var(--dim);max-width:82ch;margin:0 0 12px}
+p{margin:0 0 10px}
+.shell{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:40px;max-width:1240px;margin:0 auto;padding:8px 28px 70px;align-items:start}
+@media(max-width:920px){.shell{grid-template-columns:1fr;gap:26px}}
+h2{font-size:12.5px;margin:30px 0 10px;color:#c9d1d9;text-transform:uppercase;letter-spacing:1.2px;font-family:ui-monospace,monospace}
+h2 .count{color:var(--dim);letter-spacing:0}
+ul{margin:0 0 10px;padding-left:20px}li{margin:0 0 7px}
+table{border-collapse:collapse;width:100%;font:12.5px ui-monospace,monospace;margin:4px 0 10px}
+th,td{text-align:left;padding:6px 9px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--dim);font-weight:normal}
+td.n{white-space:nowrap;color:var(--gold)}
+.note{color:var(--dim);font-size:13px}
+.facts{display:flex;gap:20px;flex-wrap:wrap;font:12px ui-monospace,monospace;color:#c9d1d9;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:9px 13px;margin:14px 0 0}
+.facts b{color:var(--gold);font-weight:normal}
+aside{position:sticky;top:56px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:4px 16px 14px;max-height:calc(100vh - 80px);overflow:auto}
+@media(max-width:920px){aside{position:static;max-height:none}}
+aside h2{margin:14px 0 6px}
+aside p.ai{color:var(--dim);font-size:12.5px;margin:12px 0 2px}
+.nav a{display:block;padding:6px 0;border-bottom:1px solid #232a33}
+.nav a:last-child{border-bottom:0}
+.nav b{font-weight:normal;color:var(--ink);display:block}
+.nav span{display:block;color:var(--dim);font-size:12.5px;line-height:1.4}
+.kicker{font:12px ui-monospace,monospace;color:var(--dim);margin:0 0 10px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.chip{font:10.5px ui-monospace,monospace;letter-spacing:.6px;text-transform:uppercase;border:1px solid #4a5260;border-radius:9px;padding:1px 7px;color:var(--dim)}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0 4px}
+.msg{font:12px ui-monospace,monospace;color:var(--dim);min-height:1.4em;margin:6px 0 0}
+.msg.ok{color:var(--ok)}.msg.err{color:#e07070}
+pre#text{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px;max-height:62vh;overflow:auto;white-space:pre-wrap;font:12px ui-monospace,monospace;color:#c9d1d9}
+.meta{font:12px ui-monospace,monospace;color:var(--dim);border-top:1px solid var(--line);margin-top:30px;padding-top:10px}
+</style></head><body><nav class="bar"><div class="in"><a class="btn" href="../index.html">&larr; Index</a>
+<a class="btn" href="../weapon-tech-human.html">Era map</a>
+<a class="btn" href="https://github.com/TeamStarDrive/StarDrive">Game repository &nearr;</a>
+</div></nav>
+<header class="head">
+ <p class="kicker"><span class="chip">Explainer</span><code>colonization-ai-explainer-prompt.md</code></p>
+ <h1>How the AI decides where to colonize</h1>
+ <p class="lede">Why the AI settles the planet it settles, where each decision is made in the code, and how a race's traits change the answer. Written for people who do not know this codebase and may not write code at all.</p>
+ <div class="acts">
+  <button class="btn primary" id="copy">Copy prompt</button>
+  <button class="btn" id="show">Show prompt</button>
+  <a class="btn" href="https://github.com/SDBlackBox/StarDrive-community-kit/blob/main/colonization-ai-explainer-prompt.md">In the kit repo &nearr;</a>
+ </div>
+ <p class="msg" id="msg"></p>
+</header>
+<div class="shell">
+<main>
+<h2>How it works</h2>
+<ul><li>The pipeline is short and deterministic &mdash; a handful of gates, one score per planet, one target per run &mdash; but spread over five code files and two content files; this is the map for it.</li><li>Plain language with the symbol named beside it, so the claim can be checked without reading C#.</li><li>Meant to be interrupted: it is a walk-through, not a page you read in one go.</li></ul>
+
+<h2>What it needs</h2>
+<p>A checkout, or the public repository. No C# required.</p>
+
+<h2>The prompt</h2>
+<p class="note">20,076 characters, copied verbatim from <code>colonization-ai-explainer-prompt.md</code> at
+build time. Copy takes the whole file, because that is what the prompt expects you to paste.</p>
+<pre id="text" hidden># How the AI decides where to colonize — a copy-paste explainer prompt
+
+Paste the prompt below into an AI assistant that can read this repository, and it will walk you
+through the AI&#x27;s colonization logic in plain language — why the AI settles the planet it settles,
+where each decision is made in the code, and how a race&#x27;s traits change the answer. It is written
+for people who do not know this codebase and may not write code at all, and it is meant to be
+interrupted with questions.
+
+## Why this exists
+
+In play, AI expansion looks arbitrary: it sails past a fertile world and settles a barren rock two
+systems away. Underneath, it is a short deterministic pipeline — a handful of gates, one score per
+planet, one target per run — spread over five code files and two content files. Read cold, the
+pipeline is hard to assemble; asked cold, an AI tends to answer &quot;the AI scores planets by value&quot;
+and stop there. This prompt supplies the map, the audience rules and the traits angle, so the
+explanation is specific instead of generic.
+
+## Where the logic lives
+
+Every link is pinned to the commit this document was written against
+(`f575899`), so the line numbers stay valid. The same list is inside the prompt as plain paths.
+
+| What it does | Where it is |
+|---|---|
+| The loop, the gates, picking the best planet | [`ExpansionPlanner.RunExpansionPlanner`](https://github.com/TeamStarDrive/StarDrive/blob/f575899fe199f9b622bc47146d68ce4e2e75ff14/Ship_Game/AI/ExpansionAI/ExpansionPlanner.cs#L124) |
+| How many colonies the AI wants | [`DesiredColonyGoals`](https://github.com/TeamStarDrive/StarDrive/blob/f575899fe199f9b622bc47146d68ce4e2e75ff14/Ship_Game/AI/ExpansionAI/ExpansionPlanner.cs#L67), [`AtColonyGoalCap`](https://github.com/TeamStarDrive/StarDrive/blob/f575899fe199f9b622bc47146d68ce4e2e75ff14/Ship_Game/AI/ExpansionAI/ExpansionPlanner.cs#L187) |
+| The two &quot;not yet&quot; gates: population and difficulty timer | [`CanConsiderExpanding`](https://github.com/TeamStarDrive/StarDrive/blob/f575899fe199f9b622bc47146d68ce4e2e75ff14/Ship_Game/AI/ExpansionAI/ExpansionPlanner.cs#L91) |
+| Which planets are even allowed | [`CanBeColonized`](https://github.com/TeamStarDrive/StarDrive/blob/f575899fe199f9b622bc47146d68ce4e2e75ff14/Ship_Game/AI/ExpansionAI/ExpansionPlanner.cs#L306) |
+| The score, the distance and enemy penalties, the &quot;don&#x27;t settle their space&quot; rule | [`PlanetRanker`](https://github.com/TeamStarDrive/StarDrive/blob/f575899fe199f9b622bc47146d68ce4e2e75ff14/Ship_Game/AI/ExpansionAI/PlanetRanker.cs#L32), [`IsColonizeBlockedByMorals`](https://github.com/TeamStarDrive/StarDrive/blob/f575899fe199f9b622bc47146d68ce4e2e75ff14/Ship_Game/AI/ExpansionAI/PlanetRanker.cs#L58) |
+| What a planet is actually worth | [`Planet.ColonyPotentialValue`](https://github.com/TeamStarDrive/StarDrive/blob/f575899fe199f9b622bc47146d68ce4e2e75ff14/Ship_Game/Universe/SolarBodies/Planet/Planet.cs#L545) |
+| The six-step &quot;go build a colony ship and take the planet&quot; routine | [`MarkForColonization`](https://github.com/TeamStarDrive/StarDrive/blob/f575899fe199f9b622bc47146d68ce4e2e75ff14/Ship_Game/Commands/Goals/MarkForColonization.cs#L27) |
+| Traits: cybernetics, home environment, expansion personality | [`Empire.IsCybernetic`](https://github.com/TeamStarDrive/StarDrive/blob/f575899fe199f9b622bc47146d68ce4e2e75ff14/Ship_Game/Empire.cs#L222), [`Empire.IsExpansionists`](https://github.com/TeamStarDrive/StarDrive/blob/f575899fe199f9b622bc47146d68ce4e2e75ff14/Ship_Game/Empire.cs#L237), [`RacialEnvModifer`](https://github.com/TeamStarDrive/StarDrive/blob/f575899fe199f9b622bc47146d68ce4e2e75ff14/Ship_Game/Empire.cs#L506) |
+| Where the trait numbers come from | [`RacialTraits.xml`](https://github.com/TeamStarDrive/StarDrive/blob/f575899fe199f9b622bc47146d68ce4e2e75ff14/game/Content/RacialTraits/RacialTraits.xml#L175) (Cybernetic), [Aquatic](https://github.com/TeamStarDrive/StarDrive/blob/f575899fe199f9b622bc47146d68ce4e2e75ff14/game/Content/RacialTraits/RacialTraits.xml#L420), [Explorers](https://github.com/TeamStarDrive/StarDrive/blob/f575899fe199f9b622bc47146d68ce4e2e75ff14/game/Content/RacialTraits/RacialTraits.xml#L447), [`EconomicResearchStrategies.yaml`](https://github.com/TeamStarDrive/StarDrive/blob/f575899fe199f9b622bc47146d68ce4e2e75ff14/game/Content/EconomicResearchStrategies.yaml#L3) |
+| Difficulty knobs (goal counts, how often it checks) | [`DifficultyModifiers`](https://github.com/TeamStarDrive/StarDrive/blob/f575899fe199f9b622bc47146d68ce4e2e75ff14/Ship_Game/EmpireDifficultyModifers.cs#L7) |
+| The tag that makes a ship a colony ship | [`ShipDesign_Stats.IsColonyShip`](https://github.com/TeamStarDrive/StarDrive/blob/f575899fe199f9b622bc47146d68ce4e2e75ff14/Ship_Game/Ships/ShipDesign_Stats.cs#L130) |
+| Which colony ship the AI builds | [`ShipBuilder.PickColonyShip`](https://github.com/TeamStarDrive/StarDrive/blob/f575899fe199f9b622bc47146d68ce4e2e75ff14/Ship_Game/AI/EmpireAI/ShipBuilder.cs#L187) |
+
+## The prompt
+
+Everything between the rules; the reader does not need to edit anything.
+
+```text
+You are explaining StarDrive BlackBox&#x27;s AI colonization logic to me, a person who does not know this
+codebase and may not write code at all. I want to understand the logic, not learn C#. Assume I know
+the game — planets, colony ships, races, traits — but nothing about how it is implemented.
+
+We will go through it in sections and I will ask questions as we go. Do not dump the whole thing in
+one message.
+
+SOURCE OF TRUTH
+This is the StarDrive repository at commit f575899fe199f9b622bc47146d68ce4e2e75ff14. Read the code
+before you explain it; do not work from general knowledge of 4X games. These are the files, in the
+order they matter:
+
+  Ship_Game/AI/EmpireAI/EmpireAI.cs                                  (call site, lines 159-160)
+  Ship_Game/AI/ExpansionAI/ExpansionPlanner.cs                      (the whole decision loop)
+  Ship_Game/AI/ExpansionAI/PlanetRanker.cs                          (scoring one planet)
+  Ship_Game/Universe/SolarBodies/Planet/Planet.cs                   (what a planet is worth, ~line 545)
+  Ship_Game/Commands/Goals/MarkForColonization.cs                   (turning a target into a colony)
+  Ship_Game/Empire.cs                                               (IsCybernetic 222, IsExpansionists 237,
+                                                                      RacialEnvModifer 506, AutoColonize 144)
+  Ship_Game/Empire_Relationship.cs                                  (GetExpansionRatio, line 131)
+  Ship_Game/EmpireDifficultyModifers.cs                             (per-difficulty numbers)
+  Ship_Game/Data/RacialTrait.cs                                     (trait fields, 80-104)
+  game/Content/RacialTraits/RacialTraits.xml                        (trait values: Cybernetic 175, Aquatic 420,
+                                                                      Explorers 447)
+  game/Content/EconomicResearchStrategies.yaml                      (Expansionists)
+  game/Content/Globals.yaml                                         (RequiredExpansionPopRatio, line 23)
+  Ship_Game/Ships/ShipDesign_Stats.cs                               (IsColonyShip, line 130)
+  Ship_Game/AI/EmpireAI/ShipBuilder.cs                               (PickColonyShip, line 187)
+
+If you cannot open a file, say so and ask me to paste it — do not fill the gap from memory.
+
+AUDIENCE RULES
+- Explain the logic as a sequence of decisions a person could follow with a pen: &quot;first it asks X,
+  if no it stops, otherwise it does Y&quot;. Name the game concept, not the variable, unless the variable
+  name is the point (&quot;the game calls this ColonyPotentialValue&quot;).
+- Define every piece of jargon once, in a parenthesis, the first time you use it.
+- Never show more than five lines of code at a time, and only when the code is clearer than prose.
+  Always follow it with a plain-language translation.
+- Use one concrete example with a made-up planet pair when a rule is numeric, and say the numbers are
+  illustrative unless the code gives exact ones.
+- End every section with &quot;what this means in play&quot;: one or two sentences on the effect a player
+  would notice.
+- Keep a running glossary. Repeat a term&#x27;s definition if I come back to it after a while.
+- If something is a design choice rather than a derived rule, say so, and say which file you know it
+  from. If you do not know, say &quot;the code does not answer that&quot; and tell me what would.
+
+SECTION 1 — the shape of it
+Give me the one-paragraph summary first: the AI keeps a small number of colonization goals alive, and
+on each AI turn it may add one new goal, which is then carried out by a separate goal object. Say
+where the turn-level call happens (EmpireAI, lines 159-160: RunExpansionPlanner then
+SwitchColonyGoalsToFoundPlanets) and that only one new target is created per run.
+Then stop and ask if the shape makes sense before going into detail.
+
+SECTION 2 — the gates, in order
+Walk the decision in the order the code runs it, and say what happens at each gate when the answer is
+&quot;no&quot;:
+  1. Is this the player? If so, nothing happens unless AutoColonize is on (Empire.cs 144).
+  2. Keep enough idle colony ships around (StandbyColonyShip goals) so a target can be acted on.
+  3. CanConsiderExpanding (ExpansionPlanner.cs 91): a difficulty timer (ExpansionCheckInterval —
+     every 7 / 5 / 3 / 1 turns), then a population gate — the empire must use a fraction of the
+     population it could support (RequiredExpansionPopRatio, 0.4 in content/Globals.yaml, scaled by
+     difficulty), and Expansionists get a 25% discount on that requirement.
+  4. AtColonyGoalCap (187) against DesiredColonyGoals (67): base goal count by difficulty, plus a
+     race/strategy term, plus 2 for cybernetic empires, plus a catch-up term when the empire is
+     behind on planet count (after star date 1002).
+  5. Gather candidates: every legal planet in systems it already owns, plus legal planets in nearby
+     systems it has explored (the number of systems checked grows over time; Expansionists check
+     roughly a quarter more per pass).
+  6. Score every candidate, throw away the ones flagged &quot;don&#x27;t colonize&quot;, take the highest, and turn
+     it into a goal. Explain that already-targeted planets are skipped, so the AI does not send two
+     colony ships to one world.
+Explain &quot;legal&quot; precisely, from CanBeColonized (306): explored, habitable, far enough from the star&#x27;s
+radiation, not in another empire&#x27;s post-loss grace window, and either unowned or held by a minor
+faction it can take. Also explain StrongEnoughToClaim, which compares the enemy strength it knows
+about in that system against its own offensive strength.
+Stop and ask me which gate surprised me.
+
+SECTION 3 — the score
+This is the heart, so take it slowly. Explain Planet.ColonyPotentialValue (545) as &quot;what this planet is
+worth to THIS empire&quot;:
+  - organic empires: fertility potential squared times 50, plus a little for mineral richness;
+  - cybernetic empires: mineral richness times 10 plus a bonus per volcano, and fertility is ignored;
+  - both: special commodities, potential maximum population scaled by how much of the planet is
+    habitable, and a bonus if the system has a Dyson swarm.
+Then explain PlanetRanker (32): if the planet is in a system the empire already owns, the score stands
+as is; otherwise it is divided by a distance factor and by an enemy-strength factor, each clamped
+between 1 and 10, so a far or well-defended world can be worth at most a tenth of its raw value.
+Also explain the hard floor: a world outside the empire&#x27;s own systems is only considered if its raw
+value clears 20, or — for cybernetic empires — if its mineral richness is above 1.5.
+Then explain the morals rule (IsColonizeBlockedByMorals, 58): the AI refuses to settle a system that
+another empire already holds planets in, unless it has warned them off, has open borders, or is at war
+with them; minor factions and unsettled systems are exempt.
+Stop here; this is the section people most want to argue with.
+
+SECTION 4 — from target to colony
+Explain the six steps of MarkForColonization (27) as a checklist with a failure path at each step:
+claim the system militarily if there is enemy presence (and ask for a guard fleet on harder
+difficulties), re-check the target is still legal, find an idle colony ship or queue one at a
+suitable port (rush-building it if the treasury allows), wait for it, send it, wait for the landing.
+Mention that when a target stops being legal the goal is failed and the ship is released rather than
+wasted, and that the goal can change target until it is committed.
+Also explain the mid-run correction: scouts report planets as they explore; next turn a newly found
+planet may replace the weakest existing target, but only if it scores more than a quarter higher
+(1.25 in SwitchColonyGoalsToFoundPlanets, 207) — and the player gets a notification when that
+happens. Explain why the two-turn delay exists (the threat memory needs to catch up with what the
+scout saw).
+
+SECTION 5 — racial traits
+This is the part I care most about. Do not go trait by trait through the whole file; group by the
+mechanism, and for each group say exactly which line of logic changes, then give one worked example.
+Cover at least:
+  a) Cybernetic (RacialTraits.xml 175; Empire.IsCybernetic 222). It changes the value formula itself
+     (richness and volcanoes instead of fertility), gives +2 colony goals, adds 1 to the expansion
+     ratio, lets a mineral-rich world pass the value floor, and changes what a new colony does with
+     its workers (food allocation is zero; production and research split the rest). Consequence:
+     cybernetic empires settle different worlds than organic ones do, not merely more of them.
+  b) Home environment traits — Aquatic is the clean example (RacialTraits.xml 420): PreferredEnv plus
+     a multiplier per planet type. Trace it: RacialEnvModifer (Empire.cs 506) multiplies fertility
+     (Planet.cs 145) and potential maximum population (Planet.cs 159 and following), and both feed
+     the score. Show the arithmetic for an Aquatic empire looking at an Oceanic world and a Desert
+     world, and note the same multiplier also decides how big the colony can eventually grow.
+  c) Economic personality — Expansionists (EconomicResearchStrategies.yaml, Empire.IsExpansionists
+     237). It lowers the population gate by 25%, makes the AI scan more systems per pass, adds to the
+     desired goal count, makes it rush colony ships at a worse credit rating, and gives colony ships a
+     better place in build queues. Be explicit that this is a multiplier on how hard the AI pushes,
+     not a change to what it values.
+  d) Traits that only matter indirectly: combat-oriented traits change the strength comparisons in
+     StrongEnoughToClaim and the claim fleet, and exploration traits (Explorers: three times the
+     exploration radius, two extra scouts) change how fast planets become known at all — which gates
+     everything, because the AI cannot target an unexplored planet.
+  e) Difficulty is not a trait but sits alongside them (EmpireDifficultyModifers.cs): goal count,
+     check interval, starting-colony threshold, standby ships and whether colony ships jump the build
+     queue all come from there. Say which of the five settings you see differ.
+After the groups, tell me which single trait changes the AI&#x27;s behaviour the most, and why.
+
+SECTION 6 — where modules and tags bite
+Keep this short; I do not want a module tour. Explain only the three places where ship data changes
+this logic:
+  - the Colony module type sets IsColonyShip (ShipDesign_Stats.cs 130) — no such design means the goal
+    fails outright, so &quot;can we expand&quot; is partly a ship-design question;
+  - ShipBuilder.PickColonyShip (187) chooses which colony ship to build, scoring designs and refusing
+    the best one if it takes more than a few turns longer, so an expensive or slow colony ship slows
+    expansion even though the planet score never sees it;
+  - a module&#x27;s DeployBuildingOnColonize places a building on landing, and the colony module&#x27;s
+    colonists/food/equipment payload seeds the new colony, which is why one colony ship can start a
+    healthier colony than another.
+Do not explain module stats, weapons or hulls.
+
+SECTION 7 — the honest limits
+Tell me what this logic does not do: no long-term planning beyond the goal count, no memory of
+&quot;that planet would have been good but was taken&quot;, no explicit valuation of a planet&#x27;s strategic
+position, and any place where the behaviour is a tuning number in content rather than a rule in code.
+Point me at docs/ for anything already written down, and at the unit tests that pin the behaviour
+(UnitTests/Planets/ColonyTargetSwitchTests.cs, UnitTests/Planets/StarRadiationTests.cs,
+UnitTests/Planets/ColonyGraceTests.cs) so I know the behaviour is intentional.
+
+INTERACTION RULES
+- After each section, stop and ask &quot;any questions before we continue?&quot; and actually wait.
+- When I ask a question, answer it from the code and cite the file and function. If the answer is
+  spread over several places, say which one decides.
+- If I ask &quot;why did the AI do X in my game&quot;, explain the gate or score that would produce X, and tell
+  me which of the numbers I could check in my save or in the game&#x27;s logs (the expansion planner logs a
+  &quot;Running Expansion for ...&quot; line, a &quot;Colonize n/m | planet&quot; line and a &quot;Colonize switch&quot; line).
+- If I ask you to compare two races, do it quantitatively with the same example planets.
+- Do not tell me to read the code myself as the answer. Give the explanation, then optionally the
+  pointer.
+- If I say &quot;go deeper&quot;, show the real code for that one decision, up to ten lines, and translate it.
+- Never speculate about modding consequences unless I ask; if I do, mark clearly what is data and what
+  is hardcoded.
+```
+
+## What the reader should be able to answer afterwards
+
+- Why the AI settled a mediocre planet and skipped the lush one next door. (Distance and known enemy
+  strength divide the score outside its own systems; inside them, they do not.)
+- Why expansion stalls for a while and then resumes. (Population-ratio gate, difficulty check
+  interval, goal cap, or no legal target left.)
+- Why a cybernetic race behaves nothing like an organic one. (Different value formula, two extra
+  goals, a mineral-richness shortcut past the value floor, different colony start.)
+- Why an aquatic race beelines ocean worlds and ignores deserts. (The per-environment multiplier
+  feeds fertility, maximum population and therefore the score.)
+- What has to be true before a planet is even a candidate. (Explored, habitable, clear of stellar
+  radiation, out of grace, not someone else&#x27;s system, and affordable to defend.)
+- Why two colony ships of the same race can leave the AI expanding at different speeds. (Which design
+  the AI picks to build, and what that design carries.)
+
+## Questions worth asking it
+
+- &quot;Show me the exact numbers for my current race and tell me which worlds it would prefer.&quot;
+- &quot;What would change if this empire were Expansionists *and* cybernetic?&quot;
+- &quot;Walk me through a game where the AI has four colony goals and only two are progressing.&quot;
+- &quot;Which line makes the AI give up on a target?&quot;
+- &quot;Why does difficulty change where the AI expands, and not just how fast?&quot;
+- &quot;What part of this is content I could tune in a mod, and what part is code?&quot;
+- &quot;Which of these rules would a player notice first, and which are invisible?&quot;
+
+## Notes for the person running it
+
+- Run it where the assistant can read the repository (an editor agent, or a clone with the files
+  attached), or expect to paste files by hand. The prompt tells it to ask rather than improvise.
+- The links above are pinned to `f575899`; if `main` has moved, ask the assistant to confirm by
+  function name, not line number.
+- Expect 20–40 minutes with questions. Sections 3 and 5 are where the arguing happens; that is the
+  point.
+- This document is the prompt. The explanation it produces is not checked in, on purpose: it would
+  drift from the code the moment someone retunes a difficulty number.
+</pre>
+</main>
+<aside>
+<p class="ai">Paste a prompt into a chat with a checkout in front of it. Each page has a copy button.</p>
+<h2>Explainers <span class="count">12</span></h2>
+<div class="nav">
+<a href="game-logic.html"><b>The game, end to end</b><span>Why a fleet lost, where a decision is made, what a number does.</span></a>
+<a href="empire.html"><b>What an empire is made of</b><span>The race file, the traits, the starting kit, what it can see.</span></a>
+<a href="tech-logic.html"><b>The tech tree</b><span>Gated, priced, paid out &mdash; and who picks the order.</span></a>
+<a href="module-logic.html"><b>Ship modules</b><span>Why a module shows, fits, costs what it costs, and breaks.</span></a>
+<a href="weapon-logic.html"><b>A gun</b><span>Tags, the three damage numbers, and what a shot costs.</span></a>
+<a href="ship-design.html"><b>Ship designs</b><span>The .design file, its layout, role, warnings and build gate.</span></a>
+<a href="ship-chooser.html"><b>Which ships get built</b><span>Pool, want, budget, rank, pick, place, renew.</span></a>
+<a href="ship-combat.html"><b>Space combat</b><span>Knowing, wanting, choosing, closing, firing, hurting, dying.</span></a>
+<a href="fleet-creation.html"><b>How a fleet forms</b><span>Goal, task, requirement, pool, extract, form, sustain.</span></a>
+<a href="planet-capture.html"><b>Taking a planet</b><span>Who decides, who carries the troops, what the ground fight rolls.</span></a>
+<a href="colonization-ai.html"><b>AI colonization</b><span>Why the AI settles the planet it settles, in plain language.</span></a>
+<a href="time-and-space.html"><b>How far, how long</b><span>Distances and speeds turned into minutes, turns and roles.</span></a>
+</div>
+<h2>Tools <span class="count">6</span></h2>
+<div class="nav">
+<a href="era-explorer.html"><b>The era explorer</b><span>Cuts the tech tree into research-cost bands for one mod and one race.</span></a>
+<a href="ai-test.html"><b>Testing AI behaviour</b><span>A belief about the AI turned into one runnable scenario.</span></a>
+<a href="concept-map.html"><b>The concept map</b><span>Writes docs/concept-map.md &mdash; and re-checks every address later.</span></a>
+<a href="ship-strategy-brief.html"><b>The strategy brief</b><span>Makes the AI ask what the fleet is for before it designs.</span></a>
+<a href="clone-setup.html"><b>Local clone (Windows)</b><span>A checkout that builds, with both submodules.</span></a>
+<a href="clone-setup-linux.html"><b>Local clone (Linux/macOS)</b><span>A checkout for reading and editing &mdash; not for building.</span></a>
+</div>
+<h2>Reference <span class="count">1</span></h2>
+<div class="nav">
+<a href="ship-content-reference.html"><b>Ship content reference</b><span>Every content field, the code that reads it, and the formulas.</span></a>
+</div>
+</aside>
+</div>
+<script>
+const btn = document.getElementById('copy');
+const show = document.getElementById('show');
+const pre = document.getElementById('text');
+const msg = document.getElementById('msg');
+
+function say(t, cls) { msg.className = 'msg' + (cls ? ' ' + cls : ''); msg.innerHTML = t; }
+
+function legacyCopy(t) {
+  const ta = document.createElement('textarea');
+  ta.value = t;
+  ta.setAttribute('readonly', '');
+  ta.style.position = 'fixed';
+  ta.style.top = '-1000px';
+  document.body.appendChild(ta);
+  ta.select();
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+  ta.remove();
+  return ok;
+}
+
+btn.addEventListener('click', async () => {
+  const text = pre.textContent;
+  if (!text.trim()) {
+    say('This page has no prompt text on it.', 'err');
+    return;
+  }
+  let ok = false;
+  if (navigator.clipboard && window.isSecureContext) {
+    try { await navigator.clipboard.writeText(text); ok = true; } catch (e) { ok = false; }
+  }
+  if (!ok) ok = legacyCopy(text);
+  if (!ok) {
+    say('The clipboard is blocked here. Press <b>Show prompt</b> and select the text.', 'err');
+    return;
+  }
+  say('Copied ' + text.length.toLocaleString() + ' characters. Paste the whole file, then ask your question.', 'ok');
+  const label = btn.textContent;
+  btn.textContent = 'Copied \u2713';
+  setTimeout(() => { btn.textContent = label; }, 2000);
+});
+
+show.addEventListener('click', () => {
+  pre.hidden = !pre.hidden;
+  show.textContent = pre.hidden ? 'Show prompt' : 'Hide prompt';
+  say('');
+});
+</script></body></html>

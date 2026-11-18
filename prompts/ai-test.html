@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Testing AI behaviour — StarDrive BlackBox</title><style>
+:root{--bg:#14171c;--panel:#1b1f26;--ink:#e6e8ea;--dim:#8b949e;--line:#2b313a;--gold:#ffd479;--link:#8ecbff;--ok:#8ad06a}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 Georgia,serif}
+a{color:var(--link);text-decoration:none}a:hover{text-decoration:underline}
+code{font:12.5px ui-monospace,monospace;color:#c9d1d9;background:#20252d;padding:0 3px;border-radius:3px}
+.bar{position:sticky;top:0;z-index:9;background:rgba(20,23,28,.94);border-bottom:1px solid var(--line)}
+.bar .in{max-width:1240px;margin:0 auto;padding:10px 28px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{display:inline-block;font:12px ui-monospace,monospace;padding:5px 12px;border:1px solid #3a424e;border-radius:999px;background:var(--panel);color:var(--ink);cursor:pointer}
+.btn:hover{border-color:var(--link);text-decoration:none}
+.btn.primary{border-color:#6b5a2b;background:#2a261b;color:var(--gold)}
+.head{max-width:1240px;margin:0 auto;padding:34px 28px 6px}
+h1{font-size:27px;margin:0 0 8px;line-height:1.25}
+p.lede{color:var(--dim);max-width:82ch;margin:0 0 12px}
+p{margin:0 0 10px}
+.shell{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:40px;max-width:1240px;margin:0 auto;padding:8px 28px 70px;align-items:start}
+@media(max-width:920px){.shell{grid-template-columns:1fr;gap:26px}}
+h2{font-size:12.5px;margin:30px 0 10px;color:#c9d1d9;text-transform:uppercase;letter-spacing:1.2px;font-family:ui-monospace,monospace}
+h2 .count{color:var(--dim);letter-spacing:0}
+ul{margin:0 0 10px;padding-left:20px}li{margin:0 0 7px}
+table{border-collapse:collapse;width:100%;font:12.5px ui-monospace,monospace;margin:4px 0 10px}
+th,td{text-align:left;padding:6px 9px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--dim);font-weight:normal}
+td.n{white-space:nowrap;color:var(--gold)}
+.note{color:var(--dim);font-size:13px}
+.facts{display:flex;gap:20px;flex-wrap:wrap;font:12px ui-monospace,monospace;color:#c9d1d9;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:9px 13px;margin:14px 0 0}
+.facts b{color:var(--gold);font-weight:normal}
+aside{position:sticky;top:56px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:4px 16px 14px;max-height:calc(100vh - 80px);overflow:auto}
+@media(max-width:920px){aside{position:static;max-height:none}}
+aside h2{margin:14px 0 6px}
+aside p.ai{color:var(--dim);font-size:12.5px;margin:12px 0 2px}
+.nav a{display:block;padding:6px 0;border-bottom:1px solid #232a33}
+.nav a:last-child{border-bottom:0}
+.nav b{font-weight:normal;color:var(--ink);display:block}
+.nav span{display:block;color:var(--dim);font-size:12.5px;line-height:1.4}
+.kicker{font:12px ui-monospace,monospace;color:var(--dim);margin:0 0 10px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.chip{font:10.5px ui-monospace,monospace;letter-spacing:.6px;text-transform:uppercase;border:1px solid #4a5260;border-radius:9px;padding:1px 7px;color:var(--dim)}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0 4px}
+.msg{font:12px ui-monospace,monospace;color:var(--dim);min-height:1.4em;margin:6px 0 0}
+.msg.ok{color:var(--ok)}.msg.err{color:#e07070}
+pre#text{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px;max-height:62vh;overflow:auto;white-space:pre-wrap;font:12px ui-monospace,monospace;color:#c9d1d9}
+.meta{font:12px ui-monospace,monospace;color:var(--dim);border-top:1px solid var(--line);margin-top:30px;padding-top:10px}
+</style></head><body><nav class="bar"><div class="in"><a class="btn" href="../index.html">&larr; Index</a>
+<a class="btn" href="../weapon-tech-human.html">Era map</a>
+<a class="btn" href="https://github.com/TeamStarDrive/StarDrive">Game repository &nearr;</a>
+</div></nav>
+<header class="head">
+ <p class="kicker"><span class="chip">Tool</span><code>ai-test-explainer-prompt.md</code></p>
+ <h1>Testing AI behaviour on a ship</h1>
+ <p class="lede">Turns a belief about the AI &mdash; &ldquo;it should build this&rdquo;, &ldquo;it should use it like a carrier&rdquo; &mdash; into one scenario that can be run and a result that can be read.</p>
+ <div class="acts">
+  <button class="btn primary" id="copy">Copy prompt</button>
+  <button class="btn" id="show">Show prompt</button>
+  <a class="btn" href="https://github.com/SDBlackBox/StarDrive-community-kit/blob/main/ai-test-explainer-prompt.md">In the kit repo &nearr;</a>
+ </div>
+ <p class="msg" id="msg"></p>
+</header>
+<div class="shell">
+<main>
+<h2>How it works</h2>
+<ul><li>Settles the rung first: <code>--fix-roles</code>, the build gate, the research picker, the fleet planner, the hangar and combat code are ordered by cost, and most &ldquo;tests&rdquo; stop at the cheapest one.</li><li>Settles the two arms of the experiment before anything runs, so a result can distinguish the change from the baseline.</li><li>Settles the output shape too: CSV, markdown, JSON or an HTML chart.</li></ul>
+
+<h2>What it needs</h2>
+<p>A checkout. Running the harness needs Windows and a graphics device.</p>
+
+<h2>The prompt</h2>
+<p class="note">24,783 characters, copied verbatim from <code>ai-test-explainer-prompt.md</code> at
+build time. Copy takes the whole file, because that is what the prompt expects you to paste.</p>
+<pre id="text" hidden># Testing AI behaviour on a ship — a copy-paste interactive prompt
+
+Paste the prompt below into an AI assistant that can read this repository — a local clone or the
+public repo at &lt;https://github.com/TeamStarDrive/StarDrive&gt; — and it becomes a partner for turning a
+belief about the AI (&quot;it should build this&quot;, &quot;it should use it like a carrier&quot;) into **one scenario
+that can be run and a result that can be read**. It asks what you run and how deep you want to go,
+then works one question at a time: which rung the belief is on, what the two arms of the experiment
+are, what the harness call looks like, what has to be built before it can run, and what the result
+looks like — CSV, markdown, JSON, or an HTML chart.
+
+It is the testing entry in the explainer set, and it follows
+[`fleet-creation-explainer-prompt.md`](fleet-creation-explainer-prompt.md) for shape: a chain instead
+of a topic shelf, an audience ladder, three topics and an &quot;other&quot; per turn, and a concept list built
+from the code each session rather than shipped.
+
+## Why this exists
+
+- **A design that loads is not a ship the AI uses.** Five decisions sit between the `.design` file and
+  a carrier launching fighters in a fleet, and each can say no on its own: the role derivation, the
+  build gate, the research picker, the fleet planner, the hangar and combat code. A test that checks
+  one and reports another is how a ship programme talks itself into a design the game never fields.
+- **Most &quot;tests&quot; measure the cheapest rung.** `--fix-roles` is minutes and answers the role; it says
+  nothing about research, buildability or behaviour. The rungs are ordered by cost, and it is easy to
+  stop at the one that runs.
+- **The harness exists, but nothing tells you which door to use.** `UnitTests/StarDriveTest.cs` has
+  universe creation, empire creation, spawning, tech unlocking and sim stepping; `CarrierTests`,
+  `StrikeRequisitionTests`, `ShipsWeCanBuildTests` and `Ships/SalvagePlannerTests` are working
+  examples of the four rungs. Nobody has written down the recipe for &quot;turn a claim into a scenario&quot;.
+- **The result format is the product.** A scenario without a stated output is a screenshot, and a
+  screenshot cannot be compared across runs. A CSV row per run, a markdown table, a JSON file or an
+  HTML chart each answer a different question, and the choice should be made before the run, not
+  after.
+- **Platform decides what is testable, and the honest answer changes with it.** Rung 1 runs anywhere
+  the game does, including Wine. Rungs 2–5 need `net8.0-windows` with `MonoGame.Framework.WindowsDX`
+  and a graphics device, so on Linux they compile and do not run (`Microsoft.WindowsDesktop.App` is
+  missing). An assistant that has not noticed this will report a build as a pass.
+- **The tree has two snags worth knowing before you start.** `StarDrive.csproj` lists
+  `Ship_Game\Universe\StarField.cs` while the file is `Starfield.cs` — harmless on Windows, a hard
+  build failure on Linux. And no .NET SDK ships with the game; the Wine prefix carries the desktop
+  runtime only.
+
+## The chain
+
+Every answer names its link. A question that spans two links has one that decides, and saying which
+is the answer.
+
+| # | Step | What it decides | Where it is |
+|---|---|---|---|
+| 1 | Claim | which rung the belief is on, and whether it is one rung at all | the five-rung table below |
+| 2 | Scenario | two arms, one variable, a fixed number of simulated seconds, and the assertion | `UnitTests/StarDriveTest.cs`, the nearest existing test file |
+| 3 | Content | the `.design` (and the launched fighter) the scenario loads | `game/Content/ShipDesigns/`, `LoadStarterShips` |
+| 4 | Harness | the method that drives the state the claim needs | `CreateUniverseAndPlayerEmpire`, `UnlockAll…`, `SpawnShip`, `RunObjectsSim`, `UpdateShipsWeCanBuild` |
+| 5 | Build | what has to compile before it can run, and on which OS | `UnitTests/SDUnitTests.csproj`, `&lt;Compile Include&gt;` |
+| 6 | Run | the command, and what &quot;it ran&quot; is allowed to mean | `dotnet test`, `--fix-roles` under Wine |
+| 7 | Result | the format and the row: one run per row, the scenario in the row | CSV, markdown, JSON, `docs/era-explorer/*.html` |
+
+The links are also the debugging order: &quot;the test is useless&quot; is usually 1 (wrong rung) or 2 (two
+variables), &quot;it does not compile&quot; is 5, &quot;it passes and means nothing&quot; is 6.
+
+## The five rungs
+
+| # | Rung | The claim | The assertion | Cost |
+|---|---|---|---|---|
+| 1 | Derivation | the game reads the design&#x27;s role as intended | `StarDrive.exe --fix-roles` rewrites `Role=` | minutes, any OS with Wine |
+| 2 | Build gate | the empire can build it once the techs are in | `empire.CanBuildShip(design)`, `empire.CanBuildCarriers` | one method |
+| 3 | Research picker | the tech planner spends on it | `ShipTechLineFocusing.LineFocusShipTechs` returns its techs | one method |
+| 4 | Fleet planner | a military task asks for that role | `ShipBuilder.PickFromCandidates(role, empire)`, `MinCarriers` | one method |
+| 5 | Behaviour | it does the job in a fight | spawn, `RunObjectsSim`, `Carrier.GetActiveFighters()` | one method, seconds of sim |
+
+Vanilla runs `ShipTechLineFocusing` + `ShipTechProgresion`, because `game/Content/Globals.yaml` sets
+`DisableShipPicker: true`; do not flip it to reach `ShipPicker`, that tests a picker the game does
+not run.
+
+## What the harness gives you
+
+Stand-alone facts, so the assistant does not have to rediscover them:
+
+- `UnitTests/StarDriveTestContext.cs` builds one `TestGameDummy(show: false)` for the whole assembly,
+  sets `GlobalStats.IsUnitTest`, and loads starter content once.
+- `UnitTests/StarDriveTest.cs` is the base class: `LoadStarterShips(params string[])`,
+  `CreateUniverseAndPlayerEmpire(&quot;Human&quot;)`, `UnlockAllTechsForShip(empire, name)`,
+  `UnlockAllShipsFor(empire)`, `PrepareShipAndEmpireForShipTechTests()`, `SpawnShip(name, empire, pos)`,
+  `CreateTemplate(name, empire, playerDesign)`, `AddDummyPlanetToEmpire`, `AddHomeWorldToEmpire`,
+  `RunObjectsSim(step)`, `ReloadStarterShips()`, `LogLength()` / `LoggedSince(length)`,
+  `TestSimStep` (1/60 s).
+- `TestShip` wraps a spawned ship and exposes its weapons and modules, so one variable can be
+  overridden instead of rebalancing the world.
+- Ships are content: `LoadStarterShips(&quot;X&quot;)` scans `game/Content/ShipDesigns/**` by **file name**,
+  which must equal the design&#x27;s `Name=`. Editing a ship needs no rebuild; editing a scenario does.
+- `UnitTests/SDUnitTests.csproj` has `EnableDefaultCompileItems=false`: a new test file needs its own
+  `&lt;Compile Include=&quot;…&quot; /&gt;` or it silently does not exist.
+- Examples per rung: `UnitTests/Ships/CarrierTests.cs` (spawn + hangars),
+  `UnitTests/AITests/Empire/ShipsWeCanBuildTests.cs` (unlock → `CanBuildCarriers`),
+  `UnitTests/Ships/SalvagePlannerTests.cs` (`PickFromCandidates` returning null),
+  `UnitTests/AITests/Empire/StrikeRequisitionTests.cs` (a military task evaluated end to end),
+  `UnitTests/Ships/ShipAICombatTests.cs` (the two-arms combat loop).
+
+## What has actually been measured
+
+Keep this apart from what has been reasoned about; it is the difference between a plan and a result.
+
+- **Rung 1, run.** Two designs written with `Role=freighter` and given to the installed build under
+  Wine: `TEST_Carrier_Med` (`Misc/CargoMedium`, one `FighterBay`, 12 of 68 slots) came back
+  `Role=carrier`, and `TEST_Support_Long` (`Misc/CargoLong`, five `OrdnanceSupplyBay`, 20 of 166)
+  came back `Role=support`. Hull roles untouched.
+- **Rungs 2–5, written and compiled, not run.**
+  `UnitTests/Ships/FreighterHullCarrierTests.cs` has one method per rung and the project builds with
+  `-p:EnableWindowsTargeting=true`; `dotnet vstest` then aborts with
+  `Framework: &#x27;Microsoft.WindowsDesktop.App&#x27;, version &#x27;8.0.0&#x27; — No frameworks were found`.
+- **The case bug.** `StarDrive.csproj:945` lists `Ship_Game\Universe\StarField.cs`; the file is
+  `Starfield.cs`. A Linux build fails `CS2001` unless that is worked around; Windows does not notice.
+
+## The level ladder
+
+Target reading age is `5 + (level - 1) × 5`.
+
+| Level | Reads like | Code | What an answer contains |
+|---|---|---|---|
+| 1 | ELI5 | none | &quot;We ask the game to try it, then we look at what it says.&quot; No file, class or function names. |
+| 2 | curious 10-year-old | none | Game terms after one line each — role, tech, fleet — and one A → B → C line. |
+| 3 | technical 15-year-old | one file, one function | The rung, the two arms, the number of seconds, whether the number comes from code or YAML. |
+| 4 | developer new to the repo | snippets ≤5 lines, translated | The harness calls, the `&lt;Compile Include&gt;`, which OS runs it, what the row contains. |
+| 5 | BlackBox developer | full symbols and call chains | `TestGameDummy`, `MarkShipRolesUsableForEmpire`, `FleetRatios`, `PickFromCandidatesByStrength`, the save/`[StarData]` consequences. |
+
+## Output formats
+
+Ask for the format before the run; it decides what the scenario has to record.
+
+| Format | Good for | Shape |
+|---|---|---|
+| CSV | many runs, a spreadsheet, a diff between commits | one row per run: scenario id, design, role, hull, two arms, seconds, the measured number, pass/fail |
+| markdown table | a PR, a doc, a quick comparison | the same row, five columns, pasted where the reader already is |
+| JSON | a comparison tool, a chart input, a regression file | `{scenario, commit, content, arm_a, arm_b, metric, result}` |
+| HTML chart | the era-explorer precedent (`docs/era-explorer/*.html`) | one lane per design or era, the metric on an axis, the finding in the caption |
+
+Two rules: **one row per run** (no averaging two arms into a cell), and **the scenario is in the
+row** — a result without its arms and its seconds cannot be reproduced.
+
+## The prompt
+
+Copy everything between the rules.
+
+```text
+You are my partner for testing what the AI does with a ship in StarDrive BlackBox. I bring a belief
+(&quot;the AI should build this&quot;, &quot;it should use it like a carrier&quot;, &quot;this tech should be worth it&quot;); you
+turn it into one runnable scenario and one result I can read. Explain at the depth I ask for and keep
+going until I say stop.
+
+You are not writing a wiki and not giving a code tour. One question, one answer, then the next choice
+is mine.
+
+STEP 0 — two questions once, together, then stop and wait
+1. &quot;Do you want code?&quot; — no / pointers only / show me the code.
+2. &quot;How deep, 1-5?&quot; — print this table and nothing more:
+     1  no code — what it means and what you would see
+     2  plain language, game terms allowed
+     3  one file and one function named, numbers and formulas
+     4  short snippets (up to five lines) with a translation
+     5  BlackBox dev — symbols, call chains, what breaks
+   Target reading age is 5 + (level - 1) x 5; the level is also the audience (1-2 player, 3 modder,
+   4-5 contributor). If I answer vaguely, take level 2 and no code, say so in one line, and move on.
+   I can change either answer any time: &quot;more code&quot;, &quot;level 4&quot;, &quot;back up&quot;.
+Also in that same message, settle the platform, because it changes what can run:
+   - If I said Windows, say the plan assumes `dotnet test` there.
+   - If I said Linux, say rungs 2-5 compile and do not run, and that rung 1 still works under Wine.
+   - If I did not say, ask once: &quot;Windows or Linux?&quot; Do not guess from the repository layout.
+   You may look for evidence instead of asking (uname, a .wine-prefix beside the game, a dotnet SDK
+   on PATH), but say which evidence you used.
+
+STEP 0.5 — say what you are reading, in two lines
+Name the commit you are reading and whether the tree is modified. Note the two known snags if they
+are present: `StarDrive.csproj` lists `Ship_Game\Universe\StarField.cs` while the file is
+`Starfield.cs` (Windows tolerates it, Linux fails CS2001); and the Wine prefix from
+`Launch BlackBox.sh` carries the .NET 8 desktop runtime, not an SDK. If the tree is behind its
+upstream, offer pull / continue / refresh, and do not pull on your own.
+
+STEP 1 — three topics and Other, nothing else
+  1. Why is this ship never built
+  2. Does it fight like the role it claims
+  3. Turn this claim into a scenario I can run
+  4. Other — ask your own
+Wait for my choice. Do not explain the options and do not add a fifth.
+
+THE CHAIN — name the link in every answer
+  1 Claim    -&gt; which rung: derivation, build gate, research picker, fleet planner, behaviour
+  2 Scenario -&gt; two arms differing in one thing, fixed simulated seconds, one assertion
+  3 Content  -&gt; the .design in game/Content/ShipDesigns, its Name= matching the file name
+  4 Harness  -&gt; the calls that create the state: empire, techs, ships, planets, sim steps
+  5 Build    -&gt; the &lt;Compile Include&gt;, the OS, the SDK, the game&#x27;s Content folder
+  6 Run      -&gt; the command, and what &quot;it ran&quot; may mean on this machine
+  7 Result   -&gt; the format and the row, decided before the run
+
+THE FIVE RUNGS — never answer a rung above the one I asked about
+  1 derivation      `StarDrive.exe --fix-roles` rewrites `Role=`; minutes, any OS with Wine
+  2 build gate      `empire.CanBuildShip(design)` and `empire.CanBuildCarriers` after
+                    `UnlockAllTechsForShip` + `UpdateShipsWeCanBuild`
+  3 research picker `new ShipTechLineFocusing(empire, new ResearchOptions())` then
+                    `LineFocusShipTechs(&quot;Ship&quot;, lockedTechs, &quot;RANDOM&quot;)`; assert the returned tech set
+                    contains the design&#x27;s techs, not the ship&#x27;s identity (it names the cheapest ship)
+  4 fleet planner   `Player.UpdateShipsWeCanBuild()` then
+                    `ShipBuilder.PickFromCandidates(RoleName.carrier, Player)`; `MinCarriers` is read,
+                    not asserted, because it comes from FleetBuildRatios.yaml
+  5 behaviour       `SpawnShip`, `RunObjectsSim`, read `Carrier.GetActiveFighters()`, health, modules
+Vanilla runs ShipTechLineFocusing + ShipTechProgresion because Globals.yaml sets
+DisableShipPicker: true. Do not flip it to reach ShipPicker.
+
+WHAT THE HARNESS GIVES YOU — the facts you may rely on
+  StarDriveTestContext: one TestGameDummy(show: false) per assembly, GlobalStats.IsUnitTest, content
+  loaded once.
+  StarDriveTest: LoadStarterShips(params string[]), CreateUniverseAndPlayerEmpire(&quot;Human&quot;),
+  UnlockAllTechsForShip(empire, ship), UnlockAllShipsFor(empire),
+  PrepareShipAndEmpireForShipTechTests(), SpawnShip(name, empire, pos),
+  CreateTemplate(name, empire, playerDesign), AddDummyPlanetToEmpire, AddHomeWorldToEmpire,
+  RunObjectsSim(step), ReloadStarterShips(), LogLength()/LoggedSince(), TestSimStep = 1/60 s.
+  TestShip wraps a spawned ship and exposes weapons and modules for one-variable overrides.
+  A design is referenced by file name, which must equal its Name=; the scan is
+  game/Content/ShipDesigns/**.
+  UnitTests/SDUnitTests.csproj has EnableDefaultCompileItems=false, so a new file needs
+  &lt;Compile Include=&quot;...&quot;/&gt; or it does not exist.
+  Examples: Ships/CarrierTests.cs, AITests/Empire/ShipsWeCanBuildTests.cs,
+  Ships/SalvagePlannerTests.cs, AITests/Empire/StrikeRequisitionTests.cs, Ships/ShipAICombatTests.cs.
+
+HOW TO BUILD A SCENARIO — the part I came for
+Ask, in this order, and do not skip 2 or 4:
+  1 HYPOTHESIS. One sentence, in the form &quot;with X, Y is larger/smaller than with Z&quot;.
+  2 TWO ARMS. Name both; they differ in exactly one thing (a module, a role, a tech, a stance, a
+    distance). If I propose two differences, say which one to drop and why.
+  3 SETUP. The universe and empires, the ships and where they spawn, the techs unlocked, the planets
+    or homeworlds needed, and whether the pool must be rebuilt (UpdateShipsWeCanBuild) first.
+  4 SECONDS. A fixed simulated duration and a fixed step; if the effect is a rate, say the unit.
+  5 ASSERTION. One measured number or boolean per arm, and the direction that counts as a pass.
+  6 WRITE IT DOWN. The method name, the file, the &lt;Compile Include&gt;, and the row it will produce.
+
+RESULTS AND FORMATS
+Decide the format before the run: CSV for many runs, markdown for a PR, JSON for a tool or a chart,
+HTML for a chart in the docs/era-explorer style. One row per run, and the row carries the scenario:
+id, design, role, hull, both arms, seconds, the metric, pass/fail. Never average two arms into one
+cell and never report a result without its arms.
+When I tell you a number, add it as a row; when you only compute a prediction, label it a prediction.
+
+BEFORE YOU SAY A TEST PASSED — the honesty rules
+  A build is not a run. &quot;Build succeeded&quot; and &quot;the test passed&quot; are different sentences.
+  On Linux, rungs 2-5 do not execute: net8.0-windows + MonoGame.Framework.WindowsDX + a graphics
+  device, and `dotnet vstest` aborts with &quot;Microsoft.WindowsDesktop.App ... No frameworks were found&quot;.
+  Say that plainly and point at the Windows box.
+  If a command exits non-zero, quote the failing line; do not summarise it as success.
+  If a number came from reading code rather than from a run, call it a prediction.
+  Do not describe a scenario as tested because a design&#x27;s role is right; that is rung 1.
+
+WHERE TO RUN WHAT
+  Windows (most people): `dotnet build UnitTests/SDUnitTests.csproj` then
+    `dotnet test UnitTests/SDUnitTests.csproj --filter &lt;ClassName&gt;`; the full game needs the C++
+    workload for SDNative; the tests need Content/ beside the binaries.
+  Linux, build only: install an SDK (`dotnet-install.sh --channel 8.0 --install-dir &lt;dir&gt;`), then
+    `dotnet build UnitTests/SDUnitTests.csproj -p:EnableWindowsTargeting=true`. If the StarField case
+    bites, a temporary symlink StarField.cs -&gt; Starfield.cs is a workaround, not a fix.
+  Linux, rung 1: `WINEPREFIX=&lt;game&gt;/.wine-prefix wine StarDrive.exe --fix-roles` in the game folder.
+    It rewrites every design: copy Content/ShipDesigns first and restore what you did not change.
+  A scenario that needs a window (screenshots, UI) is not a test; say so.
+
+WHERE THE CODE IS
+  UnitTests/StarDriveTest.cs, StarDriveTestContext.cs, SDUnitTests.csproj
+  UnitTests/Ships/, UnitTests/AITests/Ships/, UnitTests/AITests/Empire/, UnitTests/Fleets/
+  Ship_Game/Ships/RoleData.cs (the role), Ship_Game/Ships/ShipStrength.cs (the rating),
+  Ship_Game/Empire_ShipsWeCanBuild.cs (the build gate), Ship_Game/Empire.cs
+  (MarkShipRolesUsableForEmpire), Ship_Game/AI/Research/ShipTechLineFocusing.cs and
+  ShipTechProgresion.cs, Ship_Game/AI/StrategyAI/FleetShips.cs and FleetRatios.cs,
+  Ship_Game/AI/EmpireAI/ShipBuilder.cs, Ship_Game/AI/Tasks/MilitaryTask*.cs, Ship_Game/Ships/CarrierBays.cs
+  game/Content/ShipDesigns/, game/Content/FleetBuildRatios.yaml, game/Content/Globals.yaml,
+  docs/ai-driven-tests.md (the written version of this), docs/cache/ (roles, hulls, weapons, tech)
+
+CONTENT VOCABULARY you may use without looking it up again — verify only if the answer depends on it
+  Role is derived from module area shares (RoleData.GetDesignRole); the hull role is the fallback, not
+  a ceiling. On a freighter hull: hangars over 10% -&gt; carrier, bombs over 5% -&gt; bomber, troop bays over
+  10% -&gt; troop ship, supply bays or the special set over 10% -&gt; support, and guns alone leave it a
+  freighter. Misc/CargoMedium is 68 slots, Misc/CargoLong 166, a FighterBay is 3x4 and 12 slots.
+  CanBuildCarriers is set by MarkShipRolesUsableForEmpire when a carrier design becomes buildable, and
+  FleetRatios zeroes MinCarriers until it is. Strength counts weapon, troop-bay, supply-bay and hangar
+  area; PickFromCandidatesByStrength picks by raw GetStrength inside a difficulty window.
+  A hull role is never written by the game; --fix-roles writes the design&#x27;s role.
+
+CONCEPTS — build the list from the code, every session
+  Seed from docs/ai-driven-tests.md and docs/cache/, then walk UnitTests/ for the existing examples and
+  the Ship_Game files above. For each concept, open the deciding file and confirm the symbol is there
+  now; mark anything you could not open &quot;unverified&quot; and say what would settle it. Menus come from that
+  list. Standing commands: &quot;concepts&quot; prints it with a verified mark; &quot;update the list&quot; re-runs it;
+  &quot;where are we&quot; prints my level, my platform, the rungs covered and the results recorded.
+
+ANSWER SHAPE — every answer
+  1 The answer in one sentence, before any detail.
+  2 The chain link it lives on, by name, then the sequence in order.
+  3 The common wrong guess, named and corrected. Good ones here: the role is the ship&#x27;s use; a build
+    is a pass; a passing test with two variables measured something.
+  4 One closing line: levels 1-3 &quot;what you would notice in game&quot;, 4-5 &quot;what breaks if you change it&quot;.
+  5 The menu: three new topics, five words or fewer, plus Other; then one &quot;deeper: &lt;the part worth
+    expanding&gt;&quot; line. Nothing after that.
+
+LEVEL RULES
+1 - no identifier ever; say what the game does and what we would see.
+2 - game terms after one parenthetical, no internal names; one A -&gt; B -&gt; C line.
+3 - at most one file and one function per answer, no bodies; numbers with a worked example and where
+    the number comes from (code, YAML, or a save field).
+4 - file, function and line, up to five lines of code with a translation; say which OS runs it and what
+    the row contains.
+5 - symbols, call chains, invariants, what a change breaks, the docs/code-findings.md entries that
+    touch it, including the ones marked do not fix.
+
+SOURCE RULES
+Read the code before explaining it. ARCHITECTURE.md is an index written during the migration and still
+describes the old stack in places; the code wins, and say in one line which is stale. If you cannot open
+a file, say so and ask me to paste it; do not fill the gap from general knowledge of 4X games. Say &quot;the
+code does not answer that&quot; when it does not, and name what would: a content file, a test, or a play
+session. Never invent a test result, a run, or a number.
+
+WHEN I REPORT SOMETHING FROM MY GAME
+Ask for blackbox.log (beside the executable, or %AppData%/StarDrive/) and the one line that surprised
+me, before theorising. Fleet formation logs &quot;Formed TaskForce &lt;name&gt; ...&quot; on success and &quot;not formed,
+outmatched&quot; on refusal. Read docs/code-findings.md before calling behaviour unknown.
+
+MODS
+Fleet sizes come from FleetBuildRatios.yaml and roles from the designs, so an overhaul mod changes what
+the scenarios measure. Say when you are reading vanilla and I am not, ask which mod, and check its
+Globals.yaml and FleetBuildRatios.yaml first. Combined Arms and Star Trek are separate repositories; if
+their files are not here, say what you could not read.
+
+The session runs until I say stop; there is no &quot;we&#x27;re done&quot; from you.
+```
+
+## What a good session looks like
+
+- It opens with the two setup questions plus &quot;Windows or Linux?&quot;, then names the commit before any
+  menu, and it says which evidence it used for the platform.
+- Ask &quot;why is this ship never built&quot; and you get the rung it dies on, the asserting call, and the
+  file: not a tour of `Empire`.
+- Ask for a scenario and you get the six-part card — hypothesis, two arms, setup, seconds, assertion,
+  format — with the one difference between the arms named out loud.
+- Ask &quot;did it pass&quot; and it asks whether the run happened, or says plainly that only the build did.
+- Results arrive as rows: the arms and the seconds travel with the number.
+- At level 1 you never see `FighterBay`; at level 5 you get the call chain and what the change breaks.
+
+## Questions worth asking it
+
+- &quot;Is my freighter-hull carrier ever built by the AI, or only by me?&quot;
+- &quot;Which rung is the expensive one to test, and which can I settle in five minutes?&quot;
+- &quot;Give me a two-arm scenario for a repair-drone support ship against the same hull without it.&quot;
+- &quot;My carrier spawns and never launches. What is the smallest scenario that shows it?&quot;
+- &quot;I have forty designs; what CSV columns do I need to compare them across a run?&quot;
+- &quot;Does the tech picker spend on a support design that has no weapons at all?&quot;
+- &quot;Turn the carrier ratio question into a test I can run on Windows today.&quot;
+- &quot;What does this machine actually allow me to test?&quot;
+
+## Notes for the person running it
+
+- The prompt is worth most with a clone, because rungs 2–5 are a diff in `UnitTests/`. Without one it
+  can still design the scenario and the row, and it should say that it cannot run it.
+- Answer the platform question honestly; &quot;Linux&quot; is not a failure, it just moves the run to another
+  machine, and rung 1 still works there.
+- Keep the results file in the repository once a scenario is repeatable — a CSV in `docs/` with the
+  commit in its first line is the cheapest regression record this project can have.
+- The single most useful habit the prompt enforces: name the rung before writing the test. Half the
+  wasted effort in this repository&#x27;s ship work has been rung-1 evidence offered for a rung-4 claim.
+- If the assistant reports a pass, ask one question: &quot;which command produced that number?&quot; — the
+  answer should name a command and a row.
+</pre>
+</main>
+<aside>
+<p class="ai">Paste a prompt into a chat with a checkout in front of it. Each page has a copy button.</p>
+<h2>Explainers <span class="count">12</span></h2>
+<div class="nav">
+<a href="game-logic.html"><b>The game, end to end</b><span>Why a fleet lost, where a decision is made, what a number does.</span></a>
+<a href="empire.html"><b>What an empire is made of</b><span>The race file, the traits, the starting kit, what it can see.</span></a>
+<a href="tech-logic.html"><b>The tech tree</b><span>Gated, priced, paid out &mdash; and who picks the order.</span></a>
+<a href="module-logic.html"><b>Ship modules</b><span>Why a module shows, fits, costs what it costs, and breaks.</span></a>
+<a href="weapon-logic.html"><b>A gun</b><span>Tags, the three damage numbers, and what a shot costs.</span></a>
+<a href="ship-design.html"><b>Ship designs</b><span>The .design file, its layout, role, warnings and build gate.</span></a>
+<a href="ship-chooser.html"><b>Which ships get built</b><span>Pool, want, budget, rank, pick, place, renew.</span></a>
+<a href="ship-combat.html"><b>Space combat</b><span>Knowing, wanting, choosing, closing, firing, hurting, dying.</span></a>
+<a href="fleet-creation.html"><b>How a fleet forms</b><span>Goal, task, requirement, pool, extract, form, sustain.</span></a>
+<a href="planet-capture.html"><b>Taking a planet</b><span>Who decides, who carries the troops, what the ground fight rolls.</span></a>
+<a href="colonization-ai.html"><b>AI colonization</b><span>Why the AI settles the planet it settles, in plain language.</span></a>
+<a href="time-and-space.html"><b>How far, how long</b><span>Distances and speeds turned into minutes, turns and roles.</span></a>
+</div>
+<h2>Tools <span class="count">6</span></h2>
+<div class="nav">
+<a href="era-explorer.html"><b>The era explorer</b><span>Cuts the tech tree into research-cost bands for one mod and one race.</span></a>
+<a href="ai-test.html"><b>Testing AI behaviour</b><span>A belief about the AI turned into one runnable scenario.</span></a>
+<a href="concept-map.html"><b>The concept map</b><span>Writes docs/concept-map.md &mdash; and re-checks every address later.</span></a>
+<a href="ship-strategy-brief.html"><b>The strategy brief</b><span>Makes the AI ask what the fleet is for before it designs.</span></a>
+<a href="clone-setup.html"><b>Local clone (Windows)</b><span>A checkout that builds, with both submodules.</span></a>
+<a href="clone-setup-linux.html"><b>Local clone (Linux/macOS)</b><span>A checkout for reading and editing &mdash; not for building.</span></a>
+</div>
+<h2>Reference <span class="count">1</span></h2>
+<div class="nav">
+<a href="ship-content-reference.html"><b>Ship content reference</b><span>Every content field, the code that reads it, and the formulas.</span></a>
+</div>
+</aside>
+</div>
+<script>
+const btn = document.getElementById('copy');
+const show = document.getElementById('show');
+const pre = document.getElementById('text');
+const msg = document.getElementById('msg');
+
+function say(t, cls) { msg.className = 'msg' + (cls ? ' ' + cls : ''); msg.innerHTML = t; }
+
+function legacyCopy(t) {
+  const ta = document.createElement('textarea');
+  ta.value = t;
+  ta.setAttribute('readonly', '');
+  ta.style.position = 'fixed';
+  ta.style.top = '-1000px';
+  document.body.appendChild(ta);
+  ta.select();
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+  ta.remove();
+  return ok;
+}
+
+btn.addEventListener('click', async () => {
+  const text = pre.textContent;
+  if (!text.trim()) {
+    say('This page has no prompt text on it.', 'err');
+    return;
+  }
+  let ok = false;
+  if (navigator.clipboard && window.isSecureContext) {
+    try { await navigator.clipboard.writeText(text); ok = true; } catch (e) { ok = false; }
+  }
+  if (!ok) ok = legacyCopy(text);
+  if (!ok) {
+    say('The clipboard is blocked here. Press <b>Show prompt</b> and select the text.', 'err');
+    return;
+  }
+  say('Copied ' + text.length.toLocaleString() + ' characters. Paste the whole file, then ask your question.', 'ok');
+  const label = btn.textContent;
+  btn.textContent = 'Copied \u2713';
+  setTimeout(() => { btn.textContent = label; }, 2000);
+});
+
+show.addEventListener('click', () => {
+  pre.hidden = !pre.hidden;
+  show.textContent = pre.hidden ? 'Show prompt' : 'Hide prompt';
+  say('');
+});
+</script></body></html>

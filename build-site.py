@@ -12,6 +12,7 @@ Edit the table here, not the generated HTML.
 
 import html
 import pathlib
+import re
 import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
@@ -486,6 +487,58 @@ def sidebar(prefix):
     return "\n".join(out)
 
 
+def moddable_section():
+    """The content guide's block on the landing page.
+
+    The counts are read back out of the generated hub instead of being written here, so the landing
+    page cannot quote a coverage figure the guide no longer has. With no hub beside this script the
+    block degrades to the paragraph and the link.
+    """
+    try:
+        hub = (HERE / "moddable-content.html").read_text(encoding="utf-8")
+    except OSError:
+        hub = ""
+
+    facts = {}
+    for key in ("families", "content files", "tags described", "sections", "generated from"):
+        m = re.search(re.escape(key) + r": <b>(.*?)</b>", hub)
+        if m:
+            facts[key] = m.group(1)
+    rows = re.findall(
+        r'<a class="card" href="moddable/([\w-]+)\.html"><span class="ct">(.*?)</span>'
+        r'<span class="cb">(.*?)</span><span class="cf">(.*?)</span></a>', hub)
+
+    factline = ""
+    if facts:
+        factline = ('<div class="facts">'
+                    + "".join(f"<span>{k}: <b>{v}</b></span>" for k, v in facts.items())
+                    + "</div>")
+    table = ""
+    if rows:
+        table = ("<table>\n<tr><th>section</th><th>what it covers</th><th>size</th></tr>\n"
+                 + "".join(f'<tr><td><a href="moddable/{cid}.html">{title}</a></td>'
+                           f'<td>{blurb}</td><td>{meta}</td></tr>'
+                           for cid, title, blurb, meta in rows)
+                 + "\n</table>")
+
+    total = facts.get("content files", "the whole content tree")
+    return f"""
+<h2>What a mod can replace</h2>
+<p>Every file family and every structured tag under <code>game/Content</code>, split into seven
+sections the way a modder works. A card opens from one sentence to how the value behaves, then to the
+tag, the unit, the formula and the values vanilla actually uses. The generator indexes
+<code>Ship_Game</code> for the field behind every key and counts the places that read it, so a key
+that nothing consumes says so on the card instead of being given an invented function.</p>
+{factline}
+{table}
+<p class="note">The expensive prompt: a deep answer reads hundreds of content files plus the C# that
+loads them, and a full pass reads all {total}. It says so before it starts and offers one section or
+one family; these pages already hold the generated values, which is the cheap way to look one up.</p>
+<p><a class="btn primary" href="moddable-content.html">Open the content guide</a>
+<a class="btn" href="prompts/moddable-content.html">The prompt</a></p>
+"""
+
+
 INDEX_BAR = (
     '<a class="btn primary" href="weapon-tech-human.html">Era map &mdash; Human</a>\n'
     '<a class="btn primary" href="#prompts">The 20 prompts</a>\n'
@@ -570,6 +623,8 @@ ten chains with the hull that mounts each peak, and the M2 era grid.</span></div
 and wins, and a race's secret, free and hidden techs change the ladder before any cost is quoted.
 Nothing on these pages is fetched at runtime, so a page that is out of date is out of date in the
 file.</p>
+
+{moddable_section()}
 
 <h2>The kit &mdash; {len(PROMPTS)} prompts</h2>
 <p>Each entry in the sidebar is a prompt you paste into a chat that has this repository in front of it.

@@ -99,6 +99,19 @@ def main():
     pages = sorted(p.name for p in SECTIONS.glob("*.html")) if SECTIONS.exists() else []
     check(len(pages) == 7, f"seven section pages under docs/kit/moddable/ (found {len(pages)})")
 
+    # The landing page must point at the guide, and quote the hub's counts rather than its own.
+    index = HERE / "index.html"
+    if HUB.exists() and index.exists():
+        idx = index.read_text(encoding="utf-8")
+        hub_text = HUB.read_text(encoding="utf-8")
+        linked = re.findall(r'href="moddable/([\w-]+)\.html"', idx)
+        check(sorted(set(linked)) == sorted(p[:-5] for p in pages),
+              f"the landing page links all seven section pages (found {len(set(linked))})")
+        for label in ("content files", "tags described", "families"):
+            m = re.search(re.escape(label) + r": <b>([\d,]+)</b>", hub_text)
+            check(bool(m) and m.group(1) in idx,
+                  f"the landing page quotes the hub's {label} count ({m.group(1) if m else '?'})")
+
     # The generator itself: run it from the repo root as the prompt tells an assistant to.
     proc = subprocess.run([sys.executable, str(GENERATOR), "--audit"], cwd=str(REPO),
                           capture_output=True, text=True)

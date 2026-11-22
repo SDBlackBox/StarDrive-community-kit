@@ -121,6 +121,25 @@ and wins, and a race's secret, free and hidden techs change the ladder before an
 Nothing on these pages is fetched at runtime, so a page that is out of date is out of date in the
 file.</p>
 
+
+<h2>What a mod can replace</h2>
+<p>Every file family and every structured tag under <code>game/Content</code>, split into seven
+sections the way a modder works. A card opens from one sentence to how the value behaves, then to the
+tag, the unit, the formula and the values vanilla actually uses. The generator indexes
+<code>Ship_Game</code> for the field behind every key and counts the places that read it, so a key
+that nothing consumes says so on the card instead of being given an invented function.</p>
+<div class="facts"><span>families: <b>45</b></span><span>content files: <b>5,735</b></span><span>tags described: <b>1065</b></span><span>sections: <b>7</b></span><span>generated from: <b>ef406fa04</b></span></div>
+<table>
+<tr><th>section</th><th>what it covers</th><th>size</th></tr>
+<tr><td><a href="moddable/game-options.html">General game options</a></td><td>The numbers a new game starts from, and the AI&#x27;s own spending rules.</td><td>4 families &middot; 4 files &middot; 99 tags</td></tr><tr><td><a href="moddable/map-creation.html">Map creation and solar systems</a></td><td>How a galaxy is generated, and how hand-placed systems fit beside it.</td><td>6 families &middot; 43 files &middot; 85 tags</td></tr><tr><td><a href="moddable/ships.html">Ships, modules and designs</a></td><td>The hull grid, the modules that fill it, the weapons they point at, and the saved layouts.</td><td>6 families &middot; 1,778 files &middot; 264 tags</td></tr><tr><td><a href="moddable/tech.html">Tech tree and research</a></td><td>What each node costs, what it opens, and the weights that make some areas cheaper.</td><td>3 families &middot; 192 files &middot; 88 tags</td></tr><tr><td><a href="moddable/races-diplomacy.html">Races, diplomacy and events</a></td><td>Who the empires are, what they are like, and what they say when they meet you.</td><td>6 families &middot; 152 files &middot; 258 tags</td></tr><tr><td><a href="moddable/colonies.html">Colonies, economy and ground war</a></td><td>What colonies build, what troops and goods do, and what an edict or a relic changes.</td><td>6 families &middot; 141 files &middot; 132 tags</td></tr><tr><td><a href="moddable/ui-assets.html">UI modding and assets</a></td><td>Screens, the main menu, text ids, and the files that must exist even in a total conversion.</td><td>14 families &middot; 3,425 files &middot; 139 tags</td></tr>
+</table>
+<p class="note">The expensive prompt: a deep answer reads hundreds of content files plus the C# that
+loads them, and a full pass reads all 5,735. It says so before it starts and offers one section or
+one family; these pages already hold the generated values, which is the cheap way to look one up.</p>
+<p><a class="btn primary" href="moddable-content.html">Open the content guide</a>
+<a class="btn" href="prompts/moddable-content.html">The prompt</a></p>
+
+
 <h2>The kit &mdash; 20 prompts</h2>
 <p>Each entry in the sidebar is a prompt you paste into a chat that has this repository in front of it.
 They are not wiki pages: they ask what you already know, read named files, answer from symbols rather

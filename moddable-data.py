@@ -10,7 +10,7 @@ allowed; 3 = the field, formula or file a modder would quote. There is no level 
 """
 
 G = lambda title, l1, l2, l3, tags: dict(title=title, l1=l1, l2=l2, l3=l3, tags=tags)
-T = lambda name, ty, l1, l2="", l3="": dict(name=name, ty=ty, l1=l1, l2=l2, l3=l3)
+T = lambda name, ty, l1, l2="", l3="", **kw: dict(name=name, ty=ty, l1=l1, l2=l2, l3=l3, **kw)
 
 FAMILIES = [
 

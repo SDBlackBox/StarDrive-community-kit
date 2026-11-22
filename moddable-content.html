@@ -143,7 +143,10 @@ it shows the files and the values they set, and says that the unit, bounds and f
 not documented, rather than presenting a restated value as an explanation. Where the family notes,
 the worked example or the section introduction already discuss the tag, the card links there
 instead of repeating them; where nothing on the page does, it says so and marks that the card has no
-level-2 summary either.</p>
+level-2 summary either. A key inside an enum-keyed map such as <code>ShipCostModifiers</code> is not a
+field at all: its card names the map, the declared type and the member names the loader accepts, and
+quotes the file's own comment where one exists, because a name that resolves to an enum has no field
+whose readers could be counted.</p>
 <p class="note-p">Coverage is measured per family: each one ends with the tags it contains that no entry
 above names. A tag listed there is a warning, not an instruction. <code>GameText.yaml</code> and
 <code>Codex*.yaml</code> are id-to-text maps and are intentionally not enumerated key by key.</p>

@@ -73,12 +73,13 @@ KEY_VALUE = re.compile(r"(?m)^\s*([A-Za-z_][\w]*)\s*[=:]\s*(.*?)\s*$")
 
 
 def harvest(fam, files):
-    """(counts per tag, quotable samples per tag) in one pass per family.
+    """(counts per tag, quotable samples per tag, comment above a YAML key).
 
     Every occurrence counts, so coverage matches the old tag scan; only short single-line values
-    are kept as samples, because an "In vanilla" line cannot quote a paragraph.
+    are kept as samples, because an "In vanilla" line cannot quote a paragraph. The comment above
+    a YAML key is often the only statement of what the value means, so it is kept too.
     """
-    counts, samples = {}, {}
+    counts, samples, comments = {}, {}, {}
     roots = set(fam.get("roots", []))
     for f in files:
         suf = f.suffix.lower()
@@ -93,6 +94,23 @@ def harvest(fam, files):
             pairs = XML_VALUE.findall(text)
         else:
             pairs = [(m.group(1), m.group(2)) for m in KEY_VALUE.finditer(text)]
+        if suf == ".yaml":
+            pending, gap = [], 0
+            for line in text.splitlines():
+                s = line.strip()
+                if s.startswith("#"):
+                    pending.append(s.lstrip("#").strip())
+                    gap = 0
+                elif not s:
+                    gap += 1
+                    if gap > 1:
+                        pending = []
+                else:
+                    m = re.match(r'\s*([A-Za-z_]\w*)\s*:', line)
+                    if m and pending:
+                        comments.setdefault(m.group(1),
+                                            (rel, " ".join(p for p in pending if p)[:700]))
+                    pending, gap = [], 0
         for name, value in pairs:
             if name in roots or name == "string" or name.startswith("ArrayOf"):
                 continue
@@ -102,7 +120,7 @@ def harvest(fam, files):
                 value = re.sub(r"\s+#.*$", "", value).strip()
             if value and len(value) <= 48:
                 samples.setdefault(name, []).append((rel, value))
-    return counts, samples
+    return counts, samples, comments
 
 
 def documented(fam):
@@ -387,8 +405,10 @@ def code_index():
     if CODE is None:
         fields, strings, enums, members, tokens = {}, set(), {}, {}, set()
         reads = {}
+        # The type may contain spaces inside generics (`Map<ShipCosts, float>`); without that a map
+        # field is invisible and the key that binds into it looks unread.
         decl = re.compile(r'^\s*(?:\[[^\]]*\]\s*)*(?:public|protected|internal)\s+'
-                          r'(?:readonly\s+|static\s+)*([\w<>\[\],\.\?]+)\s+(\w+)\s*(?:[;={])')
+                          r'(?:readonly\s+|static\s+)*([\w<>\[\],\.\?\s]+?)\s+(\w+)\s*(?:[;={])')
         enum_re = re.compile(r'\benum\s+(\w+)\s*(?::\s*\w+)?\s*\{(.*?)\}', re.S)
         ident = re.compile(r'[A-Za-z_]\w*')
         paths = list((REPO / "Ship_Game").rglob("*.cs"))
@@ -414,7 +434,7 @@ def code_index():
                     mm = re.match(r'\s*(\w+)\s*(?:=\s*(.+))?$', part.strip())
                     if mm:
                         vals.append((mm.group(1), (mm.group(2) or "").strip()))
-                        members.setdefault(mm.group(1), m.group(1))
+                        members.setdefault(mm.group(1), set()).add(m.group(1))
                 enums.setdefault(m.group(1), vals)
         # A declaration is not a reader: a field nobody uses outside its own declaration cannot
         # change anything, and a key bound to it is as inert as one with no field at all.
@@ -477,13 +497,21 @@ def evidence_for(t, fam):
             out += ('. <b>No code outside the declaration reads it</b>, so a file may set the key but '
                     'changing it cannot change the game')
         return out + '.</p>'
-    owner_enum = idx["members"].get(leaf)
-    if owner_enum:
-        vals = idx["enums"].get(owner_enum) or []
-        listed = ", ".join(f'<code>{escape(v)}</code>' for v, _ in vals)
-        return (f'<p class="where"><b>Not a field: an enum value.</b> The name is a member of '
-                f'<code>{escape(owner_enum)}</code>, whose members the code declares: {listed}. A key '
-                'holding this name is read as that member, not as a setting.</p>')
+    owner_enums = sorted(idx["members"].get(leaf) or ())
+    if owner_enums:
+        # `Support` and `Bomber` are members of several enums; naming whichever came first would
+        # attribute the key to an unrelated type, which is worse than saying it is ambiguous.
+        if len(owner_enums) == 1:
+            who = f'a member of <code>{escape(owner_enums[0])}</code>'
+        else:
+            listed = ", ".join(f'<code>{escape(e)}</code>' for e in owner_enums[:4])
+            if len(owner_enums) > 4:
+                listed += f" and {len(owner_enums) - 4} more"
+            who = (f'a member of {len(owner_enums)} enums the code declares ({listed}), and nothing '
+                   'here ties the key to one of them')
+        return (f'<p class="where"><b>Not a field: an enum member.</b> The name is {who}. A key that '
+                'sets an enum is resolved by the loader as that name, so the map it lands in is the '
+                'thing to read, not a field of this name.</p>')
     if leaf in idx["strings"] or leaf in idx["tokens"]:
         return ('<p class="where"><b>No field of this name.</b> The name occurs in the code but not as '
                 'a field or property, so something may read it through a lookup; nothing here has '
@@ -491,6 +519,77 @@ def evidence_for(t, fam):
     return ('<p class="where"><b>No reader.</b> No field, property, enum member, string or identifier '
             'in the build matches this name, so nothing consumes the key: the content may write it, '
             'but changing it cannot change the game.</p>')
+
+
+ENUM_MAP = {}
+
+
+def enum_map_field(enum):
+    """The field declared `Map<enum, …>`: where a key of this enum lands at load time."""
+    if enum not in ENUM_MAP:
+        # Several maps can be keyed by one enum: `WeaponTags` in EmpireData holds modifiers, not the
+        # content weights, so the float-valued map is the one a Research.yaml key lands in.
+        strict = re.compile(r'\bMap<\s*' + re.escape(enum) + r'\s*,\s*float\s*>')
+        loose = re.compile(r'\bMap<\s*' + re.escape(enum) + r'\s*,')
+        ENUM_MAP[enum] = None
+        for pat in (strict, loose):
+            for name, cands in code_index()["fields"].items():
+                for c in cands:
+                    if pat.search(c[1]):
+                        ENUM_MAP[enum] = (name, c)
+                        break
+                if ENUM_MAP[enum]:
+                    break
+            if ENUM_MAP[enum]:
+                break
+    return ENUM_MAP[enum]
+
+
+def key_evidence(t):
+    """A key of an enum-keyed map: the fields it binds into and the names the loader accepts.
+
+    `ShipCostModifiers` is `Map<ShipCosts, float>`, so its keys are enum names the loader resolves,
+    not fields. Looking the name up as a field finds nothing, and looking it up as an enum member
+    can find an unrelated enum of the same name. The map declaration is the only honest trace, and
+    a name such as `GroundCombat` sits in three different maps, so all of them are listed.
+    """
+    keys = t.get("key") or ()
+    if isinstance(keys, str):
+        keys = (keys,)
+    idx = code_index()
+    maps, accepted, all_names, primary = [], [], set(), None
+    for enum in keys:
+        vals = idx["enums"].get(enum) or []
+        if not vals:
+            continue
+        names = [v for v, _ in vals]
+        all_names.update(names)
+        found = enum_map_field(enum)
+        if found:
+            field, (cls, ty, rel, line) = found
+            maps.append(f'<code>{escape(cls)}.{escape(field)}</code> '
+                        f'(<code>{escape(ty)}</code> at <code>{escape(rel)}:{line}</code>)')
+            if primary is None:
+                primary = field
+        else:
+            maps.append(f'an unnamed <code>Map&lt;{escape(enum)}, …&gt;</code>')
+        accepted.append(f'<code>{escape(enum)}</code>: '
+                        + ", ".join(f'<code>{escape(v)}</code>' for v in names))
+    if not accepted:
+        return ""
+    out = [f'<p class="where"><b>Key of</b> ' + "; ".join(maps) + '. The loader resolves the name as '
+           'an enum member, so the only names these maps read are ' + "; ".join(accepted) + '.']
+    if primary:
+        n, first = reads_of(primary)
+        if n:
+            out.append(f' <b>Referenced</b> in {n} place{"s" if n != 1 else ""} outside the '
+                       f'declaration, the first at <code>{escape(first)}</code>')
+    out.append('</p>')
+    if t["name"] not in all_names:
+        out.append(f'<p class="where"><b>Not one of them.</b> <code>{escape(t["name"])}</code> is not '
+                   'a member of any of those enums, so the loader does not read this key as a '
+                   'setting.</p>')
+    return "".join(out)
 
 
 def _mentions(text, name):
@@ -522,9 +621,10 @@ def explained_elsewhere(name, fam, group, sec):
     return ""
 
 
-def render_tag(t, stats, span="", elsewhere="", evidence=""):
+def render_tag(t, stats, span="", elsewhere="", evidence="", keyed=False, quote=("", "")):
     detail = detail_of(t)
-    badge = "" if detail else '<span class="pill idx">values only</span>'
+    # A key of an enum-keyed map is traced through the map, so it is not a values-only card.
+    badge = "" if detail or keyed else '<span class="pill idx">values only</span>'
     out = [f'<details class="tag"><summary><span class="nm">{escape(t["name"])}</span>'
            f'<span class="ty">{escape(t["ty"])}</span>{badge}'
            f' <span class="l1">{escape(t["l1"])}</span></summary>']
@@ -537,22 +637,26 @@ def render_tag(t, stats, span="", elsewhere="", evidence=""):
     # Even a card with no prose, no values and no level-2 summary gets this block: the absence
     # has to be visible, or the card reads as if nothing were missing.
     label = ("Level 3 &mdash; the detail" if detail
+             else "Level 3 &mdash; the key and its map" if keyed
              else "Level 3 &mdash; the values, and what is missing")
     out.append(f'<details class="lv3"><summary>{label}</summary><div class="in">')
     if detail:
         out.append(f'<p>{escape(detail)}</p>')
+    elif quote[1]:
+        out.append(f'<p class="where"><b>The file explains it.</b> <code>{escape(quote[0])}</code> has '
+                   f'this comment above the key: &ldquo;{escape(quote[1])}&rdquo;</p>')
     elif elsewhere:
         out.append(f'<p class="note-p"><b>Explained elsewhere:</b> {elsewhere}. There is still no '
                    'traced reader on this card, so the unit and the behaviour at 0 or an extreme '
                    'value are not stated here.</p>')
-    else:
+    elif not keyed:
         out.append('<p class="note-p"><b>Not explained anywhere in this guide yet.</b> The line below '
                    'says whether the code reads the key at all; neither it nor this card gives a unit, '
                    'a bound or a failure symptom. Start from a vanilla file, change one value, then '
                    'try 0 and the extremes and watch what the game does.</p>')
     if evidence:
         out.append(evidence)
-    if not t["l2"]:
+    if not t["l2"] and not keyed:
         out.append('<p class="note-p">This card also has no level-2 summary: nothing beyond the one '
                    'sentence above has been written for this tag.</p>')
     if stats:
@@ -562,7 +666,8 @@ def render_tag(t, stats, span="", elsewhere="", evidence=""):
     return "".join(out)
 
 
-def render_family(fam, count, seen, samples, pats, sec=None):
+def render_family(fam, count, seen, samples, pats, sec=None, comments=None):
+    comments = comments or {}
     extra = {k: v for k, v in seen.items() if not is_documented(k, pats)}
     by_lower = {k.lower(): v for k, v in samples.items()}
     tier = fam["tier"]
@@ -598,16 +703,24 @@ def render_family(fam, count, seen, samples, pats, sec=None):
                 t.get("vanilla") or (stat_line(entries, t["name"], fam["fmt"])
                                      if entries else ""))
             span = "" if t.get("range") else span_of(entries, t.get("ty", ""))
-            ex, ev = "", ""
+            ex, ev, quote = "", "", ("", "")
+            keyed = False
             if not detail_of(t):
-                ex = explained_elsewhere(t["name"], fam, g, sec)
-                ev = evidence_for(t, fam)
-                UNTRACED["explained" if ex else "not"] += 1
-                if not ex:
-                    NOT_EXPLAINED["field" if field_of(t["name"], fam.get("roots") or ()) else "nofield"] += 1
-                if not t["l2"]:
-                    NO_L2[0] += 1
-            o.append("<li>" + render_tag(t, st, span, ex, ev) + "</li>")
+                if t.get("key"):
+                    ev = key_evidence(t)
+                    keyed = bool(ev)
+                if keyed:
+                    quote = comments.get(t["name"], ("", ""))
+                    UNTRACED["keyed"] = UNTRACED.get("keyed", 0) + 1
+                else:
+                    ex = explained_elsewhere(t["name"], fam, g, sec)
+                    ev = evidence_for(t, fam)
+                    UNTRACED["explained" if ex else "not"] += 1
+                    if not ex:
+                        NOT_EXPLAINED["field" if field_of(t["name"], fam.get("roots") or ()) else "nofield"] += 1
+                    if not t["l2"]:
+                        NO_L2[0] += 1
+            o.append("<li>" + render_tag(t, st, span, ex, ev, keyed, quote) + "</li>")
         o.append("</ul></div></details>")
 
     if extra:
@@ -741,11 +854,11 @@ def main():
     rows = {}
     for f in fams:
         fs = files_of(f)
-        seen_counts, samples = harvest(f, fs)
+        seen_counts, samples, comments = harvest(f, fs)
         pats = documented(f)
         total_files += len(fs)
         total_tags += sum(len(g["tags"]) for g in f["groups"])
-        rows[f["id"]] = (f, len(fs), seen_counts, samples, pats)
+        rows[f["id"]] = (f, len(fs), seen_counts, samples, pats, comments)
 
     # Hub
     cards = []
@@ -793,7 +906,10 @@ it shows the files and the values they set, and says that the unit, bounds and f
 not documented, rather than presenting a restated value as an explanation. Where the family notes,
 the worked example or the section introduction already discuss the tag, the card links there
 instead of repeating them; where nothing on the page does, it says so and marks that the card has no
-level-2 summary either.</p>
+level-2 summary either. A key inside an enum-keyed map such as <code>ShipCostModifiers</code> is not a
+field at all: its card names the map, the declared type and the member names the loader accepts, and
+quotes the file's own comment where one exists, because a name that resolves to an enum has no field
+whose readers could be counted.</p>
 <p class="note-p">Coverage is measured per family: each one ends with the tags it contains that no entry
 above names. A tag listed there is a warning, not an instruction. <code>GameText.yaml</code> and
 <code>Codex*.yaml</code> are id-to-text maps and are intentionally not enumerated key by key.</p>
@@ -824,8 +940,7 @@ content or prose; do not hand-edit this page.</p>
 <details class="lv3" open><summary>Level 3 &mdash; how this section works</summary>
 <div class="in"><p>{escape(s["l3"])}</p>{s.get("notes", "")}</div></details>
 <h2>Families in this section</h2>
-<p class="toc">{toc}</p>
-{''.join(render_family(r[0], r[1], r[2], r[3], r[4], s) for r in srows)}
+<p class="toc">{toc}</p>        {''.join(render_family(r[0], r[1], r[2], r[3], r[4], s, r[5]) for r in srows)}
 <p class="foot">Generated by <code>docs/kit/build-moddable.py</code> from <code>game/Content</code> at
 <code>{escape(commit)}</code>. <a href="../moddable-content.html">Back to the hub</a>.</p>
 </div>"""
@@ -867,7 +982,8 @@ content or prose; do not hand-edit this page.</p>
     print(f"  untraced cards: {UNTRACED['explained'] + UNTRACED['not']} "
           f"(explained in prose above: {UNTRACED['explained']}, not explained anywhere: {UNTRACED['not']} "
           f"= {NOT_EXPLAINED['field']} with a field in the code + {NOT_EXPLAINED['nofield']} with no field); "
-          f"of those, cards with no level-2 summary: {NO_L2[0]}")
+          f"of those, cards with no level-2 summary: {NO_L2[0]}; "
+          f"enum-map keys traced through their map: {UNTRACED.get('keyed', 0)}")
     print(f"  fields declared but never read outside the declaration: {UNREAD[0]}")
     print(f"  conformance: prose level 3 {total_tags - len(skeletons)}/{total_tags}; "
           f"level 2 under two sentences {thin_l2}/{total_tags}; "
@@ -884,7 +1000,7 @@ content or prose; do not hand-edit this page.</p>
         for fid, name in numeric_no_range[:20]:
             print(f"    {fid:16s} {name}")
     for fid in sorted(rows):
-        f, n, seen_counts, _, pats = rows[fid]
+        f, n, seen_counts, _, pats, _ = rows[fid]
         extra = sorted(k for k in seen_counts if not is_documented(k, pats))
         if extra:
             print(f"  {fid:16s} files={n:5d} seen={len(seen_counts):3d} undescribed={len(extra):3d}"

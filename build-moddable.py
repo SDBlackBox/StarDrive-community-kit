@@ -621,6 +621,104 @@ def explained_elsewhere(name, fam, group, sec):
     return ""
 
 
+AUDIT = []
+KNOWN_FILE = HERE / "moddable-audit-known.txt"
+AUDIT_FILE = HERE / "moddable-audit.txt"
+
+
+def audit_add(sec, fam, t, cls, code, msg, ev=""):
+    AUDIT.append(dict(id=f'{sec}/{fam["id"]}/{t["name"]}', cls=cls, code=code, msg=msg, ev=ev))
+
+
+def classify(t, fam, entries=()):
+    """(class, code, message, evidence) for a card with no authored level 3, or None.
+
+    Only relationships the index can prove are checked. A level-3 that was written by hand is not
+    re-checked here: whether its bound is the right bound needs a reader, and pretending a string
+    check could decide it is how a guide ends up confident and wrong.
+    """
+    if detail_of(t):
+        return None
+    name = t["name"]
+    leaf = name.rsplit(".", 1)[-1]
+    idx = code_index()
+    keys = t.get("key") or ()
+    if isinstance(keys, str):
+        keys = (keys,)
+    if keys:
+        missing = [k for k in keys if k not in idx["enums"]]
+        if missing:
+            return ("violation", "key-unknown-enum",
+                    f'key names no enum in the code: {", ".join(missing)}', f'key={",".join(keys)}')
+        allowed = set()
+        for k in keys:
+            allowed.update(v for v, _ in idx["enums"][k])
+        if name not in allowed:
+            return ("violation", "key-not-a-member",
+                    f'{name} is not a member of {", ".join(keys)}', f'key={",".join(keys)}')
+        if not any(enum_map_field(k) for k in keys):
+            return ("finding", "key-no-map", "no Map<enum, ...> field reads this enum",
+                    f'key={",".join(keys)}')
+        return None
+    fi = field_of(name, fam.get("roots") or ())
+    members = sorted(idx["members"].get(leaf) or ())
+    if fi:
+        cls, ty, rel, line = fi
+        n, first = reads_of(leaf)
+        if not n:
+            return ("finding", "inert-field", "declared but nothing outside the declaration reads it",
+                    f"{cls}.{leaf} at {rel}:{line}")
+        if not (t["l2"] or "").strip():
+            return ("finding", "no-l2", "no level-2 summary", f"{cls}.{leaf} at {rel}:{line}")
+        return None
+    if members and str(fam.get("fmt", "")).upper().startswith("YAML") \
+            and any(re.fullmatch(r"-?\d+(?:\.\d+)?", v.strip()) for _, v in entries) \
+            and any(enum_map_field(e) for e in members):
+        # A YAML key that is one float, is a member of an enum some Map<Enum, float> reads, and is
+        # not annotated with key= is the shape that produced a card claiming Support belonged to
+        # GameText. A name that merely equals an enum value elsewhere (FireArc, Tutorials) is not.
+        return ("violation", "enum-name-unclaimed",
+                "name is an enum member but the card claims no map", f'enums={",".join(members[:4])}')
+    if leaf in idx["strings"] or leaf in idx["tokens"]:
+        return None
+    return ("finding", "no-reader", "no field, enum member, string or identifier matches this name", "")
+
+
+def report_audit():
+    """Write the log the next pass reads, and fail under --audit while a contradiction survives.
+
+    Findings are a backlog, not a gate: 900 hardcoded cards cannot be authored in one pass. A
+    violation is the page disagreeing with the code, and that is what must reach zero.
+    """
+    known = {}
+    if KNOWN_FILE.exists():
+        for line in KNOWN_FILE.read_text(encoding="utf-8").splitlines():
+            if not line.strip() or line.startswith("#"):
+                continue
+            parts = line.split("\t")
+            if len(parts) >= 2:
+                known[parts[0]] = parts[1]
+    for a in AUDIT:
+        if a["cls"] == "finding" and a["id"] in known:
+            a["cls"] = "known"
+    AUDIT.sort(key=lambda a: (a["cls"] != "violation", a["id"], a["code"]))
+    viol = [a for a in AUDIT if a["cls"] == "violation"]
+    new = [a for a in AUDIT if a["cls"] == "finding"]
+    kn = [a for a in AUDIT if a["cls"] == "known"]
+    lines = [f"# violations {len(viol)} | findings {len(new)} | known {len(kn)}"]
+    for a in viol + new + kn:
+        lines.append(f'{a["id"]}\t{a["cls"]}\t{a["code"]}\t{a["msg"]}\t{a["ev"]}')
+    AUDIT_FILE.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    print(f"  audit log: {AUDIT_FILE.relative_to(REPO)} — violations {len(viol)}, "
+          f"findings {len(new)}, known {len(kn)}")
+    for a in viol[:20]:
+        print(f"    VIOLATION {a['id']}: {a['code']} — {a['msg']}")
+    if len(viol) > 20:
+        print(f"    ... {len(viol) - 20} more violations in the log")
+    if viol and "--audit" in sys.argv:
+        sys.exit(1)
+
+
 def render_tag(t, stats, span="", elsewhere="", evidence="", keyed=False, quote=("", "")):
     detail = detail_of(t)
     # A key of an enum-keyed map is traced through the map, so it is not a values-only card.
@@ -720,6 +818,9 @@ def render_family(fam, count, seen, samples, pats, sec=None, comments=None):
                         NOT_EXPLAINED["field" if field_of(t["name"], fam.get("roots") or ()) else "nofield"] += 1
                     if not t["l2"]:
                         NO_L2[0] += 1
+            found = classify(t, fam, entries)
+            if found:
+                audit_add(sec["id"] if sec else fam["id"], fam, t, *found)
             o.append("<li>" + render_tag(t, st, span, ex, ev, keyed, quote) + "</li>")
         o.append("</ul></div></details>")
 
@@ -988,6 +1089,7 @@ content or prose; do not hand-edit this page.</p>
     print(f"  conformance: prose level 3 {total_tags - len(skeletons)}/{total_tags}; "
           f"level 2 under two sentences {thin_l2}/{total_tags}; "
           f"numeric tags with no Allowed range {len(numeric_no_range)}")
+    report_audit()
     if "--audit" in sys.argv:
         for fid, label, n, text in sorted(over, key=lambda r: -r[2])[:60]:
             print(f"    {n}  {fid:16s} {label:28s} {text}")

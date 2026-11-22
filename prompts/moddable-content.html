@@ -65,7 +65,7 @@ pre#text{background:var(--panel);border:1px solid var(--line);border-radius:6px;
 <p>A checkout for the prompt. The rendered reference starts at <a href="../moddable-content.html">moddable-content.html</a>; rebuild hub and sections with <code>python3 docs/kit/build-moddable.py --audit</code>. The existing pages are the cheap path: they already hold the generated values for every family.</p>
 
 <h2>The prompt</h2>
-<p class="note">22,926 characters, copied verbatim from <code>moddable-content-explainer-prompt.md</code> at
+<p class="note">23,693 characters, copied verbatim from <code>moddable-content-explainer-prompt.md</code> at
 build time. Copy takes the whole file, because that is what the prompt expects you to paste.</p>
 <pre id="text" hidden># The moddable content guide — a copy-paste interactive prompt
 
@@ -320,6 +320,9 @@ STEP 4 — the things you must get right
   saying a negative is allowed; otherwise state the accepted range and stop.
 - A dead field says only &quot;This item has no function in game.&quot; Do not add why it is dead or what it
   might have done.
+- A key that is an enum member is not a field, and must not be described as one. Say which map it
+  lands in, list the names that map accepts, quote the file&#x27;s own comment when one exists, and state
+  what 0 and a value above 1 do. A card must never name an enum the key does not belong to.
 - A two-number list such as [0, 6] is low then high, and the high end is exclusive when randomized.
   Say which number is used when randomization is off, and give the counts that result.
 - The main menu is the worked example for UI modding: MainMenus.yaml picks a layout and scene; the
@@ -348,6 +351,10 @@ first content edit, and 5,000-odd files cannot be transcribed by reading them on
      long-form notes, moddable-sections.py for the section pages and their introductions.
    - a --audit flag that prints, at minimum, the number of cards, the cards with no prose level 3,
      and the level-3 entries over five sentences, so the gap is countable after every rebuild.
+   - an audit log the next pass reads: one line per card that needs work, with its class
+     (contradiction or backlog), the reason and the file:line evidence, written to
+     docs/kit/moddable-audit.txt. Contradictions reach zero before the page is published; the
+     backlog is what the next session works through.
    Run the script, fix it until it runs clean, and report the command, the files it wrote and its
    counts. Do not paste HTML into a file and call that the page.
 Split by section, never by dropping entries. A single page with every tag is slow to scan but not
@@ -381,6 +388,8 @@ Check the answer against this list and fix it before you show me:
   - A field whose meaning is not documented is marked as an index entry and says so; it was not
     filled with a restated value such as &quot;Vanilla 7.&quot; under a heading that promises detail.
   - A dead field says only &quot;This item has no function in game.&quot;
+  - A key that is an enum member names the map it binds into and the names that map accepts; it was
+    not called a field, and no unrelated enum was named.
   - A range such as [0, 6] was explained number by number, including its use when randomization is off.
   - No level 4, no engine-internals tour, no invented tag.
   - The cost was stated before the first deep answer, with counts measured in this checkout.

@@ -65,6 +65,8 @@ def main():
         ("This item has no function in game.", "a dead key has one fixed sentence"),
         ("no reader found", "an unreadable tag must be reported as such"),
         ("Ship_Game", "the block says the C# is read too"),
+        ("audit log", "the block requires a log, not just printed counts"),
+        ("enum member", "the block says an enum-keyed name is not a field"),
     ]
     for phrase, why in required:
         check(phrase in block, f"block contains {phrase!r} — {why}")
@@ -127,6 +129,12 @@ def main():
     check("audit: level-3 over" in out, "the build prints the sentence-cap audit")
     check("fields declared but never read outside the declaration" in out,
           "the build separates a declared field from one a reader uses")
+
+    log = HERE / "moddable-audit.txt"
+    check(log.exists(), "audit log exists: docs/kit/moddable-audit.txt")
+    if log.exists():
+        head = log.read_text(encoding="utf-8").splitlines()[0]
+        check("violations 0" in head, f"no contradiction left in the audit log ({head})")
 
     print()
     if failures:

@@ -637,8 +637,6 @@ def classify(t, fam, entries=()):
     re-checked here: whether its bound is the right bound needs a reader, and pretending a string
     check could decide it is how a guide ends up confident and wrong.
     """
-    if detail_of(t):
-        return None
     name = t["name"]
     leaf = name.rsplit(".", 1)[-1]
     idx = code_index()
@@ -657,8 +655,12 @@ def classify(t, fam, entries=()):
             return ("violation", "key-not-a-member",
                     f'{name} is not a member of {", ".join(keys)}', f'key={",".join(keys)}')
         if not any(enum_map_field(k) for k in keys):
-            return ("finding", "key-no-map", "no Map<enum, ...> field reads this enum",
+            return ("violation", "key-no-map", "no Map<enum, ...> field reads this enum",
                     f'key={",".join(keys)}')
+        return None
+    # A keyed card is checked even when prose was written for it: the map is the evidence, and an
+    # authored paragraph is exactly where an unattributed key hides.
+    if detail_of(t):
         return None
     fi = field_of(name, fam.get("roots") or ())
     members = sorted(idx["members"].get(leaf) or ())
@@ -803,14 +805,16 @@ def render_family(fam, count, seen, samples, pats, sec=None, comments=None):
             span = "" if t.get("range") else span_of(entries, t.get("ty", ""))
             ex, ev, quote = "", "", ("", "")
             keyed = False
-            if not detail_of(t):
-                if t.get("key"):
-                    ev = key_evidence(t)
-                    keyed = bool(ev)
-                if keyed:
+            detail = detail_of(t)
+            if t.get("key"):
+                ev = key_evidence(t)
+                keyed = bool(ev)
+            if keyed:
+                # The map is the reader, so it is shown on every keyed card, prose or not.
+                UNTRACED["keyed"] = UNTRACED.get("keyed", 0) + 1
+                if not detail:
                     quote = comments.get(t["name"], ("", ""))
-                    UNTRACED["keyed"] = UNTRACED.get("keyed", 0) + 1
-                else:
+            elif not detail:
                     ex = explained_elsewhere(t["name"], fam, g, sec)
                     ev = evidence_for(t, fam)
                     UNTRACED["explained" if ex else "not"] += 1

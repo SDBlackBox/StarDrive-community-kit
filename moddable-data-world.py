@@ -985,12 +985,48 @@ dict(id="planettypes", tier=2, title="Planet types", paths=["PlanetTypes.yaml"],
      l3="WhichPlanet is a PlanetType.Id, not the entry's position: the loader builds a map keyed by Id, so appending a type changes no existing reference.",
      groups=[
  G("Globals", "Meshes and scales shared by all types.", "Paths are relative to Content/.", "NewRenderer is a work-in-progress switch; leave it false.", [
-   T("PlanetScale","float","Base planet scale.","", ""),
-   T("RingsScale","float","Ring scale.","", ""),
-   T("CloudsScale","float","Cloud layer scale.","", ""),
-   T("AtmosphereScale","float","Atmosphere scale.","", ""),
-   T("HaloScale","float","Halo scale.","", ""),
-   T("GlowScale","float","Glow scale.","", ""),
+   T("PlanetScale","float",
+     "The size of every planet in the galaxy, as a multiplier on the shared planet mesh.",
+     "The shared mesh is 100 units across; vanilla's 10 draws each planet 1,000 units across before its own size variation, so this one number sets how large worlds look next to ships, stations and orbits.",
+     "Each planet's visible radius is the mesh's radius times this value times that planet's own size — a generated world adds a random 0.9 to 1.8 to its type's Scale, a homeworld uses the race's homeworld size trait, and a system file that sets a planet scale overrides both — so a replacement mesh of a different size changes what this number means. "
+     "The radius is added to the planet's orbit distance when the system is generated, so raising this value also pushes every body outward by its own planet's radius. "
+     "Reloading the file rescales what is drawn at once, but the stored radius and orbit keep their old size until the system is generated again. "
+     "It leaves the gravity well alone — that follows the per-planet size, not this value — and it changes no population, fertility or mining figure. "
+     "Near 0 every planet collapses to a point while its orbit stays; far above 10 the added radius dominates the orbit spacing, which is where neighbouring worlds start to overlap."),
+   T("RingsScale","float",
+     "How wide a planet's ring disc is, measured against the ring mesh rather than the planet.",
+     "Vanilla's 3 is chosen for the shared ring mesh so the rings come out slightly wider than the planet; a replacement mesh needs its own number.",
+     "Rings are drawn with this scale applied on top of the planet's own scale, so PlanetScale moves the rings with the planet while this value only resizes the disc. "
+     "The disc is tilted by the planet's ring tilt and drawn only when the body has rings; a type without rings ignores the value. "
+     "Nothing else reads it: no orbit, click area or gravity well depends on the disc, so a ring that looks far too wide changes no gameplay. "
+     "A value that draws the disc inside the planet hides its inner edge behind the surface."),
+   T("CloudsScale","float",
+     "How far the cloud layer floats above the planet surface.",
+     "It multiplies the planet's radius: 1.015 is 1.5% wider, enough to keep the clouds off the surface without a visible gap.",
+     "Clouds are drawn only for types whose atmosphere preset supplies a cloud map, and the layer turns at two thirds of the planet's spin. "
+     "The layer is the same sphere mesh as the planet, so this number is the whole gap between cloud and ground. "
+     "At 1 the two surfaces coincide and flicker; below 1 the clouds vanish inside the planet. "
+     "AtmosphereScale and HaloScale are measured from the planet-sized sphere, not from the clouds, so raising this value does not move the haze."),
+   T("AtmosphereScale","float",
+     "How far the blue haze shell sits outside the planet's surface.",
+     "1.03 draws the haze 3% wider than the planet, which reads as a coloured rim at the edges rather than a thick envelope.",
+     "The haze is drawn only when the type has clouds and its atmosphere preset does not switch the sphere off with NoAtmosphere. "
+     "It inverts the planet's own mesh, so it shows near the silhouette and disappears at the centre of the disc; at exactly 1 it is hidden in the surface. "
+     "Its colour and strength come from the preset's glow colour, not from this scale. "
+     "HaloScale is a separate shell with its own key, so widening one does not widen the other."),
+   T("HaloScale","float",
+     "How far the pale halo sits outside the planet, the faint shine on the sunlit edge.",
+     "1.03 puts it 3% wider than the planet, the same shell size as the blue haze; it is drawn only on clouded worlds that do not switch it off.",
+     "The halo needs both a cloud map and an atmosphere preset that does not set NoHalo, so an airless world never shows it. "
+     "It is fainter and tighter than the glow, and its brightness comes from the sun's direction rather than from this number. "
+     "At 1 it lies on the surface and is lost; below 1 it is inside the planet and invisible, so raise it in small steps and watch the limb."),
+   T("GlowScale","float",
+     "How far the coloured glow and its fresnel rim sit outside the planet surface.",
+     "1.005 keeps the glow almost on the surface, so it reads as light coming off the world rather than a separate ring; the colour and strength come from the atmosphere preset.",
+     "The glow is drawn only for a type whose preset sets a glow colour, and it stops being drawn once the camera is more than about 300,000 units away. "
+     "It scales the glow mesh and the fresnel shell together, so the two always line up. "
+     "At 1 or below the glow sinks into the planet and is hidden; raise it only as far as the preset's colour can carry without showing a gap. "
+     "The glow always turns to face the camera, so this size is the only thing that decides how wide the light looks."),
    T("PlanetMesh","string","Shared planet mesh.","", ""),
    T("RingsMesh","string[]","Ring mesh and texture.","", ""),
    T("GlowEffect","string[]","Glow mesh and texture.","", ""),

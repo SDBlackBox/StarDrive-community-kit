@@ -415,6 +415,10 @@ def code_index():
         # field is invisible and the key that binds into it looks unread.
         decl = re.compile(r'^\s*(?:\[[^\]]*\]\s*)*(?:public|protected|internal)\s+'
                           r'(?:readonly\s+|static\s+)*([\w<>\[\],\.\?\s]+?)\s+(\w+)\s*(?:[;={])')
+        # A local declaration of the same name (`const float GlowScale = 0.5f` in another class) is
+        # a different symbol. Counting it would credit the content field with a reader that never
+        # sees it, and the card would name the wrong file.
+        local_decl = re.compile(r'\b(?:const\s+)?(?:float|double|int|uint|bool|string|byte|var)\s+(\w+)\s*[;=]')
         enum_re = re.compile(r'\benum\s+(\w+)\s*(?::\s*\w+)?\s*\{(.*?)\}', re.S)
         ident = re.compile(r'[A-Za-z_]\w*')
         paths = list((REPO / "Ship_Game").rglob("*.cs"))
@@ -449,7 +453,8 @@ def code_index():
             code = strip_comments(p.read_text(encoding="utf-8", errors="ignore"))
             for i, line in enumerate(code.splitlines(), 1):
                 declared = decl_names.get((rel, i), ())
-                for name in set(ident.findall(line)).intersection(fields).difference(declared):
+                local = set(local_decl.findall(line))
+                for name in set(ident.findall(line)).intersection(fields).difference(declared).difference(local):
                     n, first = reads.get(name, (0, ""))
                     reads[name] = (n + 1, first or f"{rel}:{i}")
         CODE = dict(fields=fields, strings=strings, enums=enums, members=members, tokens=tokens,

@@ -324,6 +324,28 @@ PROMPTS = [
         needs="Git and a shell on Linux or macOS. Read and edit only.",
     ),
     dict(
+        slug="moddable-content", file="moddable-content-explainer-prompt.md", group="reference",
+        kind="Reference",
+        short="Moddable content",
+        blurb="Every file family and every tag a mod can replace, in seven sections and three depths.",
+        title="Moddable content &mdash; files, tags and values",
+        lede=("What a mod can replace under <code>game/Content</code>: each file family, what its tags do, "
+              "how override and inheritance resolve, and which files are static furniture the game expects. "
+              "Seven section pages, each entry opening from one sentence to a numeric detail with the values "
+              "vanilla actually uses."),
+        how=[
+            "Sections follow the way a modder works: game options, map creation, ships, tech, races and diplomacy, colonies, UI and assets.",
+            "Level 1 is a sentence, level 2 several on behaviour, level 3 the field, unit, formula, vanilla example and failure symptom.",
+            "Counts, coverage and every In-vanilla value summary are generated from the checkout, so a missing entry or a stale number is visible.",
+            "Token-heavy by design: a deep answer reads hundreds of content files plus the C# that loads them. The prompt states the cost first and offers one section or one family at a time.",
+            "Asking for the local pages produces a rerunnable generator &mdash; <code>build-moddable.py</code> and its data modules &mdash; not a hand-written HTML file.",
+        ],
+        needs=("A checkout for the prompt. The rendered reference starts at "
+               "<a href=\"../moddable-content.html\">moddable-content.html</a>; rebuild hub and sections with "
+               "<code>python3 docs/kit/build-moddable.py --audit</code>. The existing pages are the cheap "
+               "path: they already hold the generated values for every family."),
+    ),
+    dict(
         slug="ship-content-reference", file="ship-content-reference.md", group="reference",
         kind="Reference",
         short="Ship content reference",
@@ -466,7 +488,8 @@ def sidebar(prefix):
 
 INDEX_BAR = (
     '<a class="btn primary" href="weapon-tech-human.html">Era map &mdash; Human</a>\n'
-    '<a class="btn primary" href="#prompts">The 19 prompts</a>\n'
+    '<a class="btn primary" href="#prompts">The 20 prompts</a>\n'
+    '<a class="btn primary" href="moddable-content.html">Moddable content</a>\n'
     f'<a class="btn" href="{REPO}">Game repository &nearr;</a>\n'
 )
 

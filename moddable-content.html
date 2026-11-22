@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Moddable content &amp;mdash; StarDrive BlackBox</title><style>
+:root{--bg:#14171c;--panel:#1b1f26;--ink:#e6e8ea;--dim:#8b949e;--line:#2b313a;--gold:#ffd479;--link:#8ecbff;--ok:#8ad06a;--warn:#e0a070}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 Georgia,serif}
+a{color:var(--link);text-decoration:none}a:hover{text-decoration:underline}
+code,.mono{font:12.5px ui-monospace,monospace;color:#c9d1d9;background:#20252d;padding:0 3px;border-radius:3px}
+.bar{position:sticky;top:0;z-index:9;background:rgba(20,23,28,.96);border-bottom:1px solid var(--line)}
+.bar .in{max-width:1200px;margin:0 auto;padding:9px 24px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{display:inline-block;font:12px ui-monospace,monospace;padding:5px 11px;border:1px solid #3a424e;border-radius:999px;background:var(--panel);color:var(--ink);cursor:pointer}
+.btn:hover{border-color:var(--link);text-decoration:none}
+.btn.on{border-color:var(--gold);color:var(--gold)}
+input#q{flex:1;min-width:220px;font:12.5px ui-monospace,monospace;color:var(--ink);background:#0f1216;border:1px solid #3a424e;border-radius:999px;padding:6px 12px}
+.head{max-width:1200px;margin:0 auto;padding:32px 24px 4px}
+h1{font-size:27px;margin:0 0 8px;line-height:1.25}
+p.lede{color:var(--dim);max-width:86ch;margin:0 0 12px}
+.wrap{max-width:1200px;margin:0 auto;padding:6px 24px 70px}
+.facts{display:flex;gap:16px;flex-wrap:wrap;font:12px ui-monospace,monospace;color:#c9d1d9;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:8px 12px;margin:12px 0}
+.facts b{color:var(--gold);font-weight:normal}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:1.1px;font-family:ui-monospace,monospace;color:#c9d1d9;margin:34px 0 12px;border-bottom:1px solid var(--line);padding-bottom:6px}
+h3{font-size:15px;margin:22px 0 8px}
+details{border:1px solid var(--line);border-radius:7px;background:var(--panel);margin:0 0 8px}
+details>summary{cursor:pointer;padding:10px 13px;list-style:none}
+details>summary::-webkit-details-marker{display:none}
+details>summary:before{content:"\25B6";display:inline-block;width:16px;color:var(--dim);font-size:10px;transform:translateY(-1px)}
+details[open]>summary:before{content:"\25BC"}
+.fam{margin:0 0 12px;background:#171b21}
+.fam>summary{padding:13px 15px}
+.fam>summary .t{font-size:17px;color:var(--gold)}
+.body{padding:2px 15px 14px}
+.pill{font:10.5px ui-monospace,monospace;text-transform:uppercase;letter-spacing:.4px;border:1px solid #4a5260;border-radius:9px;padding:1px 7px;color:var(--dim);margin-left:7px}
+.pill.t1{border-color:#6b5a2b;color:var(--gold)}.pill.t2{border-color:#2f5a6b;color:#8ecbff}.pill.t3{border-color:#3a4a3a;color:var(--ok)}
+.pill.idx{border-color:#6b4a2b;color:var(--warn)}
+.l1{color:#cfd6dd}
+.meta{font:11.5px ui-monospace,monospace;color:var(--dim);margin:6px 0 10px}
+.meta b{color:#c9d1d9;font-weight:normal}
+.lv2{color:#c3cbd3;margin:4px 0 6px}
+details.lv3,details.note{border-color:#232a33;background:#161a20;margin:6px 0 10px}
+details.lv3>summary,details.note>summary{font:11.5px ui-monospace,monospace;color:var(--dim);padding:6px 10px}
+details.lv3 .in,details.note .in{padding:0 11px 9px;color:#b9c2cb}
+details.lv3 .in p{margin:6px 0}
+.vanilla{font:11.5px/1.55 ui-monospace,monospace;color:#9fb0a6;background:#141a17;border-left:2px solid #3d5a46;padding:6px 8px;margin:8px 0 2px}
+.range{font-size:13.5px;color:#c8d3c0;border-left:2px solid #3d5a46;padding-left:8px;margin:6px 0}
+.crit{border-color:#6b4a2b;background:#201a14}
+pre.code{font:12px/1.55 ui-monospace,monospace;background:#0f1216;border:1px solid var(--line);border-radius:6px;padding:10px 12px;overflow:auto;color:#c9d1d9;margin:8px 0}
+.grp{background:#181d23;margin:8px 0}
+.grp>summary .g{font-size:14px;color:#e6e8ea}
+.tags{margin:8px 0 0;padding:0;list-style:none}
+.tag{background:#1b2027;margin:5px 0;border-color:#242b34}
+.tag>summary{padding:6px 10px;font-size:13.5px}
+.tag .nm{font:12.5px ui-monospace,monospace;color:var(--gold)}
+.tag .ty{font:10.5px ui-monospace,monospace;color:var(--dim);margin-left:7px}
+.tag .tx{padding:0 11px 8px;color:#b9c2cb;font-size:14px}
+table{border-collapse:collapse;width:100%;font:12.5px ui-monospace,monospace;margin:6px 0 12px}
+th,td{text-align:left;padding:6px 9px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--dim);font-weight:normal}
+td.n{white-space:nowrap;color:var(--gold)}
+.note-p{color:var(--dim);font-size:13px}
+ol,ul{padding-left:22px}
+li{margin:0 0 5px}
+.missing{font:11.5px ui-monospace,monospace;color:var(--warn)}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:12px;margin:10px 0}
+.card{display:block;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px}
+.card:hover{border-color:var(--link);text-decoration:none}
+.card .ct{font-size:17px;color:var(--gold);display:block;margin-bottom:4px}
+.card .cb{color:var(--dim);font-size:13.5px;display:block;margin-bottom:8px}
+.card .cf{font:11px ui-monospace,monospace;color:#c9d1d9;display:block}
+.foot{border-top:1px solid var(--line);margin-top:34px;padding-top:10px;font:12px ui-monospace,monospace;color:var(--dim)}
+.toc{columns:2;column-gap:34px;font-size:14px}
+@media(max-width:760px){.toc{columns:1}}
+</style></head><body><nav class="bar"><div class="in"><a class="btn" href="index.html">&larr; Kit index</a><a class="btn" href="moddable-content.html">Hub</a><a class="btn" href="moddable/game-options.html">Game options</a><a class="btn" href="moddable/map-creation.html">Map creation</a><a class="btn" href="moddable/ships.html">Ships</a><a class="btn" href="moddable/tech.html">Tech tree</a><a class="btn" href="moddable/races-diplomacy.html">Races &amp; diplomacy</a><a class="btn" href="moddable/colonies.html">Colonies</a><a class="btn" href="moddable/ui-assets.html">UI &amp; assets</a><a class="btn" href="prompts/moddable-content.html">Prompt</a><input id="q" placeholder="Filter families and tags&hellip;" aria-label="Filter"><button class="btn" id="open">Expand all</button><button class="btn" id="close">Collapse all</button></div></nav>
+<header class="head">
+ <h1>Moddable content &mdash; what a mod can replace</h1>
+ <p class="lede">Every file family and tag under <code>game/Content</code>, grouped the way a modder works:
+ game options, map creation, ships, tech, races and diplomacy, colonies, and UI. Each entry opens from one
+ sentence to how it behaves, then to the field, the units, the failure symptom and the values vanilla
+ actually uses.</p>
+ <div class="facts"><span>families: <b>45</b></span><span>content files: <b>5,735</b></span>
+ <span>tags described: <b>1065</b></span><span>sections: <b>7</b></span>
+ <span>generated from: <b>ef406fa04</b></span></div>
+</header>
+<div class="wrap">
+<h2>How to read an entry</h2>
+<p>Every collapsed line is <b>level 1</b>: one sentence, no identifier, enough to decide whether to
+open it. Opening it gives <b>level 2</b>: several sentences on what the thing does, what reads it, and
+what you would notice in play. A nested <b>level 3</b> gives the field, formula, path or gotcha a
+modder would quote, plus a generated <span class="vanilla">In vanilla</span> line naming each file and
+the values it writes. Level 3 is written to a soft cap of five
+sentences; where an entry runs longer, it is because the numbers or the failure mode need the room.</p>
+<p class="note-p">Nothing here is written for engine contributors, and there is no level 4.</p>
+<h2>The seven sections</h2>
+<div class="cards"><a class="card" href="moddable/game-options.html"><span class="ct">General game options</span><span class="cb">The numbers a new game starts from, and the AI&#x27;s own spending rules.</span><span class="cf">4 families &middot; 4 files &middot; 99 tags</span></a><a class="card" href="moddable/map-creation.html"><span class="ct">Map creation and solar systems</span><span class="cb">How a galaxy is generated, and how hand-placed systems fit beside it.</span><span class="cf">6 families &middot; 43 files &middot; 85 tags</span></a><a class="card" href="moddable/ships.html"><span class="ct">Ships, modules and designs</span><span class="cb">The hull grid, the modules that fill it, the weapons they point at, and the saved layouts.</span><span class="cf">6 families &middot; 1,778 files &middot; 264 tags</span></a><a class="card" href="moddable/tech.html"><span class="ct">Tech tree and research</span><span class="cb">What each node costs, what it opens, and the weights that make some areas cheaper.</span><span class="cf">3 families &middot; 192 files &middot; 88 tags</span></a><a class="card" href="moddable/races-diplomacy.html"><span class="ct">Races, diplomacy and events</span><span class="cb">Who the empires are, what they are like, and what they say when they meet you.</span><span class="cf">6 families &middot; 152 files &middot; 258 tags</span></a><a class="card" href="moddable/colonies.html"><span class="ct">Colonies, economy and ground war</span><span class="cb">What colonies build, what troops and goods do, and what an edict or a relic changes.</span><span class="cf">6 families &middot; 141 files &middot; 132 tags</span></a><a class="card" href="moddable/ui-assets.html"><span class="ct">UI modding and assets</span><span class="cb">Screens, the main menu, text ids, and the files that must exist even in a total conversion.</span><span class="cf">14 families &middot; 3,425 files &middot; 139 tags</span></a></div>
+<h2>Replace or inherit</h2>
+<table>
+<tr><th>rule</th><th>what it means for a mod</th></tr>
+<tr><td class="n">folder is the root</td><td><code>Mods/&lt;Name&gt;/</code> is the content root. A
+ <code>Content/</code> subfolder inside it throws on load.</td></tr>
+<tr><td class="n">file name wins</td><td>XML, hull and design files are matched by file name anywhere
+ under the tree. A mod's <code>Battleship.hull</code> replaces vanilla's even from another folder.</td></tr>
+<tr><td class="n">UID is the join key</td><td>References use names, not paths: <code>Hull</code>,
+ <code>ModuleUID</code>, <code>WeaponType</code>, tech <code>UID</code>, design <code>Name</code>.</td></tr>
+<tr><td class="n">relative path</td><td>Images, models and audio replace by the same relative path under
+ <code>Content/</code>.</td></tr>
+<tr><td class="n">inherit flags</td><td><code>UseVanillaShips/Techs/Weapons/Modules/Buildings/Races</code>
+ default true. Turning one off drops vanilla for that family only.</td></tr>
+<tr><td class="n">all-or-nothing</td><td>A few directories (solar systems, loading screens, models) drop
+ every vanilla file once the mod supplies one there.</td></tr>
+<tr><td class="n">version gate</td><td><code>FormatVersion</code> must be 1;
+ <code>SupportedBlackBoxVersions</code> is substring-matched against the running version.</td></tr>
+<tr><td class="n">silent drops</td><td>Unknown XML elements and unknown hull/design keys load without a
+ warning. A typo looks like "the value did nothing".</td></tr>
+</table>
+<h2>Static files the game expects</h2>
+<p>Most assets degrade: a missing texture logs and draws a red placeholder. Four groups do not.
+Do not delete these while trimming a mod:</p>
+<ul>
+<li><b>Fonts.</b> Loaded by name from UI code. A missing compiled <code>.xnb</code> fails when that font
+is first used. Keep each <code>.spritefont</code> and its <code>.xnb</code> together.</li>
+<li><b>Compiled shaders.</b> <code>Effects/Simple.mgfxo</code>, <code>MeshLighting.mgfxo</code>,
+<code>SkinnedEffect.mgfxo</code>, <code>Distort</code>/<code>BeamFX</code> and their XNB pairs are loaded
+by hardcoded name; a <code>.fx</code> alone is not enough.</li>
+<li><b>UI element ids.</b> Layouts are hot-reloadable, but code finds buttons and panels by id. Renaming
+one removes its behaviour even though the screen still draws.</li>
+<li><b><code>Content.mgcb</code>.</b> Build-time only: it compiles fonts, effects, videos and tutorials
+into the XNB/MGFXO the runtime loads. A new font or shader needs an entry there.</li>
+</ul>
+<p class="note-p">Everything else under <code>Textures</code>, <code>Model</code>, <code>Audio</code>,
+<code>Flags</code>, <code>Cursors</code>, <code>LoadingScreen</code> and <code>Video</code> is
+replaceable by relative path, and a missing file degrades that one screen or object.</p>
+<h2>Two-pass depth</h2>
+<p>Level 3 is drafted long first, then cut to about five sentences. The draft carries the number, its unit,
+the formula it feeds and a vanilla example; the cut keeps those and drops the rest. The
+<span class="vanilla">In vanilla</span> line is not prose at all: the generator reads every matching file
+and reports the values each one actually sets, so a claim about "typical" can be checked against the
+checkout rather than remembered. A tag each file sets once, such as a race's
+<code>StartingScout</code> or a hull's <code>HullName</code>, is quoted from one file in that file's own
+syntax, with the number of other files that set their own, rather than 125 identical lines. A field whose number needs arithmetic also carries an
+<span class="range">Allowed range</span> line: the bounds the code accepts and what the formula returns
+at each one. A style or id is described by its readers, not only its home file: the build list, the
+tech gate, the UI that sorts by it and the text or name keys it selects all belong in the entry.</p>
+<p class="note-p">A card marked <span class="pill idx">values only</span> has no prose level 3 yet:
+it shows the files and the values they set, and says that the unit, bounds and failure symptom are
+not documented, rather than presenting a restated value as an explanation. Where the family notes,
+the worked example or the section introduction already discuss the tag, the card links there
+instead of repeating them; where nothing on the page does, it says so and marks that the card has no
+level-2 summary either.</p>
+<p class="note-p">Coverage is measured per family: each one ends with the tags it contains that no entry
+above names. A tag listed there is a warning, not an instruction. <code>GameText.yaml</code> and
+<code>Codex*.yaml</code> are id-to-text maps and are intentionally not enumerated key by key.</p>
+<p class="foot">Generated by <code>docs/kit/build-moddable.py</code> from <code>game/Content</code> at
+<code>ef406fa04</code> and the prose in <code>moddable-*.py</code>. Re-run the script after editing
+content or prose; do not hand-edit this page.</p>
+</div><script>
+const q = document.getElementById('q');
+const fams = [...document.querySelectorAll('details.fam')];
+const tags = [...document.querySelectorAll('details.tag')];
+function apply() {
+  const s = q.value.trim().toLowerCase();
+  for (const t of tags) t.hidden = !!s && !t.textContent.toLowerCase().includes(s);
+  for (const f of fams) {
+    const hit = !s || f.textContent.toLowerCase().includes(s);
+    f.hidden = !hit;
+    if (hit && s) f.open = true;
+  }
+}
+q.addEventListener('input', apply);
+document.getElementById('open').onclick = () => fams.forEach(f => f.open = true);
+document.getElementById('close').onclick = () => fams.forEach(f => f.open = false);
+</script></body></html>

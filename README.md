@@ -44,6 +44,7 @@ merge or rebase inside `docs/kit` — that turns an update into a conflict.
 | go deep on one subsystem | `colonization-ai-explainer-prompt.md` | explanation |
 | find where a player-visible thing is decided | `concept-map-prompt.md` | tool |
 | look up a content field, or a formula | `ship-content-reference.md` | reference |
+| know which content files and tags a mod can replace (token-heavy: reads thousands) | `moddable-content-explainer-prompt.md` | reference |
 | turn a strategy into a tech-ordered fleet plan | `ship-strategy-brief.md` | tool |
 | turn a belief about the AI into a test you can run, and a result you can read | `ai-test-explainer-prompt.md` | tool |
 | cut the tech tree into eras by research cost, for one mod and one race | `era-explorer-prompt.md` | tool |
@@ -60,6 +61,12 @@ third kind and ships with an engine — `docs/era-explorer/era-scan.py` in the S
 because the cut it makes has to be recomputed for your content root and your race rather than
 remembered. The reference is lookup-only — it exists
 to be quoted from, not read start to finish.
+
+The moddable-content guide is the expensive one. Every claim about a tag is traced to the file that
+sets it and the C# that reads it, so a deep answer reads hundreds of content files and a full pass
+reads all 5,748 of them plus 900 `.cs` sources. The prompt says that before it answers, and it asks
+you to pick one section or one family; its rendered pages already hold the generated values, which is
+the cheap way to look one up.
 
 ## How to use one
 

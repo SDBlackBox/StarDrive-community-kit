@@ -67,6 +67,8 @@ def main():
         ("Ship_Game", "the block says the C# is read too"),
         ("audit log", "the block requires a log, not just printed counts"),
         ("enum member", "the block says an enum-keyed name is not a field"),
+        ("closed set", "the block says a fixed value set must be shown in full"),
+        ("catalogue", "the block says a catalogue family lists the entries a file can name"),
     ]
     for phrase, why in required:
         check(phrase in block, f"block contains {phrase!r} — {why}")
@@ -129,6 +131,26 @@ def main():
     check("audit: level-3 over" in out, "the build prints the sentence-cap audit")
     check("fields declared but never read outside the declaration" in out,
           "the build separates a declared field from one a reader uses")
+
+    # A YAML card that accepts a closed set must list it, and a catalogue must list its entries.
+    page = SECTIONS / "map-creation.html"
+    check(page.exists(), "the planet and sun cards are on the map-creation page")
+    if page.exists():
+        html_page = page.read_text(encoding="utf-8")
+        types = (REPO / "game/Content/PlanetTypes.yaml").read_text(encoding="utf-8-sig")
+        names = re.findall(r"(?m)^\s+Name:\s*(\S+)", types)
+        missing = [n for n in names if n not in html_page]
+        check(not missing, f"every planet type is listed by name ({len(names)} names, missing {missing[:5]})")
+        suns = (REPO / "game/Content/Suns.yaml").read_text(encoding="utf-8-sig")
+        ids = re.findall(r"(?m)^\s+Id:\s*(\S+)", suns)
+        missing = [s for s in ids if s not in html_page]
+        check(not missing, f"every sun Id is listed ({len(ids)} ids, missing {missing[:5]})")
+        cats = ["Barren", "Desert", "Steppe", "Tundra", "Terran",
+                "Volcanic", "Ice", "Swamp", "Oceanic", "GasGiant"]
+        check(all(f"<code>{c}</code>" in html_page for c in cats),
+              "the ten planet categories are shown as values, not only named in prose")
+        check("GasBlue" in html_page and "NoAtmosphere" in html_page,
+              "the atmosphere preset ids are shown as values")
 
     log = HERE / "moddable-audit.txt"
     check(log.exists(), "audit log exists: docs/kit/moddable-audit.txt")

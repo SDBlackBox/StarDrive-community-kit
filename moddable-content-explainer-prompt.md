@@ -254,6 +254,12 @@ STEP 4 — the things you must get right
 - A key that is an enum member is not a field, and must not be described as one. Say which map it
   lands in, list the names that map accepts, quote the file's own comment when one exists, and state
   what 0 and a value above 1 do. A card must never name an enum the key does not belong to.
+- A YAML field whose loader accepts a closed set of values must show the whole set, and one clause
+  per value saying what choosing it does. A closed set is an enum type, an array of one, or an id
+  list defined in another content file (the AtmosphereTypes presets, the Suns.yaml ids a SunPath
+  names, the PlanetTypes ids a WhichPlanet names). Naming the field and leaving the reader to guess
+  the values is an error, not a summary, and a catalogue family (planet types, suns) must list every
+  entry a file can name. Read the values from the enum or the files; never type a remembered list.
 - A two-number list such as [0, 6] is low then high, and the high end is exclusive when randomized.
   Say which number is used when randomization is off, and give the counts that result.
 - The main menu is the worked example for UI modding: MainMenus.yaml picks a layout and scene; the
@@ -321,6 +327,9 @@ Check the answer against this list and fix it before you show me:
   - A dead field says only "This item has no function in game."
   - A key that is an enum member names the map it binds into and the names that map accepts; it was
     not called a field, and no unrelated enum was named.
+  - Every closed value set was listed in full with a clause on what each value does, and every
+    catalogue entry a file can name appears with its facts. A value list invented from memory, or a
+    set that omits a member the loader accepts, is a failure.
   - A range such as [0, 6] was explained number by number, including its use when randomization is off.
   - No level 4, no engine-internals tour, no invented tag.
   - The cost was stated before the first deep answer, with counts measured in this checkout.

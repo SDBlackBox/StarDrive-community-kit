@@ -284,6 +284,12 @@ li{margin:0 0 5px}
 .card .cb{color:var(--dim);font-size:13.5px;display:block;margin-bottom:8px}
 .card .cf{font:11px ui-monospace,monospace;color:#c9d1d9;display:block}
 .foot{border-top:1px solid var(--line);margin-top:34px;padding-top:10px;font:12px ui-monospace,monospace;color:var(--dim)}
+.vals{border-collapse:collapse;width:100%;margin:10px 0;font-size:13.5px}
+.vals caption{text-align:left;color:var(--dim);font-size:12.5px;padding-bottom:6px}
+.vals th{text-align:left;color:var(--gold);font-weight:600;border-bottom:1px solid var(--line);padding:4px 8px}
+.vals td{border-bottom:1px solid var(--line);padding:4px 8px;vertical-align:top}
+.vals td:first-child{white-space:nowrap}
+.miss{color:#d98c8c;font-style:italic}
 .toc{columns:2;column-gap:34px;font-size:14px}
 @media(max-width:760px){.toc{columns:1}}
 """
@@ -592,6 +598,173 @@ def key_evidence(t):
     return "".join(out)
 
 
+def _yaml_section_ids(rel, key):
+    """Every `Id` inside a top-level `key:` block of a content YAML file, in file order.
+
+    An id list defined in content is as closed as an enum: `AtmosphereType` only resolves against
+    the presets under `AtmosphereTypes`, and a name that is not there logs an error and does nothing.
+    """
+    p = CONTENT / rel
+    if not p.is_file():
+        return []
+    lines = p.read_text(encoding="utf-8-sig", errors="replace").splitlines()
+    start = indent = None
+    for i, line in enumerate(lines):
+        m = re.match(r'^(\s*)' + re.escape(key) + r':\s*(?:#.*)?$', line)
+        if m:
+            start, indent = i + 1, len(m.group(1))
+            break
+    if start is None:
+        return []
+    out = []
+    for line in lines[start:]:
+        if line.strip() and not line.startswith(" " * (indent + 1)):
+            break
+        m = re.search(r'\bId:\s*"?([A-Za-z_][\w.-]*)"?', line)
+        if m:
+            out.append(m.group(1))
+    return out
+
+
+def _yaml_key_values(rel, key):
+    """The distinct scalar values a key takes in one content file, in first-seen order.
+
+    A numeric stage (DysonRings Type) is not an enum: its closed set is whatever stages the file
+    defines, and a card that lists none leaves a modder guessing which numbers exist.
+    """
+    p = CONTENT / rel
+    if not p.is_file():
+        return []
+    text = p.read_text(encoding="utf-8-sig", errors="replace")
+    out = []
+    for m in re.finditer(r'(?m)^\s+' + re.escape(key) + r':\s*(\S+)', text):
+        v = re.sub(r'\s+#.*$', '', m.group(1)).strip().strip('"')
+        if v and v not in out:
+            out.append(v)
+    return out
+
+
+def values_source(src):
+    """(where the closed set comes from, [(value, …)]) for a declared values= source."""
+    if src.startswith("key:"):
+        _, rel, key = src.split(":", 2)
+        return (f'<code>{escape(key)}</code> in <code>{escape(rel)}</code>',
+                [(v, "") for v in _yaml_key_values(rel, key)])
+    if src.startswith("enum:"):
+        enum = src[5:]
+        return (f"the <code>{escape(enum)}</code> enum in the code",
+                [(v, n) for v, n in code_index()["enums"].get(enum, ())])
+    if src.startswith("ids:"):
+        _, rel, key = src.split(":", 2)
+        return (f"<code>{escape(key)}</code> in <code>{escape(rel)}</code>",
+                [(v, "") for v in _yaml_section_ids(rel, key)])
+    return ("", [])
+
+
+def values_table(t):
+    """Every value the loader accepts for this field, each with what choosing it does."""
+    spec = t.get("values")
+    if not spec:
+        return ""
+    src, gloss = spec if isinstance(spec, tuple) else (spec, {})
+    where, expected = values_source(src)
+    if not expected:
+        return ""
+    rows = []
+    for name, _ in expected:
+        why = (gloss.get(name) or "").strip()
+        body = escape(why) if why else '<span class="miss">no explanation yet</span>'
+        rows.append(f'<tr><td><code>{escape(name)}</code></td><td>{body}</td></tr>')
+    return (f'<table class="vals"><caption>The {len(expected)} values the loader accepts here, from '
+            f'{where}</caption><tr><th>value</th><th>what choosing it does</th></tr>'
+            + "".join(rows) + '</table>')
+
+
+def values_problem(t, fi):
+    """A closed set with no value list, or a list that disagrees with the loader.
+
+    A YAML field that accepts an enum, an array of one, or an id list defined in another content
+    file can only take those names. A card that describes the field and never says which names it
+    takes leaves the reader to guess, which is the failure this rule exists to catch.
+    """
+    spec = t.get("values")
+    if spec:
+        src, gloss = spec if isinstance(spec, tuple) else (spec, {})
+        _, expected = values_source(src)
+        names = [v for v, _ in expected]
+        declared = list(gloss)
+        missing = [n for n in names if n not in declared]
+        unknown = [n for n in declared if n not in names]
+        if missing or unknown:
+            return ("violation", "value-set-wrong",
+                    "the card's value list does not match the loader's",
+                    f'source={src} missing={",".join(missing) or "-"} '
+                    f'unknown={",".join(unknown) or "-"}')
+        unglossed = [n for n in names if not (gloss.get(n) or "").strip()]
+        if unglossed:
+            return ("violation", "value-unexplained",
+                    f"{len(unglossed)} of {len(names)} accepted values have no explanation",
+                    f'values={",".join(unglossed)}')
+        return None
+    ty = (fi[1].replace("[]", "").strip() if fi else "")
+    members = [v for v, _ in code_index()["enums"].get(ty, ())] if ty else []
+    if (t.get("ty") or "").strip() == "enum" or members:
+        return ("violation", "values-missing",
+                "a closed set of values is accepted here and the card lists none of them",
+                f'enum={ty or "unresolved field type"}')
+    return None
+
+
+def catalogue_records(fam):
+    """One record per entry in a catalogue family, read from the shipped content.
+
+    A family whose file is a list of named entries (planet types, suns) has no fixed tag set: the
+    values a modder needs are the entries themselves, and they are only correct if they are read
+    from the files rather than remembered.
+    """
+    spec = fam.get("catalogue")
+    if not spec:
+        return []
+    recs = []
+    for f in files_of(fam):
+        try:
+            text = f.read_text(encoding="utf-8-sig", errors="replace")
+        except OSError:
+            continue
+        starts = list(re.finditer(r'(?m)^(\s*)-\s+[A-Za-z_]\w*:\s*$', text))
+        for i, m in enumerate(starts):
+            end = starts[i + 1].start() if i + 1 < len(starts) else len(text)
+            rec = {}
+            for fm in re.finditer(r'(?m)^\s+([A-Za-z_]\w*):\s*(\S.*?)\s*$', text[m.end():end]):
+                rec.setdefault(fm.group(1),
+                               re.sub(r'\s+#.*$', '', fm.group(2)).strip().strip('"'))
+            if rec.get(spec["key"]):
+                recs.append(rec)
+    return recs
+
+
+def catalogue_html(fam):
+    """The catalogue as a table of the values a file can name, with what each one is."""
+    spec = fam.get("catalogue")
+    if not spec:
+        return "", []
+    recs = catalogue_records(fam)
+    rows = []
+    for r in recs:
+        facts = [f"{label} {r[f]}" if label else r[f]
+                 for f, label in spec.get("fields", []) if r.get(f)]
+        body = escape(", ".join(facts)) if facts else '<span class="miss">no facts</span>'
+        rows.append(f'<tr><td><code>{escape(r[spec["key"]])}</code></td><td>{body}</td></tr>')
+    title = spec.get("title") or "Every value in vanilla"
+    note = spec.get("note") or ""
+    table = (f'<details class="note" open><summary>{escape(title)} ({len(recs)})</summary>'
+             '<div class="in">'
+             + (f'<p class="note-p">{escape(note)}</p>' if note else "")
+             + '<table class="vals"><tr><th>value</th><th>what it is in vanilla</th></tr>'
+             + "".join(rows) + '</table></div></details>')
+    return table, recs
+
+
 def _mentions(text, name):
     """Whole-word match, so a tag name inside a longer word does not count."""
     return bool(text) and re.search(r'(?<![\w])' + re.escape(name) + r'(?![\w])', text) is not None
@@ -658,11 +831,17 @@ def classify(t, fam, entries=()):
             return ("violation", "key-no-map", "no Map<enum, ...> field reads this enum",
                     f'key={",".join(keys)}')
         return None
+    # Values are structural too: a field accepting a closed set must say which names it takes, and
+    # an authored paragraph is exactly where an unlisted value hides.
+    fi = field_of(name, fam.get("roots") or ())
+    if str(fam.get("fmt", "")).upper().startswith("YAML"):
+        found = values_problem(t, fi)
+        if found:
+            return found
     # A keyed card is checked even when prose was written for it: the map is the evidence, and an
     # authored paragraph is exactly where an unattributed key hides.
     if detail_of(t):
         return None
-    fi = field_of(name, fam.get("roots") or ())
     members = sorted(idx["members"].get(leaf) or ())
     if fi:
         cls, ty, rel, line = fi
@@ -740,6 +919,9 @@ def render_tag(t, stats, span="", elsewhere="", evidence="", keyed=False, quote=
              else "Level 3 &mdash; the key and its map" if keyed
              else "Level 3 &mdash; the values, and what is missing")
     out.append(f'<details class="lv3"><summary>{label}</summary><div class="in">')
+    vals = values_table(t)
+    if vals:
+        out.append(vals)
     if detail:
         out.append(f'<p>{escape(detail)}</p>')
     elif quote[1]:
@@ -787,6 +969,24 @@ def render_family(fam, count, seen, samples, pats, sec=None, comments=None):
         o.append(f'<details class="note" open><summary>{escape(n["title"])}</summary>'
                  f'<div class="in">{n["body"]}</div></details>')
     o.append(f'<p class="meta"><b>Override:</b> {escape(fam["override"])}</p>')
+    cat_html, cat_recs = catalogue_html(fam)
+    if fam.get("catalogue"):
+        spec = fam["catalogue"]
+        key = spec["key"]
+        where = sec["id"] if sec else fam["id"]
+        if not cat_recs:
+            audit_add(where, fam, dict(name=key), "violation", "catalogue-empty",
+                      f"a catalogue of {key} values lists none",
+                      f'paths={",".join(fam["paths"])}')
+        else:
+            thin = [r[key] for r in cat_recs
+                    if not any(r.get(f) for f, _ in spec.get("fields", []))]
+            if thin:
+                audit_add(where, fam, dict(name=key), "violation", "catalogue-unexplained",
+                          f"{len(thin)} of {len(cat_recs)} {key} values carry no fact",
+                          f'ids={",".join(thin[:6])}')
+    if cat_html:
+        o.append(cat_html)
 
     for g in fam["groups"]:
         o.append('<details class="grp"><summary><span class="g">%s</span> '

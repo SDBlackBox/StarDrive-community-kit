@@ -1,4 +1,4 @@
-# violations 0 | findings 748 | known 0
+# violations 0 | findings 735 | known 0
 colonies/artifacts/Description	finding	no-l2	no level-2 summary	Artifact.Description at Ship_Game/StoryAndEvents/Artifact.cs:12
 colonies/artifacts/DescriptionIndex	finding	no-l2	no level-2 summary	Artifact.DescriptionIndex at Ship_Game/StoryAndEvents/Artifact.cs:14
 colonies/artifacts/DiplomacyMod	finding	no-l2	no level-2 summary	Artifact.DiplomacyMod at Ship_Game/StoryAndEvents/Artifact.cs:22
@@ -61,13 +61,11 @@ colonies/buildings/SoftAttack	finding	no-l2	no level-2 summary	Building.SoftAtta
 colonies/buildings/StorageAdded	finding	no-l2	no level-2 summary	Building.StorageAdded at Ship_Game/Building.cs:60
 colonies/buildings/Weapon	finding	no-l2	no level-2 summary	Building.Weapon at Ship_Game/Building.cs:47
 colonies/buildings/WinsGame	finding	no-l2	no level-2 summary	Building.WinsGame at Ship_Game/Building.cs:30
-colonies/dyson/BlendMode	finding	no-l2	no level-2 summary	SunLayerInfo.BlendMode at Ship_Game/Universe/SolarBodies/SunType.cs:30
 colonies/dyson/LayerScale	finding	no-l2	no level-2 summary	SunLayerInfo.LayerScale at Ship_Game/Universe/SolarBodies/SunType.cs:29
 colonies/dyson/PulsePeriod	finding	no-l2	no level-2 summary	SunLayerInfo.PulsePeriod at Ship_Game/Universe/SolarBodies/SunType.cs:33
 colonies/dyson/Rings	finding	no-l2	no level-2 summary	DysonRings.Rings at Ship_Game/Universe/SolarBodies/SunType.cs:300
 colonies/dyson/RotationSpeed	finding	no-l2	no level-2 summary	SunLayerInfo.RotationSpeed at Ship_Game/Universe/SolarBodies/SunType.cs:31
 colonies/dyson/TexturePath	finding	no-l2	no level-2 summary	Troop.TexturePath at Ship_Game/Troops/Troop.cs:45
-colonies/dyson/Type	finding	no-l2	no level-2 summary	Explosion.Type at Ship_Game/ExplosionManager.cs:49
 colonies/goods/Cost	finding	no-l2	no level-2 summary	ShipModuleFlyweight.Cost at Ship_Game/ShipModuleFlyweight.cs:73
 colonies/goods/Description	finding	no-l2	no level-2 summary	DTrait.Description at Ship_Game/EmpireData.cs:43
 colonies/goods/Good	finding	no-l2	no level-2 summary	EmpireExoticBonuses.Good at Ship_Game/EmpireExoticBonuses.cs:12
@@ -133,10 +131,8 @@ game-options/globals/ShipExplosionVisualIncreaser	finding	no-l2	no level-2 summa
 game-options/globals/SpaceportScale	finding	no-l2	no level-2 summary	GamePlayGlobals.SpaceportScale at Ship_Game/GamePlayGlobals.cs:115
 map-creation/planettypes/AmbientCues	finding	no-l2	no level-2 summary	PlanetType.AmbientCues at Ship_Game/Universe/SolarBodies/PlanetType.cs:35
 map-creation/planettypes/AtmosphereScale	finding	no-l2	no level-2 summary	PlanetTypes.AtmosphereScale at Ship_Game/Universe/SolarBodies/PlanetTypes.cs:18
-map-creation/planettypes/AtmosphereType	finding	no-l2	no level-2 summary	PlanetType.AtmosphereType at Ship_Game/Universe/SolarBodies/PlanetType.cs:36
 map-creation/planettypes/AtmosphereTypes	finding	no-l2	no level-2 summary	PlanetTypes.AtmosphereTypes at Ship_Game/Universe/SolarBodies/PlanetTypes.cs:32
 map-creation/planettypes/BaseFertility	finding	no-l2	no level-2 summary	PlanetType.BaseFertility at Ship_Game/Universe/SolarBodies/PlanetType.cs:40
-map-creation/planettypes/Category	finding	no-l2	no level-2 summary	Building.Category at Ship_Game/Building.cs:72
 map-creation/planettypes/CloudsScale	finding	no-l2	no level-2 summary	PlanetTypes.CloudsScale at Ship_Game/Universe/SolarBodies/PlanetTypes.cs:17
 map-creation/planettypes/Composition	finding	no-l2	no level-2 summary	PlanetType.Composition at Ship_Game/Universe/SolarBodies/PlanetType.cs:26
 map-creation/planettypes/DiffuseMap	finding	no-l2	no level-2 summary	PlanetType.DiffuseMap at Ship_Game/Universe/SolarBodies/PlanetType.cs:28
@@ -144,15 +140,13 @@ map-creation/planettypes/EmissiveMap	finding	no-l2	no level-2 summary	PlanetType
 map-creation/planettypes/FresnelEffect	finding	no-l2	no level-2 summary	PlanetTypes.FresnelEffect at Ship_Game/Universe/SolarBodies/PlanetTypes.cs:28
 map-creation/planettypes/GlowEffect	finding	no-l2	no level-2 summary	PlanetTypes.GlowEffect at Ship_Game/Universe/SolarBodies/PlanetTypes.cs:27
 map-creation/planettypes/GlowScale	finding	no-l2	no level-2 summary	PlanetTypes.GlowScale at Ship_Game/Universe/SolarBodies/PlanetTypes.cs:20
-map-creation/planettypes/Habitable	finding	no-l2	no level-2 summary	PlanetGridSquare.Habitable at Ship_Game/Universe/SolarBodies/PlanetGridSquare.cs:28
+map-creation/planettypes/Habitable	finding	no-l2	no level-2 summary	PlanetType.Habitable at Ship_Game/Universe/SolarBodies/PlanetType.cs:37
 map-creation/planettypes/HabitableTileChance	finding	no-l2	no level-2 summary	PlanetType.HabitableTileChance at Ship_Game/Universe/SolarBodies/PlanetType.cs:38
 map-creation/planettypes/HaloScale	finding	no-l2	no level-2 summary	PlanetTypes.HaloScale at Ship_Game/Universe/SolarBodies/PlanetTypes.cs:19
-map-creation/planettypes/IconPath	finding	no-l2	no level-2 summary	ModInformation.IconPath at Ship_Game/ModInformation.cs:15
-map-creation/planettypes/Id	finding	no-l2	no level-2 summary	GameObject.Id at Ship_Game/GameObject.cs:29
+map-creation/planettypes/IconPath	finding	no-l2	no level-2 summary	PlanetType.IconPath at Ship_Game/Universe/SolarBodies/PlanetType.cs:27
 map-creation/planettypes/MinBaseFertility	finding	no-l2	no level-2 summary	PlanetType.MinBaseFertility at Ship_Game/Universe/SolarBodies/PlanetType.cs:41
 map-creation/planettypes/MiningChance	finding	no-l2	no level-2 summary	PlanetType.MiningChance at Ship_Game/Universe/SolarBodies/PlanetType.cs:44
-map-creation/planettypes/MoonTypes	finding	no-l2	no level-2 summary	PlanetType.MoonTypes at Ship_Game/Universe/SolarBodies/PlanetType.cs:47
-map-creation/planettypes/Name	finding	no-l2	no level-2 summary	Entry.Name at Ship_Game/DropOptions.cs:56
+map-creation/planettypes/Name	finding	no-l2	no level-2 summary	PlanetType.Name at Ship_Game/Universe/SolarBodies/PlanetType.cs:24
 map-creation/planettypes/NewRenderer	finding	no-l2	no level-2 summary	PlanetTypes.NewRenderer at Ship_Game/Universe/SolarBodies/PlanetTypes.cs:30
 map-creation/planettypes/NormalMap	finding	no-l2	no level-2 summary	PlanetType.NormalMap at Ship_Game/Universe/SolarBodies/PlanetType.cs:30
 map-creation/planettypes/PlanetMesh	finding	no-l2	no level-2 summary	PlanetTypes.PlanetMesh at Ship_Game/Universe/SolarBodies/PlanetTypes.cs:25
@@ -162,7 +156,7 @@ map-creation/planettypes/PopPerTile	finding	no-l2	no level-2 summary	PlanetType.
 map-creation/planettypes/ResearchableChance	finding	no-l2	no level-2 summary	PlanetType.ResearchableChance at Ship_Game/Universe/SolarBodies/PlanetType.cs:43
 map-creation/planettypes/RingsMesh	finding	no-l2	no level-2 summary	PlanetTypes.RingsMesh at Ship_Game/Universe/SolarBodies/PlanetTypes.cs:26
 map-creation/planettypes/RingsScale	finding	no-l2	no level-2 summary	PlanetTypes.RingsScale at Ship_Game/Universe/SolarBodies/PlanetTypes.cs:16
-map-creation/planettypes/Scale	finding	no-l2	no level-2 summary	Explosion.Scale at Ship_Game/ExplosionManager.cs:51
+map-creation/planettypes/Scale	finding	no-l2	no level-2 summary	PlanetType.Scale at Ship_Game/Universe/SolarBodies/PlanetType.cs:42
 map-creation/planettypes/SpecularMap	finding	no-l2	no level-2 summary	PlanetType.SpecularMap at Ship_Game/Universe/SolarBodies/PlanetType.cs:29
 map-creation/planettypes/SpecularPower	finding	no-l2	no level-2 summary	PlanetType.SpecularPower at Ship_Game/Universe/SolarBodies/PlanetType.cs:32
 map-creation/randomstuff/*InstanceMin/*InstanceMax	finding	no-reader	no field, enum member, string or identifier matches this name	
@@ -184,12 +178,10 @@ map-creation/solarsystems/WhichMoon	finding	no-l2	no level-2 summary	Moon.WhichM
 map-creation/solarsystems/planetScale	finding	no-l2	no level-2 summary	Ring.planetScale at Ship_Game/Universe/SolarSystemData.cs:19
 map-creation/suns/AnimationPath	finding	no-l2	no level-2 summary	WeaponTemplateWrapper.AnimationPath at Ship_Game/Gameplay/WeaponTemplateWrapper.cs:62
 map-creation/suns/AnimationSpeed	finding	no-l2	no level-2 summary	SunLayerInfo.AnimationSpeed at Ship_Game/Universe/SolarBodies/SunType.cs:27
-map-creation/suns/BlendMode	finding	no-l2	no level-2 summary	SunLayerInfo.BlendMode at Ship_Game/Universe/SolarBodies/SunType.cs:30
 map-creation/suns/Habitable	finding	no-l2	no level-2 summary	PlanetGridSquare.Habitable at Ship_Game/Universe/SolarBodies/PlanetGridSquare.cs:28
 map-creation/suns/IconLayer	finding	no-l2	no level-2 summary	SunType.IconLayer at Ship_Game/Universe/SolarBodies/SunType.cs:43
 map-creation/suns/IconPath	finding	no-l2	no level-2 summary	ModInformation.IconPath at Ship_Game/ModInformation.cs:15
 map-creation/suns/IconScale	finding	no-l2	no level-2 summary	SunType.IconScale at Ship_Game/Universe/SolarBodies/SunType.cs:44
-map-creation/suns/Id	finding	no-l2	no level-2 summary	GameObject.Id at Ship_Game/GameObject.cs:29
 map-creation/suns/LayerScale	finding	no-l2	no level-2 summary	SunLayerInfo.LayerScale at Ship_Game/Universe/SolarBodies/SunType.cs:29
 map-creation/suns/Layers	finding	no-l2	no level-2 summary	SunType.Layers at Ship_Game/Universe/SolarBodies/SunType.cs:51
 map-creation/suns/LightColor	finding	no-l2	no level-2 summary	SunType.LightColor at Ship_Game/Universe/SolarBodies/SunType.cs:47
@@ -344,7 +336,6 @@ races-diplomacy/races/PirateSlaverImproved	finding	no-l2	no level-2 summary	Empi
 races-diplomacy/races/PirateStationAdvanced	finding	no-l2	no level-2 summary	EmpireData.PirateStationAdvanced at Ship_Game/EmpireData.cs:308
 races-diplomacy/races/PirateStationBasic	finding	no-l2	no level-2 summary	EmpireData.PirateStationBasic at Ship_Game/EmpireData.cs:306
 races-diplomacy/races/PirateStationImproved	finding	no-l2	no level-2 summary	EmpireData.PirateStationImproved at Ship_Game/EmpireData.cs:307
-races-diplomacy/races/PreferredEnv	finding	no-l2	no level-2 summary	RacialTrait.PreferredEnv at Ship_Game/Data/RacialTrait.cs:93
 races-diplomacy/races/PrototypeShip	finding	no-l2	no level-2 summary	EmpireData.PrototypeShip at Ship_Game/EmpireData.cs:189
 races-diplomacy/races/R/G/B	finding	no-reader	no field, enum member, string or identifier matches this name	
 races-diplomacy/races/RebelName	finding	no-l2	no level-2 summary	EmpireData.RebelName at Ship_Game/EmpireData.cs:209
@@ -409,7 +400,6 @@ races-diplomacy/racialtraits/Pack	finding	no-l2	no level-2 summary	RacialTrait.P
 races-diplomacy/racialtraits/PassengerBonus	finding	no-l2	no level-2 summary	RacialTrait.PassengerBonus at Ship_Game/Data/RacialTrait.cs:77
 races-diplomacy/racialtraits/PassengerModifier	finding	no-l2	no level-2 summary	RacialTrait.PassengerModifier at Ship_Game/Data/RacialTrait.cs:112
 races-diplomacy/racialtraits/PenaltyPerKilledSlot	finding	no-l2	no level-2 summary	RacialTrait.PenaltyPerKilledSlot at Ship_Game/Data/RacialTrait.cs:86
-races-diplomacy/racialtraits/PreferredEnv	finding	no-l2	no level-2 summary	RacialTrait.PreferredEnv at Ship_Game/Data/RacialTrait.cs:93
 races-diplomacy/racialtraits/Prewarp	finding	no-l2	no level-2 summary	RacialTrait.Prewarp at Ship_Game/Data/RacialTrait.cs:61
 races-diplomacy/racialtraits/ProductionMod	finding	no-l2	no level-2 summary	DifficultyModifiers.ProductionMod at Ship_Game/EmpireDifficultyModifers.cs:52
 races-diplomacy/racialtraits/Prototype	finding	no-l2	no level-2 summary	RacialTrait.Prototype at Ship_Game/Data/RacialTrait.cs:62
@@ -655,7 +645,6 @@ ui-assets/codex/Text	finding	no-l2	no level-2 summary	Message.Text at Ship_Game/
 ui-assets/codex/Title	finding	no-l2	no level-2 summary	UnlockItem.Title at Ship_Game/UnlocksGrid.cs:30
 ui-assets/explosions/Path	finding	no-l2	no level-2 summary	Explosion.Path at Ship_Game/ExplosionManager.cs:50
 ui-assets/explosions/Scale	finding	no-l2	no level-2 summary	Explosion.Scale at Ship_Game/ExplosionManager.cs:51
-ui-assets/explosions/Type	finding	no-l2	no level-2 summary	Explosion.Type at Ship_Game/ExplosionManager.cs:49
 ui-assets/fonts/.spritefont	finding	no-reader	no field, enum member, string or identifier matches this name	
 ui-assets/fonts/.ttf/.otf	finding	no-reader	no field, enum member, string or identifier matches this name	
 ui-assets/ftl/DebugGraphColor	finding	no-l2	no level-2 summary	FTLLayerData.DebugGraphColor at Ship_Game/FTLManager.cs:34
@@ -672,7 +661,6 @@ ui-assets/mainmenus/SceneFile	finding	no-l2	no level-2 summary	MainMenuDesc.Scen
 ui-assets/models/.mtl	finding	no-reader	no field, enum member, string or identifier matches this name	
 ui-assets/particles/AlignRandomVelocityXY	finding	no-l2	no level-2 summary	ParticleSettings.AlignRandomVelocityXY at Ship_Game/Graphics/Particles/ParticleSettings.cs:60
 ui-assets/particles/AlignRotationToVelocity	finding	no-l2	no level-2 summary	ParticleSettings.AlignRotationToVelocity at Ship_Game/Graphics/Particles/ParticleSettings.cs:52
-ui-assets/particles/ColorSource	finding	no-l2	no level-2 summary	ParticleEmitterData.ColorSource at Ship_Game/Graphics/Particles/ParticleEffect.cs:54
 ui-assets/particles/Duration	finding	no-l2	no level-2 summary	ExplosionState.Duration at Ship_Game/ExplosionManager.cs:34
 ui-assets/particles/DurationRandomness	finding	no-l2	no level-2 summary	ParticleSettings.DurationRandomness at Ship_Game/Graphics/Particles/ParticleSettings.cs:40
 ui-assets/particles/Effect	finding	no-l2	no level-2 summary	Thruster.Effect at Ship_Game/Thruster.cs:25
@@ -708,7 +696,6 @@ ui-assets/ui/AmbientIntensity	finding	no-l2	no level-2 summary	SceneInstance.Amb
 ui-assets/ui/Animation	finding	no-l2	no level-2 summary	ExplosionState.Animation at Ship_Game/ExplosionManager.cs:37
 ui-assets/ui/Animations	finding	no-l2	no level-2 summary	ElementInfo.Animations at Ship_Game/UI/LayoutParserTypes.cs:74
 ui-assets/ui/AxisAlign	finding	no-l2	no level-2 summary	ElementInfo.AxisAlign at Ship_Game/UI/LayoutParserTypes.cs:52
-ui-assets/ui/ButtonStyle	finding	no-l2	no level-2 summary	GenericButton.ButtonStyle at Ship_Game/GenericButton.cs:39
 ui-assets/ui/CameraPos	finding	no-l2	no level-2 summary	SceneInstance.CameraPos at Ship_Game/GameScreens/Scene/SceneInstance.cs:33
 ui-assets/ui/CenterScale	finding	no-l2	no level-2 summary	AnimInfo.CenterScale at Ship_Game/UI/LayoutParserTypes.cs:117
 ui-assets/ui/Children	finding	no-l2	no level-2 summary	PieMenuNode.Children at Ship_Game/PieMenuNode.cs:11

@@ -6,6 +6,97 @@ Same shape as moddable-data.py. Kept separate so the ship-data half stays readab
 G = lambda title, l1, l2, l3, tags: dict(title=title, l1=l1, l2=l2, l3=l3, tags=tags)
 T = lambda name, ty, l1, l2="", l3="", **kw: dict(name=name, ty=ty, l1=l1, l2=l2, l3=l3, **kw)
 
+# The categories in PlanetCategory, in the order the enum declares them. Category is a label the
+# generator and the moon table use; colonisation comes from each type's own Habitable flag, so the
+# gloss must not claim a category is or is not colonisable.
+PLANET_CATEGORIES = {
+ "Barren": "Rocky, airless worlds and moons; every vanilla Barren type sets BaseFertility to 0.",
+ "Desert": "Dry worlds; their fertility comes from the type's own BaseFertility, not the label.",
+ "Steppe": "Grass-and-dust worlds; one of the fertile categories a race can prefer as a homeworld.",
+ "Tundra": "Cold worlds; the vanilla Tundra types are colonisable and allow Ice moons.",
+ "Terran": "The reference garden world, and the category a race means by a comfortable homeworld.",
+ "Volcanic": "Hostile rock; only one of vanilla's four Volcanic types sets Habitable, the rest are barren.",
+ "Ice": "Frozen worlds; vanilla Ice types are colonisable with fertility ranges around zero.",
+ "Swamp": "Wet, low-lying worlds; fertile and colonisable in vanilla.",
+ "Oceanic": "Water worlds; the highest fertility and population per tile in vanilla.",
+ "GasGiant": "Never a colony in vanilla: no Habitable flag, only a 20% mining chance, and generation adds 1 to its scale.",
+}
+
+# PreferredEnv takes the same members, but the value means "this race's homeworld climate" and sets
+# the neutral point its other Env*Multiplier fields are measured against.
+PREFERRED_ENV = {c: f"The homeworld is {c}, and {c} is the climate this race measures the others against."
+                 for c in PLANET_CATEGORIES}
+
+# AtmosphereTypes presets, read from PlanetTypes.yaml. Glow is [R,G,B,alpha]; alpha is intensity,
+# Fresnel scales the rim glow, and the two No* flags switch a layer off.
+SPRITE_BLEND = {
+ "None": "Draws with blending off, so the layer replaces whatever is behind it.",
+ "AlphaBlend": "Normal transparency: the layer's alpha decides how much of the star shows through.",
+ "Additive": "Adds the layer's colour to the background, so overlapping layers brighten; vanilla uses it for the back rings.",
+ "NonPremultiplied": "The classic alpha blend for non-premultiplied textures: keeps the gradient without over-brightening overlaps.",
+}
+
+EXPLOSION_TYPES = {
+ "Ship": "The set the game uses when a ship is destroyed; the caller passes this type.",
+ "Projectile": "The set projectiles and hull debris pass when they explode.",
+ "Photon": "A separate set, picked by a weapon that names Photon in its ExplosionType.",
+ "Warp": "A separate set for warp effects; the manager keeps it in its own bucket.",
+}
+
+PARTICLE_COLORS = {
+ "Default": "White, so the emitter's own colour is used unchanged.",
+ "EmpireColor": "The colour of the empire that owns the effect.",
+ "ThrustColor0": "The owning empire's first thruster colour.",
+ "ThrustColor1": "The owning empire's second thruster colour.",
+}
+
+BUTTON_STYLES = {
+ "Default": "The standard 168px top-bar button texture.",
+ "Small": "The 68px button, used where the bar has no room.",
+ "Low80": "A low-profile button 80px tall.",
+ "Low100": "A low-profile button 100px tall.",
+ "Medium": "The 132px golden-brown button.",
+ "MediumMenu": "The 132px menu button, drawn greyed out.",
+ "BigDip": "The 168px dipped variant.",
+ "Military": "The 168px military-coloured button.",
+ "Close": "The close button texture.",
+ "ResearchQueueUp": "The research queue's up arrow.",
+ "ResearchQueueDown": "The research queue's down arrow.",
+ "ResearchQueueCancel": "The research queue's cancel icon.",
+ "ResearchQueueToTop": "The research queue's move-to-top icon.",
+ "DanButton": "The wide brown dan_button.",
+ "DanButtonBlue": "The same wide button in blue.",
+ "DanButtonRed": "The same wide button in red.",
+ "EventConfirm": "The big wide confirm button used by event popups.",
+ "Text": "Draws only the text, with no button background.",
+}
+
+DYSON_STAGES = {
+ "1": "The first ring set: four back and four front layers, with a fixed structure only the textures may change.",
+ "2": "The second ring set vanilla ships, with the same fixed layer structure as stage 1.",
+}
+
+ATMOSPHERE_PRESETS = {
+ "None": "Carries no option at all: the type gets no glow, no clouds and no rim change from it.",
+ "Clouds": "Loads a cloud texture, so the planet draws a separate cloud layer over the surface.",
+ "NoHalo": "Switches the faint white halo towards the sun off.",
+ "NoAtmosphere": "Switches the atmosphere sphere off, so the rim loses its subtle colour.",
+ "Barren": "Red-brown glow (152,29,5) at 0.10 intensity, fresnel 1.0.",
+ "BarrenRed": "The same red-brown glow at 0.30 intensity, fresnel 1.0.",
+ "VolcanicRed": "The same red-brown glow at 0.45 intensity, the strongest of the three, fresnel 1.0.",
+ "IceBlue": "Pale blue glow (180,220,255) at 0.50 intensity, fresnel 1.0.",
+ "SwampAqua": "Green-aqua glow (44,204,149) at 0.50 intensity, fresnel 1.0.",
+ "OceanicBlue": "Blue glow (57,146,215) at 0.60 intensity, fresnel 1.0.",
+ "TerranBlue": "The same blue at 0.40 intensity, fresnel 0.6, so the rim is softer than Oceanic.",
+ "TundraBlue": "Blue-grey glow (57,146,195) at 0.35 intensity, fresnel 1.0.",
+ "SteppeYellow": "Yellow glow (249,229,91) at 0.35 intensity, fresnel 0.4.",
+ "DesertOrange": "Orange glow (172,79,25) at 0.40 intensity, fresnel 1.0.",
+ "GasYellow": "Yellow glow (249,229,91) at 0.40 intensity, fresnel 0.25.",
+ "GasOrange": "Orange glow (172,79,25) at 0.40 intensity, fresnel 1.0.",
+ "GasAqua": "Green-aqua glow (44,204,149) at 0.20 intensity, fresnel 1.0.",
+ "GasBlue": "Blue glow (57,146,215) at 0.40 intensity, fresnel 1.0.",
+}
+
 FAMILIES = [
 
 # ---------------------------------------------------------------- tier 2
@@ -299,7 +390,9 @@ dict(id="races", tier=2, title="Races", paths=["Races"], ext=".xml", roots=["Emp
    T("TraitOptions","string[]","Trait options in the set.","", ""),
    T("PersonalityTraitsWeights","string[]","Personality weighting.","", ""),
    T("EconomicTraitsWeights","string[]","Economic weighting.","", ""),
-   T("PreferredEnv","enum","Preferred planet type.","", ""),
+   T("PreferredEnv","enum","Preferred planet category.",
+     "Picks the homeworld category and the climate the other Env weights are measured against.",
+     "", values=("enum:PlanetCategory", PREFERRED_ENV)),
    T("EnvTerran","float","Terran habitability multiplier.","", "1"),
    T("EnvOceanic","float","Oceanic multiplier.","", ""),
    T("EnvSteppe","float","Steppe multiplier.","", ""),
@@ -387,7 +480,9 @@ dict(id="racialtraits", tier=2, title="Racial traits", paths=["RacialTraits"], e
  ]),
  G("Environment", "How the race relates to planet types.", "A multiplier of 1 is neutral; 1.2 makes that climate more productive and 0.8 less.", "PreferredEnv picks the homeworld category and the neutral point for the others.", [
    T("HomeworldSizeMod","float","Homeworld size.","", ""),
-   T("PreferredEnv","enum","Preferred planet category.","", ""),
+   T("PreferredEnv","enum","Preferred planet category.",
+     "Picks the homeworld category and the climate the other Env multipliers are measured against.",
+     "", values=("enum:PlanetCategory", PREFERRED_ENV)),
    T("EnvTerranMultiplier","float","Terran habitability multiplier as spelled in the file.","The runtime field is EnvTerran.", ""),
    T("EnvOceanicMultiplier","float","Oceanic multiplier as spelled in the file.","Runtime field EnvOceanic.", ""),
    T("EnvSteppeMultiplier","float","Steppe multiplier as spelled in the file.","Runtime field EnvSteppe.", ""),
@@ -872,12 +967,22 @@ dict(id="econstrats", tier=2, title="AI economic strategies", paths=["EconomicRe
  ]),
  ]),
 
-dict(id="planettypes", tier=2, title="Planet types", paths=["PlanetTypes.yaml"], roots=[],
+dict(id="planettypes", tier=2, title="Planet types", paths=["PlanetTypes.yaml"],
+     roots=["PlanetType", "PlanetTypes"],
      fmt="YAML", loader="ResourceManager.PlanetTypes",
      override="One file; a mod's file replaces it.",
+     catalogue=dict(key="Id", title="Every planet type in vanilla, by Id",
+       fields=[("Name", ""), ("Category", ""), ("Habitable", "habitable"),
+               ("HabitableTileChance", "habitable tiles"), ("PopPerTile", "pop/tile"),
+               ("BaseFertility", "fertility"), ("MiningChance", "mining chance")],
+       note=("These 43 types are the values a solar system can name. WhichPlanet writes one of these "
+             "Ids, not a position in the list, so a mod can add types without renumbering the rest. "
+             "An Id that no longer exists falls back to a random type during generation; the direct "
+             "lookup used when a planet is restored has no fallback. Ids must be unique: a duplicate "
+             "logs an error and the first entry wins.")),
      l1="The catalogue of planet looks and stats: what a Terran, ice or volcanic world is like.",
-     l2="Each type sets rendering meshes and textures, habitability, population per tile and fertility. Solar systems pick a type by index.",
-     l3="Type entries are indexed by order, and WhichPlanet in a solar system is that index. Reordering Types rewrites every reference.",
+     l2="Each type sets rendering meshes and textures, habitability, population per tile and fertility. Solar systems pick a type by its Id.",
+     l3="WhichPlanet is a PlanetType.Id, not the entry's position: the loader builds a map keyed by Id, so appending a type changes no existing reference.",
      groups=[
  G("Globals", "Meshes and scales shared by all types.", "Paths are relative to Content/.", "NewRenderer is a work-in-progress switch; leave it false.", [
    T("PlanetScale","float","Base planet scale.","", ""),
@@ -894,9 +999,13 @@ dict(id="planettypes", tier=2, title="Planet types", paths=["PlanetTypes.yaml"],
    T("AtmosphereTypes","map","Atmosphere presets.","", ""),
  ]),
  G("A planet type", "One entry in Types.", "The index is the WhichPlanet value solar systems use.", "Diffuse/normal/emissive maps are texture paths.", [
-   T("Id","string","Type id.","", ""),
+   T("Id","int","The number a solar system writes as WhichPlanet.",
+     "Ids must be unique: a duplicate logs an error and the first entry wins.",
+     "Generation falls back to a random type when the Id is missing; the direct lookup used to restore a planet has no fallback."),
    T("Name","string","Display name.","", ""),
-   T("Category","enum","Terran, ice, volcanic, gas, barren.","", ""),
+   T("Category","enum","Which family of planet this is.",
+     "The category drives generation weights, allowed moons and icons; the Habitable flag, not the category, decides colonisation.",
+     "", values=("enum:PlanetCategory", PLANET_CATEGORIES)),
    T("AmbientCues","string[]","Ambient sounds.","", ""),
    T("Composition","string","Flavour composition.","", ""),
    T("IconPath","string","Colony icon.","", ""),
@@ -905,12 +1014,18 @@ dict(id="planettypes", tier=2, title="Planet types", paths=["PlanetTypes.yaml"],
    T("NormalMap","string","Normal map.","", ""),
    T("EmissiveMap","string","Emissive map.","", ""),
    T("SpecularPower","float","Specular strength.","", ""),
-   T("AtmosphereType","string","Atmosphere preset id.","", ""),
+   T("AtmosphereType","string","One or more AtmosphereTypes preset ids.",
+     "A list is applied in order, so a later preset adds to or overrides the earlier glow, fresnel and flags.",
+     "A name that is not defined under AtmosphereTypes logs an error and is skipped.",
+     values=("ids:PlanetTypes.yaml:AtmosphereTypes", ATMOSPHERE_PRESETS)),
    T("Habitable","bool","Can be colonised.","", ""),
    T("HabitableTileChance","float","Share of tiles that are habitable.","", ""),
    T("PopPerTile","float","Population per tile.","", ""),
    T("BaseFertility","float","Starting fertility.","", ""),
-   T("MoonTypes","int[]","Allowed moon types.","", ""),
+   T("MoonTypes","PlanetCategory[]","Moon categories this type may roll.",
+     "A moon is picked from the listed categories at random, then a type is picked inside that category.",
+     "An empty list throws when the game asks for a moon of this planet.",
+     values=("enum:PlanetCategory", PLANET_CATEGORIES)),
    T("ResearchableChance","float","Chance of a research bonus.","", ""),
    T("MinBaseFertility","float","Fertility floor.","", ""),
    T("Scale","float","Type-specific scale.","", ""),
@@ -923,12 +1038,19 @@ dict(id="planettypes", tier=2, title="Planet types", paths=["PlanetTypes.yaml"],
 dict(id="suns", tier=2, title="Sun types", paths=["Suns.yaml"], roots=[],
      fmt="YAML", loader="ResourceManager.LoadSunTypes",
      override="One file; replaces vanilla.",
+     catalogue=dict(key="Id", title="Every sun in vanilla",
+       fields=[("Habitable", "habitable zone"), ("Radius", "radius"),
+               ("LightIntensity", "light intensity"), ("MultiSun", "multi-star")],
+       note=("These Ids are what SunPath in a solar-system or map file names; the Id string is the "
+             "join key, and the renderer layers below each entry only change how the star looks.")),
      l1="The catalogue of stars: colour, light, size and whether they damage ships.",
      l2="A solar system's SunPath names one of these Ids. Radiation is a real damage zone, not decoration.",
      l3="Layers are the visual shells; IconLayer picks the map icon. RadiationRadius is in game units.",
      groups=[
  G("Sun", "One star type.", "Ids are what SunPath references.", "ResearchableChance affects generated systems, not hand-placed ones.", [
-   T("Id","string","Sun type id.","", ""),
+   T("Id","string","The id a solar system's SunPath names.",
+     "Every Id vanilla ships is listed in the table above; a SunPath with no matching Id is not a star.",
+     "The Id is the join key, so renaming one breaks every map file that names it."),
    T("IconPath","string","Map icon.","", ""),
    T("IconScale","float","Icon size.","", ""),
    T("LightIntensity","float","Light output.","", ""),
@@ -943,7 +1065,10 @@ dict(id="suns", tier=2, title="Sun types", paths=["Suns.yaml"], roots=[],
    T("RadiationRadius","float","Damage radius.","", ""),
    T("TexturePath","string","Star texture.","", ""),
    T("TextureColor","float[]","Texture tint.","", ""),
-   T("BlendMode","string","Layer blend mode.","", ""),
+   T("BlendMode","SpriteBlendMode","How the layer is blended onto the star.",
+     "Additive makes overlapping layers brighter; AlphaBlend keeps the texture's own transparency.",
+     "An unknown name fails to bind, and the layer keeps its default of AlphaBlend.",
+     values=("enum:SpriteBlendMode", SPRITE_BLEND)),
    T("LayerScale","float","Layer size multiplier.","", ""),
    T("RotationSpeed","float","Layer rotation speed.","", ""),
    T("RotationStart","float","Starting rotation.","", ""),
@@ -992,10 +1117,16 @@ dict(id="dyson", tier=2, title="Dyson rings", paths=["DysonRings.yaml"], roots=[
 </ul>"""),
      groups=[
  G("Ring type", "One upgrade stage.", "Order in the file is the upgrade order.", "A missing stage stops progression.", [
-   T("Type","int","Upgrade level.","", ""),
+   T("Type","byte","The swarm stage this ring set belongs to.",
+     "The loader keeps the sets in a byte-keyed map, so a repeated Type keeps only the last entry.",
+     "The layer structure is hardcoded: a new stage needs a matching entry and a caller that asks for it.",
+     values=("key:DysonRings.yaml:Type", DYSON_STAGES)),
    T("Rings","map","Ring definitions for the level.","", ""),
    T("TexturePath","string","Ring texture.","", ""),
-   T("BlendMode","string","Blend mode.","", ""),
+   T("BlendMode","SpriteBlendMode","How the ring layer is blended.",
+     "Additive brightens where rings overlap; AlphaBlend keeps the texture's transparency.",
+     "An unknown name is not a blend mode, so the layer keeps its default of AlphaBlend.",
+     values=("enum:SpriteBlendMode", SPRITE_BLEND)),
    T("LayerScale","float","Layer scale.","", ""),
    T("RotationSpeed","float","Rotation speed.","", ""),
    T("PulsePeriod","float","Pulse cycle seconds.","", ""),
@@ -1030,7 +1161,10 @@ dict(id="explosions", tier=2, title="Explosion effects", paths=["Explosions.yaml
      l3="Types are looked up by name from combat code; an unknown type is not used.",
      groups=[
  G("Explosion", "One effect entry.", "Path is relative to Content/.", "Scale multiplies the sprite size.", [
-   T("Type","string","Explosion type id.","", ""),
+   T("Type","ExplosionType","Which explosion set this entry joins.",
+     "A caller passes one of these four values and gets the entries filed under it.",
+     "A name that is not one of them is not a set, so the entry cannot be spawned.",
+     values=("enum:ExplosionType", EXPLOSION_TYPES)),
    T("Path","string","Effect texture.","", ""),
    T("Scale","float","Size multiplier.","", ""),
  ]),
@@ -1196,7 +1330,10 @@ dict(id="particles", tier=3, title="Particles and shaders", paths=["3DParticles"
    T("StartColorRange","float[]","Colour range at birth.","", ""),
    T("EndColorRange","float[]","Colour range at death.","", ""),
    T("EndColorTime","float","When the end colour is reached.","", ""),
-   T("ColorSource","string","Where colour comes from.","", ""),
+   T("ColorSource","ColorSource","Which colour the particles start with.",
+     "Default keeps the emitter's own colour; the other three read it from the owning empire.",
+     "The value is only applied when it is not Default and a loyalty is present.",
+     values=("enum:ColorSource", PARTICLE_COLORS)),
    T("LocalOffset","float[]","Offset from the emitter.","", ""),
    T("Velocity","float[]","Initial velocity.","", ""),
    T("EndVelocity","float[]","Velocity at death.","", ""),
@@ -1259,7 +1396,10 @@ dict(id="ui", tier=3, title="UI layouts and menu scenes", paths=["UI"], roots=[]
    T("Animation","string","Animation name.","", ""),
    T("Animations","element","Animation list.","", ""),
    T("AxisAlign","string","Alignment within the parent.","", ""),
-   T("ButtonStyle","string","Button skin.","", ""),
+   T("ButtonStyle","ButtonStyle","Which button skin the layout asks for.",
+     "The style picks the normal, hover and pressed textures, and Text draws no background.",
+     "A name that is not a member of the enum is not a style and the button falls back to the default.",
+     values=("enum:ButtonStyle", BUTTON_STYLES)),
    T("CenterScale","float","Scale about the centre.","", ""),
    T("Children","element","Child elements.","", ""),
    T("ClickSfx","string","Click sound.","", ""),

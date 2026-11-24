@@ -90,8 +90,13 @@ seven combat fields or ten role counts, that row is an index. Give each field it
 2 and level 3, with its own unit, its own formula and its own vanilla values. "Food per pop, growth
 floor/ceiling, homeworld fertility" is a summary of six cards, not a substitute for them. This is
 where most of the modding work happens, so it gets the most room, not the least. A card whose unit,
-bound or failure mode is not documented is marked as an index entry and says so; a restated value
-such as "Vanilla 7." is not a level 3.
+bound or failure mode is not documented is an error in the audit log, not an index entry; a restated
+value such as "Vanilla 7." is not a level 3, and a card that only restates its own name is reported
+the same way. A level 2 under six words, or one that does not end a sentence, is a fragment rather
+than an explanation and is reported as an error too. A card the page marks **values only** — no
+authored entry, so it lists what vanilla writes and never what a modder may put in the field — is an
+error with the code `values-only`: the badge is not a neutral state, it is the page admitting the
+field is unexplained, and it stays in the log until the card has its own level 2 and level 3.
 
 ### Numbers: ranges, signs and dead entries
 
@@ -289,9 +294,15 @@ first content edit, and 5,000-odd files cannot be transcribed by reading them on
    - a --audit flag that prints, at minimum, the number of cards, the cards with no prose level 3,
      and the level-3 entries over five sentences, so the gap is countable after every rebuild.
    - an audit log the next pass reads: one line per card that needs work, with its class
-     (contradiction or backlog), the reason and the file:line evidence, written to
-     docs/kit/moddable-audit.txt. Contradictions reach zero before the page is published; the
-     backlog is what the next session works through.
+     (`violation` or `finding`), its code (`values-only`, `entry-no-l2`, `generic-blurb` and the
+     contradiction codes), the reason and the file:line evidence, written to
+     docs/kit/moddable-audit.txt. Violations reach zero before the page is published; findings are
+     the backlog the next session works through.
+   - the loop that proves the page, run in this order and reported with each exit status:
+     `build-moddable.py` to rebuild, `build-moddable.py --audit` which exits non-zero while any
+     violation survives, `test-prompt.py` which re-runs the build and checks the log against the
+     rendered pages, then `build-site.py` to re-render the prompt pages. A build you did not run is
+     not a pass, and a page edited by hand is not a page.
    Run the script, fix it until it runs clean, and report the command, the files it wrote and its
    counts. Do not paste HTML into a file and call that the page.
 Split by section, never by dropping entries. A single page with every tag is slow to scan but not
@@ -322,8 +333,11 @@ Check the answer against this list and fix it before you show me:
     value computes to, not just the raw numbers.
   - A tag each file sets once was shown as one file's line, in its own syntax, plus the count of
     the others; not as a list of near-identical files ending in "N more files".
-  - A field whose meaning is not documented is marked as an index entry and says so; it was not
-    filled with a restated value such as "Vanilla 7." under a heading that promises detail.
+  - A field whose meaning is not documented is an error in the audit log, not an index entry; it was
+    not filled with a restated value such as "Vanilla 7." under a heading that promises detail, and
+    a card with no authored entry was not counted as covered.
+  - No card was left marked **values only**: each one states what to put in the field, what reads
+    it, and what breaks when it is wrong, or it is the one dead-key sentence.
   - A dead field says only "This item has no function in game."
   - A key that is an enum member names the map it binds into and the names that map accepts; it was
     not called a field, and no unrelated enum was named.

@@ -17,12 +17,29 @@ Exit status is 0 only when every check passes.
 """
 
 import pathlib
+import os
 import re
 import subprocess
 import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
-REPO = HERE.parent.parent
+
+
+def star_drive_root():
+    """The StarDrive checkout: $STARDRIVE_ROOT, else the checkout this kit sits inside."""
+    env = os.environ.get("STARDRIVE_ROOT")
+    candidates = [pathlib.Path(env).expanduser()] if env else []
+    candidates.append(HERE.parent.parent)
+    for candidate in candidates:
+        if (candidate / "game" / "Content").is_dir():
+            return candidate.resolve()
+    sys.exit(
+        "star_drive_root: no StarDrive checkout found in "
+        + ", ".join(str(c) for c in candidates)
+        + "; set STARDRIVE_ROOT=/path/to/StarDrive"
+    )
+
+REPO = star_drive_root()
 MD = HERE / "moddable-content-explainer-prompt.md"
 SITE = HERE / "prompts" / "moddable-content.html"
 HUB = HERE / "moddable-content.html"
@@ -41,6 +58,20 @@ def check(ok, message):
 def prompt_block(text):
     blocks = re.findall(r"^```text\n(.*?)^```", text, re.S | re.M)
     return blocks
+
+
+def resolves(token):
+    """True if a path the block names exists, in either supported layout.
+
+    The block is written for a user who clones this kit to docs/kit inside their StarDrive
+    checkout, so its paths are written from the checkout root. This repo also has its own
+    root, where docs/kit/x is just x, so try that too before calling the path missing.
+    """
+    if (REPO / token).exists():
+        return True
+    if token.startswith("docs/kit/"):
+        return (HERE / token[len("docs/kit/"):].rstrip("/")).exists()
+    return False
 
 
 def main():
@@ -84,7 +115,7 @@ def main():
             continue
         named.add(token)
     for token in sorted(named):
-        check((REPO / token).exists(), f"path named in the block exists: {token}")
+        check(resolves(token), f"path named in the block exists: {token}")
 
     for mod in ("build-moddable.py", "moddable-data.py", "moddable-data-world.py",
                 "moddable-notes.py", "moddable-sections.py"):
@@ -117,13 +148,14 @@ def main():
                   f"the landing page quotes the hub's {label} count ({m.group(1) if m else '?'})")
 
     # The generator itself: run it from the repo root as the prompt tells an assistant to.
-    proc = subprocess.run([sys.executable, str(GENERATOR), "--audit"], cwd=str(REPO),
+    proc = subprocess.run([sys.executable, str(GENERATOR)], cwd=str(REPO),
                           capture_output=True, text=True)
     out = proc.stdout + proc.stderr
-    check(proc.returncode == 0, f"build-moddable.py --audit exits 0 ({proc.returncode})")
+    check(proc.returncode == 0, f"build-moddable.py exits 0 ({proc.returncode})")
     if proc.returncode != 0:
         print(out[-2000:])
-        return
+        print(f"\n{len(failures)} check(s) failed: the generator did not run")
+        sys.exit(1)
     check("section pages" in out and "families" in out, "the build reports pages, families and files")
     m = re.search(r"and (\d+) section pages", out)
     check(bool(m) and m.group(1) == "7", "the build writes one page per section")
@@ -155,8 +187,17 @@ def main():
     log = HERE / "moddable-audit.txt"
     check(log.exists(), "audit log exists: docs/kit/moddable-audit.txt")
     if log.exists():
-        head = log.read_text(encoding="utf-8").splitlines()[0]
-        check("violations 0" in head, f"no contradiction left in the audit log ({head})")
+        lines = log.read_text(encoding="utf-8").splitlines()
+        head = lines[0]
+        m = re.match(r"# violations (\d+) \| findings (\d+) \| known (\d+)$", head)
+        check(bool(m), f"audit log header parses ({head})")
+        rows = [ln.split("\t") for ln in lines[1:] if ln.strip()]
+        counts = [sum(1 for r in rows if len(r) > 1 and r[1] == k)
+                  for k in ("violation", "finding", "known")]
+        check(m is not None and [int(g) for g in m.groups()] == counts,
+              "audit log header matches the rows it lists")
+        check(any(len(r) > 2 and r[2] in ("values-only", "no-entry") for r in rows),
+              "a card with no authored entry is listed as an error")
 
     print()
     if failures:

@@ -16,6 +16,7 @@ numeric field with no Allowed range.
 
 import html
 import importlib.util
+import os
 import pathlib
 import re
 import subprocess
@@ -25,7 +26,23 @@ from collections import Counter
 sys.dont_write_bytecode = True
 
 HERE = pathlib.Path(__file__).resolve().parent
-REPO = HERE.parent.parent
+
+
+def star_drive_root():
+    """The StarDrive checkout: $STARDRIVE_ROOT, else the checkout this kit sits inside."""
+    env = os.environ.get("STARDRIVE_ROOT")
+    candidates = [pathlib.Path(env).expanduser()] if env else []
+    candidates.append(HERE.parent.parent)
+    for candidate in candidates:
+        if (candidate / "game" / "Content").is_dir():
+            return candidate.resolve()
+    sys.exit(
+        "star_drive_root: no StarDrive checkout found in "
+        + ", ".join(str(c) for c in candidates)
+        + "; set STARDRIVE_ROOT=/path/to/StarDrive"
+    )
+
+REPO = star_drive_root()
 CONTENT = REPO / "game" / "Content"
 OUT = HERE / "moddable-content.html"
 SECTION_DIR = HERE / "moddable"
@@ -320,6 +337,31 @@ def detail_of(t):
     """The prose level 3, or empty when the field only carries a value restated elsewhere."""
     l3 = (t.get("l3") or "").strip()
     return "" if not l3 or STUB_L3.match(l3) else l3
+
+
+def dead_key(t):
+    """The card whose entry is the fixed dead-key sentence, wherever the author put it."""
+    return (t.get("l1") or "").strip() == DEAD_ENTRY or detail_of(t) == DEAD_ENTRY
+
+
+def unexplained(t, keyed, elsewhere="", quote=("", "")):
+    """True for the cards that print "Not explained anywhere in this guide yet."
+
+    One predicate for both the page and the log: the block is the page advertising a gap, so any
+    card that reaches it has to be counted as an error in the same run. Dead-key cards are entries,
+    not gaps, and say so instead.
+    """
+    return (not detail_of(t) and not dead_key(t) and not keyed
+            and not (quote[1] if quote else "") and not elsewhere)
+
+
+def values_badge(t, keyed):
+    """The "values only" pill: no prose and no map, so the card can only list vanilla's numbers.
+
+    The pill is the page admitting it has nothing to say about what to put in the field, so it is
+    an error in the log (``values-only``), not a neutral badge.
+    """
+    return not detail_of(t) and not dead_key(t) and not keyed
 
 
 def span_of(entries, ty):
@@ -800,81 +842,114 @@ def explained_elsewhere(name, fam, group, sec):
 
 
 AUDIT = []
+# A level 2 that is still one of these has not been written for this key. A fragment such as
+# "Multiplier." or "Per delivery." is the same defect in a different shape, so it is caught by the
+# word count and sentence-ending test in classify() rather than by listing every stub.
+GENERIC_L2 = {"free text used by code lookups."}
+DEAD_ENTRY = "This item has no function in game."
 KNOWN_FILE = HERE / "moddable-audit-known.txt"
 AUDIT_FILE = HERE / "moddable-audit.txt"
 
 
-def audit_add(sec, fam, t, cls, code, msg, ev=""):
-    AUDIT.append(dict(id=f'{sec}/{fam["id"]}/{t["name"]}', cls=cls, code=code, msg=msg, ev=ev))
+def audit_add(sec, fam, t, cls, code, msg, ev="", qual=""):
+    """One row per card. Two cards in a family can share a tag name (a cue's Volume and a category's
+    Volume), and a shared id would make the two lines in the log indistinguishable."""
+    ident = f'{sec}/{fam["id"]}/{t["name"]}' + (f' [{qual}]' if qual else '')
+    AUDIT.append(dict(id=ident, cls=cls, code=code, msg=msg, ev=ev))
 
 
 def classify(t, fam, entries=()):
-    """(class, code, message, evidence) for a card with no authored level 3, or None.
+    """Every issue on this card: contradictions, then a missing or generic entry, then readers.
 
-    Only relationships the index can prove are checked. A level-3 that was written by hand is not
+    A card with no authored level 3 does not explain its key, whatever the generated one-liner says:
+    that is a violation, because the page would otherwise present the field name as coverage. Only
+    relationships the index can prove are checked. A level-3 that was written by hand is not
     re-checked here: whether its bound is the right bound needs a reader, and pretending a string
     check could decide it is how a guide ends up confident and wrong.
     """
     name = t["name"]
     leaf = name.rsplit(".", 1)[-1]
     idx = code_index()
+    # The fixed dead-key sentence is an entry, not a gap: the prompt tells the author to stop there.
+    if dead_key(t):
+        return []
     keys = t.get("key") or ()
     if isinstance(keys, str):
         keys = (keys,)
     if keys:
         missing = [k for k in keys if k not in idx["enums"]]
         if missing:
-            return ("violation", "key-unknown-enum",
-                    f'key names no enum in the code: {", ".join(missing)}', f'key={",".join(keys)}')
+            return [("violation", "key-unknown-enum",
+                     f'key names no enum in the code: {", ".join(missing)}', f'key={",".join(keys)}')]
         allowed = set()
         for k in keys:
             allowed.update(v for v, _ in idx["enums"][k])
         if name not in allowed:
-            return ("violation", "key-not-a-member",
-                    f'{name} is not a member of {", ".join(keys)}', f'key={",".join(keys)}')
+            return [("violation", "key-not-a-member",
+                     f'{name} is not a member of {", ".join(keys)}', f'key={",".join(keys)}')]
         if not any(enum_map_field(k) for k in keys):
-            return ("violation", "key-no-map", "no Map<enum, ...> field reads this enum",
-                    f'key={",".join(keys)}')
-        return None
+            return [("violation", "key-no-map", "no Map<enum, ...> field reads this enum",
+                     f'key={",".join(keys)}')]
+        return []
     # Values are structural too: a field accepting a closed set must say which names it takes, and
     # an authored paragraph is exactly where an unlisted value hides.
     fi = field_of(name, fam.get("roots") or ())
     if str(fam.get("fmt", "")).upper().startswith("YAML"):
         found = values_problem(t, fi)
         if found:
-            return found
+            return [found]
     # A keyed card is checked even when prose was written for it: the map is the evidence, and an
     # authored paragraph is exactly where an unattributed key hides.
-    if detail_of(t):
-        return None
+    detail = detail_of(t)
+    issues = []
+    ev = f"{fi[0]}.{leaf} at {fi[2]}:{fi[3]}" if fi else ""
+    if not detail:
+        issues.append(("violation", "values-only",
+                       "no authored entry: the card can only be marked 'values only', so it says "
+                       "nothing about what to put in the field or what the code does with it", ev))
+    else:
+        l2 = (t["l2"] or "").strip()
+        if not l2:
+            issues.append(("violation", "entry-no-l2",
+                           "the card has an entry but no level-2 summary", ev))
+        elif l2.lower() in GENERIC_L2:
+            issues.append(("violation", "generic-blurb",
+                           "level-2 is a canned one-liner, not what reads the value", ev))
+        elif len(re.findall(r"[A-Za-z][\w'-]*", l2)) < 6 or not re.search(r"[.!?]$", l2):
+            issues.append(("violation", "generic-blurb",
+                           "level-2 is a fragment, not what reads the value", ev))
+        return issues
     members = sorted(idx["members"].get(leaf) or ())
     if fi:
         cls, ty, rel, line = fi
         n, first = reads_of(leaf)
         if not n:
-            return ("finding", "inert-field", "declared but nothing outside the declaration reads it",
-                    f"{cls}.{leaf} at {rel}:{line}")
-        if not (t["l2"] or "").strip():
-            return ("finding", "no-l2", "no level-2 summary", f"{cls}.{leaf} at {rel}:{line}")
-        return None
+            issues.append(("finding", "inert-field",
+                           "declared but nothing outside the declaration reads it", ev))
+        return issues
     if members and str(fam.get("fmt", "")).upper().startswith("YAML") \
             and any(re.fullmatch(r"-?\d+(?:\.\d+)?", v.strip()) for _, v in entries) \
             and any(enum_map_field(e) for e in members):
         # A YAML key that is one float, is a member of an enum some Map<Enum, float> reads, and is
         # not annotated with key= is the shape that produced a card claiming Support belonged to
         # GameText. A name that merely equals an enum value elsewhere (FireArc, Tutorials) is not.
-        return ("violation", "enum-name-unclaimed",
-                "name is an enum member but the card claims no map", f'enums={",".join(members[:4])}')
+        issues.append(("violation", "enum-name-unclaimed",
+                       "name is an enum member but the card claims no map",
+                       f'enums={",".join(members[:4])}'))
+        return issues
     if leaf in idx["strings"] or leaf in idx["tokens"]:
-        return None
-    return ("finding", "no-reader", "no field, enum member, string or identifier matches this name", "")
+        return issues
+    issues.append(("finding", "no-reader",
+                   "no field, enum member, string or identifier matches this name", ""))
+    return issues
 
 
 def report_audit():
-    """Write the log the next pass reads, and fail under --audit while a contradiction survives.
+    """Write the log the next pass reads, and fail under --audit while an error survives.
 
-    Findings are a backlog, not a gate: 900 hardcoded cards cannot be authored in one pass. A
-    violation is the page disagreeing with the code, and that is what must reach zero.
+    A violation is the page disagreeing with the code, or claiming an explanation it does not have:
+    a card with no authored entry is an error, not coverage. Findings stay a backlog for keys that
+    are explained but carry a known reader problem.
     """
     known = {}
     if KNOWN_FILE.exists():
@@ -895,7 +970,7 @@ def report_audit():
     for a in viol + new + kn:
         lines.append(f'{a["id"]}\t{a["cls"]}\t{a["code"]}\t{a["msg"]}\t{a["ev"]}')
     AUDIT_FILE.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    print(f"  audit log: {AUDIT_FILE.relative_to(REPO)} — violations {len(viol)}, "
+    print(f"  audit log: {AUDIT_FILE.name} — violations {len(viol)}, "
           f"findings {len(new)}, known {len(kn)}")
     for a in viol[:20]:
         print(f"    VIOLATION {a['id']}: {a['code']} — {a['msg']}")
@@ -907,8 +982,9 @@ def report_audit():
 
 def render_tag(t, stats, span="", elsewhere="", evidence="", keyed=False, quote=("", "")):
     detail = detail_of(t)
+    dead = dead_key(t)
     # A key of an enum-keyed map is traced through the map, so it is not a values-only card.
-    badge = "" if detail or keyed else '<span class="pill idx">values only</span>'
+    badge = '<span class="pill idx">values only</span>' if values_badge(t, keyed) else ""
     out = [f'<details class="tag"><summary><span class="nm">{escape(t["name"])}</span>'
            f'<span class="ty">{escape(t["ty"])}</span>{badge}'
            f' <span class="l1">{escape(t["l1"])}</span></summary>']
@@ -922,6 +998,7 @@ def render_tag(t, stats, span="", elsewhere="", evidence="", keyed=False, quote=
     # has to be visible, or the card reads as if nothing were missing.
     label = ("Level 3 &mdash; the detail" if detail
              else "Level 3 &mdash; the key and its map" if keyed
+             else "Level 3 &mdash; what the key does" if dead
              else "Level 3 &mdash; the values, and what is missing")
     out.append(f'<details class="lv3"><summary>{label}</summary><div class="in">')
     vals = values_table(t)
@@ -929,6 +1006,8 @@ def render_tag(t, stats, span="", elsewhere="", evidence="", keyed=False, quote=
         out.append(vals)
     if detail:
         out.append(f'<p>{escape(detail)}</p>')
+    elif dead:
+        out.append(f'<p>{escape(DEAD_ENTRY)}</p>')
     elif quote[1]:
         out.append(f'<p class="where"><b>The file explains it.</b> <code>{escape(quote[0])}</code> has '
                    f'this comment above the key: &ldquo;{escape(quote[1])}&rdquo;</p>')
@@ -936,14 +1015,14 @@ def render_tag(t, stats, span="", elsewhere="", evidence="", keyed=False, quote=
         out.append(f'<p class="note-p"><b>Explained elsewhere:</b> {elsewhere}. There is still no '
                    'traced reader on this card, so the unit and the behaviour at 0 or an extreme '
                    'value are not stated here.</p>')
-    elif not keyed:
+    elif unexplained(t, keyed, elsewhere, quote):
         out.append('<p class="note-p"><b>Not explained anywhere in this guide yet.</b> The line below '
                    'says whether the code reads the key at all; neither it nor this card gives a unit, '
                    'a bound or a failure symptom. Start from a vanilla file, change one value, then '
                    'try 0 and the extremes and watch what the game does.</p>')
     if evidence:
         out.append(evidence)
-    if not t["l2"] and not keyed:
+    if not t["l2"] and not keyed and not dead:
         out.append('<p class="note-p">This card also has no level-2 summary: nothing beyond the one '
                    'sentence above has been written for this tag.</p>')
     if stats:
@@ -993,6 +1072,10 @@ def render_family(fam, count, seen, samples, pats, sec=None, comments=None):
     if cat_html:
         o.append(cat_html)
 
+    card_names = {}
+    for g in fam["groups"]:
+        for t in g["tags"]:
+            card_names[t["name"]] = card_names.get(t["name"], 0) + 1
     for g in fam["groups"]:
         o.append('<details class="grp"><summary><span class="g">%s</span> '
                  '<span class="pill">%d tags</span><div class="l1">%s</div></summary>'
@@ -1028,8 +1111,19 @@ def render_family(fam, count, seen, samples, pats, sec=None, comments=None):
                     if not t["l2"]:
                         NO_L2[0] += 1
             found = classify(t, fam, entries)
-            if found:
-                audit_add(sec["id"] if sec else fam["id"], fam, t, *found)
+            qual = t["l1"] if card_names[t["name"]] > 1 else ""
+            for issue in found:
+                audit_add(sec["id"] if sec else fam["id"], fam, t, *issue, qual=qual)
+            # The "Not explained anywhere" block and the "values only" pill are the page
+            # advertising a gap. Neither may render without the violation row that counts it, or
+            # the log undercounts what the page itself says is missing.
+            if not any(i[0] == "violation" for i in found):
+                if unexplained(t, keyed, ex, quote):
+                    raise SystemExit(f'{fam["id"]}/{t["name"]}: renders as unexplained with no '
+                                     f'violation logged — classify() must flag this card')
+                if values_badge(t, keyed):
+                    raise SystemExit(f'{fam["id"]}/{t["name"]}: marked values only with no '
+                                     f'violation logged — classify() must flag this card')
             o.append("<li>" + render_tag(t, st, span, ex, ev, keyed, quote) + "</li>")
         o.append("</ul></div></details>")
 
@@ -1284,7 +1378,7 @@ content or prose; do not hand-edit this page.</p>
                 if re.search(r"\b(int|float|double)\b", t.get("ty", "")) and not t.get("range"):
                     numeric_no_range.append((f["id"], t["name"]))
 
-    print(f"wrote {OUT.relative_to(REPO)} and {len(sizes)} section pages: "
+    print(f"wrote {OUT.name} and {len(sizes)} section pages: "
           f"{len(fams)} families, {total_files:,} files, {total_tags} described tags")
     for p, n in sizes:
         print(f"  {p.relative_to(HERE)}  {n/1024:6.1f} KB")

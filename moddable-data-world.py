@@ -1473,7 +1473,7 @@ dict(id="ui", tier=3, title="UI layouts and menu scenes", paths=["UI"], roots=[]
  ]),
 
 dict(id="miscassets", tier=3, title="Loading screens, cursors, flags, tutorials, video", paths=["LoadingScreen", "Cursors", "Flags", "Tutorials", "Video"], roots=[],
-     fmt="XNB, PNG, WMV", loader="ResourceManager.LoadRandomLoadingScreen / LoadVideo; TutorialScreen (Tutorials/*.xnb); flags by FlagIndex",
+     fmt="XNB, PNG, WMV", loader="ResourceManager.LoadRandomLoadingScreen / LoadVideo; TutorialScreen; flags by FlagIndex",
      override="Relative path; these are presentation assets with few hardcoded names.",
      l1="The remaining presentation folders: loading art, mouse cursors, empire flags, tutorial slides and intro videos.",
      l2="Most are looked up by index or folder, so adding files is safe and deleting one degrades that screen.",

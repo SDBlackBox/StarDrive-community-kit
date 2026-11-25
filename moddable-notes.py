@@ -226,8 +226,9 @@ NOTES = {
     "A design that exceeds the limit is not silently trimmed: the extra modules fail to place, and the ship launches with empty cells.",
 
 ("modules", "HangarShipUID"):
-    "The design a hangar builds, named exactly as the design's Name. "
-    "The loader accepts both HangarShipUID and hangarShipUID, which is why both spellings appear in content; the lowercase form is not a different field. "
+    "The design a hangar launches, named exactly as the design's Name. "
+    "Three reserved names turn the field into a switch: DynamicLaunch, DynamicInterceptor and DynamicAntiShip make the bay re-pick the empire's best design for that role at every launch, which is the auto-upgrade the design screen colours. "
+    "The field is HangarShipUID; a lowercase hangarShipUID element matches no element on the template and is dropped without a warning. "
     "MaximumHangarShipSize and PermittedHangarRoles gate what the bay may launch, so a design that exists but is too large simply never appears in the wing.",
 
 ("weapons", "DamageAmount"):
@@ -247,8 +248,8 @@ NOTES = {
 
 ("weapons", "EffectVsShields"):
     "A multiplier on damage against shields, with 1 neutral and 0.9 meaning ten percent less. "
-    "The loader also accepts the singular EffectVsShield, so either spelling works and neither is a dead field. "
-    "This is applied after the target's shield resistances, which is why a shield-resistant weapon still needs a good multiplier to be worth fitting.",
+    "It is applied before the target's shield resistance, so the two multiply: a 0.9 weapon against a 20 percent resistant shield lands at 0.72 of its damage. "
+    "The singular EffectVsShield is not a field on the template; the loader drops it, so only the plural spelling does anything.",
 
 ("weapons", "BeamPowerCostPerSecond"):
     "The sustained power draw while a beam is firing, separate from PowerRequiredToFire which is per shot. "
@@ -494,7 +495,7 @@ NOTES = {
     l1="The weapon's unique name.",
     l2=("It is overwritten from the file stem, and a module's WeaponType points at that stem."),
     l3=("The loader takes the stem as the UID, so a module whose `WeaponType` names anything else finds no "
-        "weapon and leaves the mount inert with a log line. Renaming the file without updating the modules "
+        "weapon and leaves the mount inert with a log line. Two files that share a stem in different folders collapse into one entry, the newer winning, so a copied weapon silently replaces the original. Renaming the file without updating the modules "
         "that use it is the common way to break a gun that still looks installed. Keep the tag equal to "
         "the stem; the value in the file is documentation.")),
 

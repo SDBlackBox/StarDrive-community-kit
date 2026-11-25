@@ -65,7 +65,7 @@ pre#text{background:var(--panel);border:1px solid var(--line);border-radius:6px;
 <p>A checkout for the prompt. The rendered reference starts at <a href="../moddable-content.html">moddable-content.html</a>; rebuild hub and sections with <code>python3 docs/kit/build-moddable.py --audit</code>. The existing pages are the cheap path: they already hold the generated values for every family.</p>
 
 <h2>The prompt</h2>
-<p class="note">25,880 characters, copied verbatim from <code>moddable-content-explainer-prompt.md</code> at
+<p class="note">30,569 characters, copied verbatim from <code>moddable-content-explainer-prompt.md</code> at
 build time. Copy takes the whole file, because that is what the prompt expects you to paste.</p>
 <pre id="text" hidden># The moddable content guide — a copy-paste interactive prompt
 
@@ -186,6 +186,64 @@ a building&#x27;s `Name` and a tech&#x27;s `UID` are compared in several places,
 the build list and tech gate, the screen that groups or sorts by it, the dialogue keys or name files
 it selects, and the save field it becomes. Finish with the mismatch symptom — what stops appearing
 or turns blank when the string no longer matches — rather than &quot;hull style family&quot;.
+
+## The search areas — where a key is answered from
+
+A tag is not answered by the screen that displays it. The design screen, the shipyard and the
+module palette read computed values; they do not define them. When a key looks undocumented, search
+the gameplay code for the family first, and only then decide it is a dead end:
+
+| Family | Read these before saying anything about a key |
+|---|---|
+| Modules | `Ship_Game/Ships/ShipModule.cs`, `ShipModuleFlyweight.cs` (the template and its fields), `ShipStats.cs`, `Ship_PowerCalc.cs`, `Ship_Repair.cs`, `Ship_Initialize.cs`, `Ship_Cargo.cs`, `Ship_Troop.cs`, `Ship_Warp.cs` |
+| Weapons | `Ship_Game/Gameplay/Weapon.cs`, `WeaponTemplate.cs`, `IWeaponTemplate.cs`, `Projectile.cs`, `Beam.cs`, `Bomb.cs`, `WeaponTag.cs` |
+| Hulls and designs | `ShipData.cs`, `Ship_Initialize.cs`, `ShipStats.cs`, `RoleData.cs`, then the design screen only for display |
+| Tech | `Technology.cs`, the research screen, and every `*Unlocked` list |
+
+### Find the loader before the gameplay code
+
+Every family is read by one loader, and that loader is where the element-to-field mapping is decided.
+`ResourceManager.LoadContent` runs them in this order, and the order is a dependency map:
+`LoadLanguage`, `LoadHulls`, `LoadEmpires`, `LoadTroops`, `LoadWeapons`, `LoadShipModules`, `LoadGoods`,
+`LoadShipRoles`, `LoadAllShipDesigns`, `LoadBuildings`, `LoadRandomItems`, `LoadDialogs`, `LoadTechTree`,
+`LoadEncounters`, `LoadExpEvents`, `LoadArtifacts`, `PlanetTypes.LoadPlanetTypes`, `LoadSunZoneData`,
+`LoadBuildRatios`, `LoadEcoResearchStrats`, `LoadResearchOptionSettings`, `LoadBlackboxSpecific`,
+`LoadBlueprintsTemplates`. Graphics load in a second pass in `LoadGraphicsResources`: `LoadNebulae`,
+`LoadStars`, `LoadJunk`, `LoadAsteroids`, `LoadProjectileTextures`, `LoadProjectileMeshes`,
+`SunType.LoadSunTypes`, `DysonRings.LoadDysonRings`, `LoadFonts`.
+
+Read the loader first for three things: the element name it actually binds (an
+`[XmlElement(ElementName=...)]` or a `[StarData]` field can rename it), the values it overwrites or
+clamps, and the defaults it fills in when a tag is absent. A tag that reaches the loader and is
+replaced there is not a dead tag; say what it becomes. A family with no loader in that list is read by
+its own class (`PlanetTypes`, `SunType`, `ExplosionManager`, the game-option and UI writers), so find
+its `Deserialize` or `TryDeserialize` call and say in the card that there is no rewrite step. Saves are
+the other reader: a ship design is a text file with a `ModuleUIDs` list and a `ModuleUID` per slot, so a
+module rename leaves saved designs naming a stem that no longer exists even when the live template
+table is consistent.
+
+The template class is the authority on whether an element exists at all: a key that matches no field,
+no property and no enum member is dropped at load, and its card is the one dead-key sentence. A key
+whose field exists but has no reader outside its declaration is also a dead end — the field is real,
+the value changes nothing — and the card says so in level 2, not with an invented effect. A key whose
+only matches are in a UI screen or the shipyard is a display concern at most; name the screen and do
+not attribute gameplay behaviour to it. When the XML element name differs from the field (as `Range`
+becomes `BaseRange`, `FireArc` becomes `FireDispersionArc`, `FireCone` becomes `FireImprecisionAngle`
+and `SalvoTimer` becomes `SalvoDuration`), search the field name, not the element name, or the search
+will report no reader for a key that works.
+
+The loader also rewrites values after reading them, so a key can be answered by a name other than its
+own or by a value computed at load. `ResourceManager.LoadUniqueEntitiesByFileUID` replaces the `&lt;UID&gt;`
+element with the file stem for both weapons and ship modules, logging the mismatch and correcting it,
+so the file name is the join and a wrong UID inside is harmless; two files with the same stem collapse
+into one, the newer winning. `LoadShipModules` then sets `DisableRotation` on every module whose
+`XSize` equals `YSize` unless it is a 1x1 weapon, and gives command modules a default `TargetTracking`
+and `TargetAccuracy`. `WeaponTemplate.InitializeTemplate` turns the `Tag_*` bitfield into
+`ActiveWeaponTags`, defaults `BeamDuration` to 2, floors `FireDelay` at 0.016, sets `WeaponType` to
+Missile when `Tag_Missile` is set and no type is given, and sets `SalvoSoundInterval` to 9999 when
+`PlaySoundOncePerSalvo` is set. The tags are a bitfield: `WeaponTag` names fourteen, but only eleven
+have a property on the template, so `Tag_Drone`, `Tag_BioWeapon` and `Tag_SpaceBomb` cannot be set
+from a file however they are spelled.
 
 ## The two passes
 

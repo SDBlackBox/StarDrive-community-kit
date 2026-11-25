@@ -95,12 +95,13 @@ These stay in the StarDrive repository, because they are for people changing the
   checked in one place. Go back over the list together and confirm the field really is absent before
   the sentence stands; the module family alone has nine such keys (`Name`, `Description`, `Version`,
   `TexturePath`, `Left`, `Right`, `Rear`, `radius`, `OffPowerMod`).
-- **Walk every family through its loader, not only its gameplay class.** Modules, weapons, hulls,
-  races and buildings have been checked that way; the rest have not. Start with the family's loader
-  (the order and the rename/overwrite rules are in `moddable-content-explainer-prompt.md`), then
-  search the name the loader actually binds. Current: ui 51, racialtraits 46, technology 35,
-  particles 35, events 31, encounters 28, planettypes 26, troops 25, suns 22, diplomacy dialogs 20,
-  designs 20, and 528 violations in all, so `--audit` exits 1 on purpose until the prose exists.
+- **Walk every family through its loader, and take the card list from the loader's fields.**
+  Modules, weapons, hulls, races and buildings are done. The remaining families should be written from
+  the loader class (`[StarData]` fields), not only from the tags the content uses: a declared field no
+  vanilla file writes is still a key a mod can write and needs a card. Current: ui 51, racialtraits 46,
+  technology 35, particles 35, events 31, encounters 28, planettypes 26, troops 25, suns 22, diplomacy
+  dialogs 20, designs 20, and 528 violations in all, so `--audit` exits 1 on purpose until the prose
+  exists.
 - **Settle the two names that look like a feature and are not.** `Tag_SpaceBomb` is an enum member
   with no property, and `ShipModuleType.Spacebomb` is a module type no vanilla file uses, which mounts
   `WeaponType` like a turret. Planet bombing is `ModuleType` Bomb plus `BombType`; say that wherever

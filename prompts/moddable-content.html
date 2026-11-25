@@ -65,7 +65,7 @@ pre#text{background:var(--panel);border:1px solid var(--line);border-radius:6px;
 <p>A checkout for the prompt. The rendered reference starts at <a href="../moddable-content.html">moddable-content.html</a>; rebuild hub and sections with <code>python3 docs/kit/build-moddable.py --audit</code>. The existing pages are the cheap path: they already hold the generated values for every family.</p>
 
 <h2>The prompt</h2>
-<p class="note">30,569 characters, copied verbatim from <code>moddable-content-explainer-prompt.md</code> at
+<p class="note">31,018 characters, copied verbatim from <code>moddable-content-explainer-prompt.md</code> at
 build time. Copy takes the whole file, because that is what the prompt expects you to paste.</p>
 <pre id="text" hidden># The moddable content guide — a copy-paste interactive prompt
 
@@ -221,6 +221,12 @@ its `Deserialize` or `TryDeserialize` call and say in the card that there is no 
 the other reader: a ship design is a text file with a `ModuleUIDs` list and a `ModuleUID` per slot, so a
 module rename leaves saved designs naming a stem that no longer exists even when the live template
 table is consistent.
+
+Build the card set from that field list, not only from the tags the content happens to use. A
+`[StarData]` field the loader declares that no vanilla file writes is still a key a mod can write, and
+it needs a card saying what happens when it is set and which code reads it; a scan of the content alone
+can never show it. The same rule applies in reverse: a field with a reader but no content use is a
+tuning knob the guide should expose, not a gap.
 
 The template class is the authority on whether an element exists at all: a key that matches no field,
 no property and no enum member is dropped at load, and its card is the one dead-key sentence. A key

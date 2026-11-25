@@ -153,6 +153,12 @@ the other reader: a ship design is a text file with a `ModuleUIDs` list and a `M
 module rename leaves saved designs naming a stem that no longer exists even when the live template
 table is consistent.
 
+Build the card set from that field list, not only from the tags the content happens to use. A
+`[StarData]` field the loader declares that no vanilla file writes is still a key a mod can write, and
+it needs a card saying what happens when it is set and which code reads it; a scan of the content alone
+can never show it. The same rule applies in reverse: a field with a reader but no content use is a
+tuning knob the guide should expose, not a gap.
+
 The template class is the authority on whether an element exists at all: a key that matches no field,
 no property and no enum member is dropped at load, and its card is the one dead-key sentence. A key
 whose field exists but has no reader outside its declaration is also a dead end — the field is real,

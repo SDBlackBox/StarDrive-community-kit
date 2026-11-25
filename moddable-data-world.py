@@ -425,7 +425,7 @@ dict(id="races", tier=2, title="Races", paths=["Races"], ext=".xml", roots=["Emp
  ]),
  ]),
 
-dict(id="racialtraits", tier=2, title="Racial traits", paths=["RacialTraits"], ext=".xml", roots=["RacialTraits", "TraitList"],
+dict(id="racialtraits", tier=2, title="Racial traits", paths=["RacialTraits"], ext=".xml", roots=["RacialTraits", "TraitList", "RacialTraitOption", "RacialTrait"],
      fmt="XML", loader="ResourceManager.LoadRaceTraits → RacialTraitOption",
      override="One file. TraitName is the id a race file's TraitOptions list uses.",
      l1="The menu of racial bonuses: what each trait costs, what it forbids, and what it changes.",

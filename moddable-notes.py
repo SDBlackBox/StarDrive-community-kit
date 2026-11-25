@@ -1053,3 +1053,227 @@ NOTES.update({
     l2="`Empire.CreateThrusterColors` packs the three channels into `ThrustColor1`, and the particle colour modes of the same name use it.",
     l3="The particle system's `ThrustColor1` mode tints a plume with this colour, which is how two races' drives look different. The channels are bytes, so a value outside 0-255 throws during deserialization rather than wrapping. Colour 1 and colour 2 are separate, which lets a race fade one drive colour into another."),
 })
+
+
+# Buildings: authored from Building.cs and the colony, technology and bombardment code.
+NOTES.update({
+("buildings", "AllowInfantry"): dict(
+    l1="Marks a building that houses infantry.",
+    l2="`Building.CalcMilitaryStrength` counts it as a military building when it is set, and `Technology` classifies it for tech bonuses.",
+    l3="`Building.cs` reads it at line 472 while it adds the building to the planet's military score, and `Technology.cs` treats a building with it as military when it decides which techs apply. It is a flag, not a capacity: how many troops a planet holds comes from the planet. A building without it adds nothing to the defence score."),
+("buildings", "AllowShipBuilding"): dict(
+    l1="Lets the planet build ships while the building stands.",
+    l2="`Planet_ConstructionQueue` sets `HasSpacePort` when it is true, and `Technology` counts it as a production building.",
+    l3="The queue computes `HasSpacePort |= b.IsSpacePort || b.AllowShipBuilding`, so any building with this flag enables the planet's ship construction. Losing the last such building stops ship building even if the capital remains. The field grants the ability, not a design list."),
+("buildings", "BuildOnlyOnce"): dict(
+    l1="Restricts the building to a single build order.",
+    l2="`Building.IsSuitableForBlueprints` excludes it from plans, and `Empire` consults the existing buildings before ordering it.",
+    l3="`IsSuitableForBlueprints` returns false for a build-once building, so blueprints never place it. `Empire.cs` also checks the planet's buildings before it hands the order out. The per-planet duplicate limit is `Unique`; this flag is the stricter, empire-facing version."),
+("buildings", "CanBeCreatedFromLava"): dict(
+    l1="Lets the building appear when lava on a tile solidifies.",
+    l2="`Volcano` filters the buildings it may create with this flag.",
+    l3="`Volcano.cs` builds its candidate list from `ResourceManager.BuildingsDict` filtered on `CanBeCreatedFromLava`, so a building without it can never replace cooling lava. `ImmueToLava` is the other half, protecting an existing building from the eruption. Both are read only when a tile changes."),
+("buildings", "CanBeTerraformed"): dict(
+    l1="Lets the building's tile be terraformed.",
+    l2="`PlanetGridSquare.TerrainCanBeTerraformed` requires it, and `Planet.HasTerrainToTerraform` looks for it across the planet.",
+    l3="The predicate is `BuildingOnTile && Building.CanBeTerraformed`, so only a building that sets the flag has its tile improved. `HasTerrainToTerraform` is the same check over every tile, and the terraforming tech uses it to decide whether the investment buys anything. A building without it protects its tile."),
+("buildings", "CanBuildAnywhere"): dict(
+    l1="Lets the building ignore tile restrictions.",
+    l2="`Building.cs` uses it when it places an event building and when it searches for a valid tile.",
+    l3="The flag appears twice in `Building.cs`: once to stop an event building forcing a random habitable tile (line 414), and once in the tile filter at line 426, where an ordinary building needs `NoBuildingOnTile`. A building with it can sit on any free tile, which is how crash sites and event structures land anywhere."),
+("buildings", "CannotBeBombed"): dict(
+    l1="Excludes the building from orbital bombardment.",
+    l2="`SolarSystemBody` skips a tile whose building has this flag when it picks a bombardment target.",
+    l3="The check is `!TargetTile.BuildingOnTile || TargetTile.Building.CannotBeBombed`, so such a tile is never chosen. That protects the building from orbit without giving it hit points. It does not protect it from invasion or ground combat."),
+("buildings", "Category"): dict(
+    l1="The palette group the building is listed under.",
+    l2="The type is `BuildingCategory`, and the colony build list groups and sorts by it.",
+    l3="`BuildingCategory` is a fixed enum, so a value outside it becomes the default. The label does not change behaviour; it decides which tab lists the building and which filter the AI uses when it looks for a kind of building. `Technology` classifies buildings from their numbers, not from this field."),
+("buildings", "CombatStrength"): dict(
+    l1="Attack strength of a building that fights.",
+    l2="`Building.IsAttackable` is `CombatStrength > 0`, and the planet's military score adds it.",
+    l3="A building with a positive value becomes a target in ground combat and contributes to the planet's defence estimate. `Technology.cs` also counts it as a military building when it sorts tech bonuses. It is not hit points: `Strength` is what absorbs damage."),
+("buildings", "Cost"): dict(
+    l1="Production cost of the building before pace scaling.",
+    l2="`Building.ActualCost` multiplies it by `ProductionPace`, and the colony build list and research popup show that result.",
+    l3="`ActualCost(e)` is `Cost * e.Universe.ProductionPace`, so the file's number is the cost at pace 1. The build list, the deep-space building window and the research popup all display the scaled figure. Maintenance is a separate field and does not follow the cost."),
+("buildings", "CreditsPerColonist"): dict(
+    l1="Credits per colonist per turn.",
+    l2="`Building.IsMoneyBuilding` is true when it is positive, and the colony income calculation adds it.",
+    l3="It is a per-colonist rate, so its value grows with the planet's population rather than sitting flat. `IsMoneyBuilding` uses it for tech classification and the colony summary. A planet with no colonists gets nothing from it."),
+("buildings", "Defense"): dict(
+    l1="Defence of the building against bombardment.",
+    l2="The field is the defensive half of the combat stat pair, while `SoftAttack` and `HardAttack` are the offensive half.",
+    l3="The code comment states the purpose: defence versus bombardment, not ground attack. Ground combat builds its stat block from the attack fields and the building's `Strength`, so a building with only `Defense` cannot fight a landing. It is separate from `PlanetaryShieldStrengthAdded`, which protects the whole planet."),
+("buildings", "DefenseShipsCapacity"): dict(
+    l1="How many defence ships the building supports.",
+    l2="`Building.CalcMilitaryStrength` multiplies the chosen design's strength by it, and zero skips the building.",
+    l3="When the value is zero the building is left out of the defence-ship calculation; otherwise the picked design's strength is multiplied by it and added to the planet's score. The role of those ships is `DefenseShipsRole`. It is a count of slots, not a build queue."),
+("buildings", "DefenseShipsRole"): dict(
+    l1="The ship role the building launches for defence.",
+    l2="`GetDefenseShipName` and `ShipBuilder.PickFromCandidates` use it to choose a design.",
+    l3="The value is a `RoleName`, so a misspelt role falls back to the enum default instead of being rejected. `PickFromCandidates` chooses from the empire's buildable designs for that role, which lets a building defend with a newer hull without a content edit. The count is `DefenseShipsCapacity`."),
+("buildings", "DescriptionIndex"): dict(
+    l1="GameText id for the building's tooltip.",
+    l2="`Building.DescriptionText` wraps it in a `LocalizedText`.",
+    l3="The index is a `GameText.yaml` id, and an id with no text shows an empty tooltip. Nothing validates it at load. `ShortDescriptionIndex` is the one-line version used in lists."),
+("buildings", "EventOnBuild"): dict(
+    l1="Exploration event triggered when the player finishes the building.",
+    l2="`Planet_ConstructionQueue` looks it up in `ResourceManager.Event` and runs it once.",
+    l3="The trigger runs only for the player and only on completion, which makes it a story hook rather than a modifier. A name that matches no event logs an error and does nothing. `EventTriggerUID` is the other direction: an event already placed on the map."),
+("buildings", "EventSpawnChance"): dict(
+    l1="Percent chance this event building appears on a generated planet.",
+    l2="`SolarSystemBody` rolls it with `Random.RollDice` when it picks an event building for a tile.",
+    l3="`RollDice` takes a byte percentage, so 100 always places the building and 0 never does. It is consulted only while the planet is generated, which is why editing it does not change an existing galaxy. `NoRandomSpawn` removes a building from the pool entirely."),
+("buildings", "EventTriggerUID"): dict(
+    l1="Event id this building links to on the map.",
+    l2="`Building.EventHere` is true when it is set, and `PlanetGridSquare` resolves it through `ResourceManager.Event`.",
+    l3="A non-empty value marks the building as an event site (`EventHere`), and the event can then fire when the tile is visited. The name is an `ExplorationEvent` file stem, and a bad one leaves the tile inert. It is read when the event fires, not at generation."),
+("buildings", "FoodCache"): dict(
+    l1="Food storage the building adds.",
+    l2="`IsBadCacheResourceBuilding` warns when a cache exists without any food production on the same building.",
+    l3="The field is storage, so it raises the planet's buffer rather than its output. `Building.cs` warns when `FoodCache > 0` and both `PlusFlatFoodAmount` and `PlusFoodPerColonist` are zero, which catches a cache with nothing to cache. The warning fires during generation, in `SolarSystemBody`, not at load."),
+("buildings", "HardAttack"): dict(
+    l1="Attack strength against hard targets.",
+    l2="`Combat` builds its attacker stat block from `ActualHardAttack`, which is derived from this field.",
+    l3="Hard targets are buildings and armour; soft targets are troops and light structures, which `SoftAttack` covers. The value is not damage per hit, because `Combat` rolls attacks against the defender's strength. A building with neither attack field cannot fight on the ground."),
+("buildings", "ImmueToLava"): dict(
+    l1="Protects the building from lava destroying its tile.",
+    l2="`PlanetGridSquare.ImmuneToLava` returns true when the building sets it.",
+    l3="The field is misspelled in the code (`ImmueToLava`), so the correct spelling in a file is dropped. A protected building survives an eruption that would otherwise clear the tile. `CanBeCreatedFromLava` is the other half, controlling what appears after lava cools."),
+("buildings", "Income"): dict(
+    l1="Flat credits per turn from the building.",
+    l2="`Building.IsMoneyBuilding` counts it, and the colony income code adds it when it is above zero.",
+    l3="Unlike `CreditsPerColonist`, this is a flat sum that does not scale with population. `IsMoneyBuilding` treats it as a money building for tech classification and the colony summary. It is gross income, with `Maintenance` subtracted separately."),
+("buildings", "IncreaseRichness"): dict(
+    l1="Mineral richness the building adds to the planet.",
+    l2="The building description prints it, and the colony's richness total adds it.",
+    l3="It raises the richness that mining and production-per-richness read, so its effect is multiplicative rather than a flat income. `Building.cs` prints it in the description when it is non-zero. `PlusProdPerRichness` is the field that turns that richness into production."),
+("buildings", "Infrastructure"): dict(
+    l1="Infrastructure the building adds to the colony.",
+    l2="`Building.cs` prints it in the description, and the colony's infrastructure total adds it.",
+    l3="Infrastructure is what a colony needs to support its population and buildings, so this is an indirect production field. It is shown in the building description when non-zero. It does not change the building's own cost or upkeep."),
+("buildings", "InvadeInjurePoints"): dict(
+    l1="Damage the building does to invading troops.",
+    l2="`PlanetGridSquare` applies it during an invasion, and the building's defence score adds twenty times it.",
+    l3="The invasion code reads the value from the building on the tile, so a fortress can hurt the landing force before the ground fight starts. The military score weights it at 20 per point, which is how it affects the planet's estimated strength. Zero is the default and means no invasion damage."),
+("buildings", "IsCommodity"): dict(
+    l1="Marks the building as a commodity structure.",
+    l2="`Building.IsSuitableForBlueprints` excludes commodities, and `IsEventTerraformer` requires the flag together with terraform points.",
+    l3="The field is read twice: blueprint planning skips a commodity (line 142), and a commodity with `PlusTerraformPoints > 0` is an event terraformer. It does not by itself make the building buildable from the colony list. `CommodityRequired` and `ResourceCreated` are the separate trade fields."),
+("buildings", "Maintenance"): dict(
+    l1="Credits per turn the building costs.",
+    l2="`Building.GetMaintenanceCost` scales it by the empire's civilian maintenance modifier.",
+    l3="The deep-space building window prints the scaled figure, and the colony upkeep total adds it. `CivMaintMod` on the empire multiplies it, which is why a tech that reduces civilian maintenance changes the number without touching the file. It is a cost, so the colony budget subtracts it."),
+("buildings", "MaxFertilityOnBuild"): dict(
+    l1="Fertility ceiling the building adds to its tile.",
+    l2="`MaxFertilityOnBuildFor` multiplies it by the empire's racial environment modifier for the planet's category.",
+    l3="The per-empire helper is what the colony screen and the blueprint screen call, so the same building is worth different amounts to different races. It is a ceiling rather than a flat addition, so a tile already at that fertility gains nothing. `PlusTerraformPoints` is the other way buildings change fertility."),
+("buildings", "MaxPopIncrease"): dict(
+    l1="Maximum population the building adds.",
+    l2="`Building.ProducesPopulation` and the population-relevance check at line 398 use it.",
+    l3="It raises the planet's population cap, so its effect only appears once the colony fills the old one. A zero value makes the building not population-relevant, which is what the tech classification tests. It does not change the growth rate."),
+("buildings", "NameTranslationIndex"): dict(
+    l1="GameText id for the building's name.",
+    l2="`Building.TranslatedName` wraps it, and the build list shows that text.",
+    l3="The index must match an id in `GameText.yaml`; the loader copies it into every clone of the building. An index with no text shows blank rather than the XML `Name`, because the display path uses the localised string only. `DescriptionIndex` and `ShortDescriptionIndex` are the other two text ids."),
+("buildings", "NoRandomSpawn"): dict(
+    l1="Keeps the building out of the random event pool.",
+    l2="`SolarSystemBody` filters event buildings with `EventHere && !NoRandomSpawn`.",
+    l3="That filter decides which buildings can be placed as a random ruin on a generated tile. Setting it means the building appears only when an event or a file names it. `EventSpawnChance` is the frequency for the ones that stay in the pool."),
+("buildings", "PlanetaryShieldStrengthAdded"): dict(
+    l1="Planetary shield strength the building adds.",
+    l2="The planet's shield total adds it, and `Technology` counts it as a defensive building.",
+    l3="The value goes into the planet's shield pool, which bombardment must break before it reaches the buildings. `Technology.cs` classifies a building with it above zero as defensive when it sorts tech bonuses. It is separate from `Defense`, which is the building's own bombardment resistance."),
+("buildings", "PlusFlatFoodAmount"): dict(
+    l1="Flat food produced per turn.",
+    l2="`Building.ProducesFood` and the colony food total use it.",
+    l3="It is a flat amount, unlike `PlusFoodPerColonist`, so it does not scale with population. A building with it above zero counts as food-producing for tech classification and for the bad-cache warning. Negative values are allowed and make the colony consume food."),
+("buildings", "PlusFlatPopulation"): dict(
+    l1="Population added when the building completes.",
+    l2="`Building.ProducesPopulation` is true when it is positive.",
+    l3="The value lands once rather than per turn, which is how a colony pod or a biosphere raises a new colony's headcount. `MaxPopIncrease` is the cap version of the same idea. Tech classification counts a building with it as population-relevant."),
+("buildings", "PlusFlatProductionAmount"): dict(
+    l1="Flat production per turn.",
+    l2="`Building.ProducesProduction` includes it, and the colony production total adds it.",
+    l3="It does not scale with colonists or richness, which makes it the field for a fixed-output building. `PlusProdPerColonist` and `PlusProdPerRichness` are the scaling versions. A negative value is a production cost."),
+("buildings", "PlusFlatResearchAmount"): dict(
+    l1="Flat research per turn.",
+    l2="`Building.ProducesResearch` returns true when it is positive, and the colony research total adds it.",
+    l3="It is the unscaled research field; `PlusResearchPerColonist` scales with population. The colony research total adds both, and `Technology` classifies a building with either as a research building. Negative values reduce output."),
+("buildings", "PlusFoodPerColonist"): dict(
+    l1="Food produced per colonist.",
+    l2="`Building.ProducesFood` includes it, and the colony food total multiplies it by population.",
+    l3="Because it scales with colonists, a large colony gains more from the same building than a small one. `PlusFlatFoodAmount` is the unscaled partner. A building with only this field produces nothing on a planet with no population."),
+("buildings", "PlusProdPerColonist"): dict(
+    l1="Production per colonist.",
+    l2="`Building.ProducesProduction` includes it, and the colony production total scales it by population.",
+    l3="It is the population-scaled production field, distinct from `PlusFlatProductionAmount` and `PlusProdPerRichness`. The colony total multiplies it by the number of colonists. A building with only this produces nothing on an empty world."),
+("buildings", "PlusProdPerRichness"): dict(
+    l1="Production per point of mineral richness.",
+    l2="`Building.ProducesProduction` includes it, and the colony total scales it by the planet's richness.",
+    l3="This is the mining-shaped field: a rich planet gets more from it and a barren one gets nothing. `IncreaseRichness` can change the input, so the two fields interact. It is not scaled by population."),
+("buildings", "PlusResearchPerColonist"): dict(
+    l1="Research per colonist.",
+    l2="`Building.ProducesResearch` includes it, and the colony research total scales it by population.",
+    l3="It is the population-scaled research field; `PlusFlatResearchAmount` is the flat partner. The loader does no validation, so a negative value is simply a research drain. Tech classification treats any positive value here as a research building."),
+("buildings", "PlusTaxPercentage"): dict(
+    l1="Tax rate the building adds.",
+    l2="`Building.IsMoneyBuilding` counts it, and the colony tax calculation adds it to the rate.",
+    l3="It is a percentage contribution to the colony's tax rate, not credits, so its effect depends on the population and goods being taxed. `CreditsPerColonist` and `Income` are the direct money fields. A negative value lowers the rate."),
+("buildings", "PlusTerraformPoints"): dict(
+    l1="Terraforming points the building provides.",
+    l2="`IsEventTerraformer` requires it together with `IsCommodity`, and the terraforming tech counts it.",
+    l3="Terraform points are spent to raise a planet's fertility, so a building with them is what makes a world worth terraforming. `Technology.cs` treats a building with them as food-related when it sorts tech bonuses. `MaxFertilityOnBuild` caps what the tile can gain."),
+("buildings", "ProdCache"): dict(
+    l1="Production storage the building adds.",
+    l2="`IsBadCacheResourceBuilding` warns when a cache exists without any production on the same building.",
+    l3="It is storage, so a colony keeps a stock instead of losing overflow. The warning fires when `ProdCache > 0` and all three production fields are zero, which catches a cache with nothing to hold. `StorageAdded` is the general storage field beside it."),
+("buildings", "Scrappable"): dict(
+    l1="Whether the building can be scrapped.",
+    l2="`Building.IsSuitableForBlueprints` requires it, and the defence picker only scraps buildings that have it.",
+    l3="`Planet_BuildDefenses` looks for the weakest military building that is also `Scrappable`, so a protected building is never removed for a new one. Blueprints also skip a non-scrappable building. The default is true, so the tag is written only to protect something."),
+("buildings", "SensorRange"): dict(
+    l1="Sensor radius the building adds.",
+    l2="`Building.IsSensor` is `SensorRange > 0`, and the planet's sensor range includes it.",
+    l3="A planet's coverage is the largest of its buildings' ranges, which is what `Empire_Borders` uses when it marks known space. `Technology.cs` classifies a building with it as a sensor building. The value is in world units, the same as a ship's `SensorRange`."),
+("buildings", "ShipRepair"): dict(
+    l1="Base ship repair rate the building provides.",
+    l2="`Building.cs` multiplies it by `GlobalStats.BaseShipyardRepair` before the rate is used.",
+    l3="The multiplier in `Globals.yaml` means the file's number is a base rate rather than the final one. The rate decides how fast docked ships are repaired each turn. A building without it contributes no repair."),
+("buildings", "ShortDescriptionIndex"): dict(
+    l1="GameText id for the one-line description.",
+    l2="`Building.cs` prints it in lists when the index is above zero.",
+    l3="It is the short form used in the build list and tooltips, while `DescriptionIndex` is the long form. An index of zero means the field is skipped and the list falls back to the name. A wrong id shows blank rather than the XML text."),
+("buildings", "ShowOnPlanetList"): dict(
+    l1="Shows the building in the planet list.",
+    l2="`PlanetListScreenItem` adds it to the colony's icon row when the flag is set.",
+    l3="The planet list is the sidebar of colony icons, and this flag decides which buildings get one. It is a display field only: hiding a building from the list does not hide it from the colony screen or the AI. `Category` still controls which build tab lists it."),
+("buildings", "StorageAdded"): dict(
+    l1="General storage the building adds.",
+    l2="The colony storage total adds it, and the description prints it when non-zero.",
+    l3="It raises the planet's capacity for stored resources, which stops overflow being lost. `FoodCache` and `ProdCache` are the specialised versions. The value does not change production or income."),
+("buildings", "Strength"): dict(
+    l1="Hit points of the building.",
+    l2="`IsAlive` and `IsDestroyed` compare it with zero, and ground combat reduces it.",
+    l3="The default is 5, so a building that omits the tag dies to the first hits; most content sets a larger number. `IsAlive` is simply `Strength > 0`, and infantry combat subtracts damage from it. `CombatStrength` is the attack value, not the health."),
+("buildings", "Unique"): dict(
+    l1="Allows only one of the building per planet.",
+    l2="`SBProduction` refuses a second copy and logs a warning.",
+    l3="The check is `q.Building.Unique && P.BuildingBuilt(q.Building.BID)`, so a duplicate is dropped from the queue with a warning rather than built silently. `BuildOnlyOnce` is the broader build-order restriction. A unique building can still exist on every planet."),
+("buildings", "Weapon"): dict(
+    l1="Weapon template the building fires.",
+    l2="`Building.IsWeapon` is true when it is non-empty, and the planet's defence code loads it through `GetWeapon`.",
+    l3="The string is a weapon UID, and a missing one logs an error when the building tries to fire. Buildings use the same weapon stats as ships, including range and damage, without a module to mount them. `AttackTimer` and `WeaponTimer` pace the shots."),
+("buildings", "WinsGame"): dict(
+    l1="Marks the building as a victory condition.",
+    l2="`Planet_ConstructionQueue` sets `HasWinBuilding` when it is true.",
+    l3="One building with this flag on any of an empire's planets is enough to set the win flag, so a mod can make a hidden structure the objective. The check runs when the queue finishes the building, not continuously. It is the only building field the victory code reads."),
+})
+
+NOTES.update({
+("buildings", "SoftAttack"): dict(
+    l1="Attack strength against soft targets.",
+    l2="`Combat` builds its attacker stat block from `ActualSoftAttack`, which is derived from this field.",
+    l3="Soft targets are troops and light structures, while hard targets are buildings and armour, which `HardAttack` covers. The value is not damage per hit: `Combat` rolls attacks against the defender's strength. A building with neither attack field cannot fight on the ground."),
+})

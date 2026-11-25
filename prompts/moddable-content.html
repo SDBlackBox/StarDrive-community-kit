@@ -65,7 +65,7 @@ pre#text{background:var(--panel);border:1px solid var(--line);border-radius:6px;
 <p>A checkout for the prompt. The rendered reference starts at <a href="../moddable-content.html">moddable-content.html</a>; rebuild hub and sections with <code>python3 docs/kit/build-moddable.py --audit</code>. The existing pages are the cheap path: they already hold the generated values for every family.</p>
 
 <h2>The prompt</h2>
-<p class="note">31,018 characters, copied verbatim from <code>moddable-content-explainer-prompt.md</code> at
+<p class="note">31,167 characters, copied verbatim from <code>moddable-content-explainer-prompt.md</code> at
 build time. Copy takes the whole file, because that is what the prompt expects you to paste.</p>
 <pre id="text" hidden># The moddable content guide — a copy-paste interactive prompt
 
@@ -213,8 +213,10 @@ Every family is read by one loader, and that loader is where the element-to-fiel
 `SunType.LoadSunTypes`, `DysonRings.LoadDysonRings`, `LoadFonts`.
 
 Read the loader first for three things: the element name it actually binds (an
-`[XmlElement(ElementName=...)]` or a `[StarData]` field can rename it), the values it overwrites or
-clamps, and the defaults it fills in when a tag is absent. A tag that reaches the loader and is
+`[XmlElement(ElementName=...)]` can rename an XML element; `[StarData]` marks a field for the game&#x27;s
+own serializer, used by saves and YAML, and does not affect XML, where the element name is the field
+or property name), the values it overwrites or clamps, and the defaults it fills in when a tag is
+absent. A tag that reaches the loader and is
 replaced there is not a dead tag; say what it becomes. A family with no loader in that list is read by
 its own class (`PlanetTypes`, `SunType`, `ExplosionManager`, the game-option and UI writers), so find
 its `Deserialize` or `TryDeserialize` call and say in the card that there is no rewrite step. Saves are

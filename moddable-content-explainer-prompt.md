@@ -144,8 +144,10 @@ Every family is read by one loader, and that loader is where the element-to-fiel
 `SunType.LoadSunTypes`, `DysonRings.LoadDysonRings`, `LoadFonts`.
 
 Read the loader first for three things: the element name it actually binds (an
-`[XmlElement(ElementName=...)]` or a `[StarData]` field can rename it), the values it overwrites or
-clamps, and the defaults it fills in when a tag is absent. A tag that reaches the loader and is
+`[XmlElement(ElementName=...)]` can rename an XML element; `[StarData]` marks a field for the game's
+own serializer, used by saves and YAML, and does not affect XML, where the element name is the field
+or property name), the values it overwrites or clamps, and the defaults it fills in when a tag is
+absent. A tag that reaches the loader and is
 replaced there is not a dead tag; say what it becomes. A family with no loader in that list is read by
 its own class (`PlanetTypes`, `SunType`, `ExplosionManager`, the game-option and UI writers), so find
 its `Deserialize` or `TryDeserialize` call and say in the card that there is no rewrite step. Saves are

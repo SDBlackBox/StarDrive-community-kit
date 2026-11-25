@@ -679,3 +679,377 @@ NOTES = {
         "system each get their own copy of its layout rather than sharing one. The field is read only when "
         "a galaxy is created, so a save keeps the system it was generated with.")),
 }
+
+
+# Races: authored from ResourceManager.LoadEmpires, EmpireData, Pirates, Remnants and
+# RacialTrait.LoadTraitConstraints. The l1/l2/l3 replace the short labels in moddable-data-world.py.
+NOTES.update({
+("races", "Traits"): dict(
+    l1="The container the loader turns into EmpireData.Traits.",
+    l2="LoadEmpires deserializes this block into the RacialTrait that almost every racial stat is read from.",
+    l3="`EmpireData` has no fields of its own for race identity: `Name`, `Singular`, `ShipType` and the rest are pass-throughs to `Traits`. After loading, `LoadEmpires` repairs an empty `ShipType` from `Singular` with a warning, and `FixSpacePortScale` corrects a scale of zero or less. A tag written outside this block that also exists inside it is dropped, which is why the race files nest everything here."),
+("races", "Name"): dict(
+    l1="The race id, and the name the game shows for the empire.",
+    l2="`EmpireData.Name` returns `Traits.Name`, and the save, `Universe.GetEmpireByName` and the encounter lookup all compare against that string.",
+    l3="`EmpireData.Name` is a pass-through to `Traits.Name`, so this is the id, not only a label. The save stores empires by it, `Universe.GetEmpireByName` finds them by it, and `ResourceManager.GetEncounter` matches an encounter's `Faction` against it. Renaming it strands saved empires and any encounter written for the old string; `Singular` and `Plural` are separate and do not follow."),
+("races", "VideoPath"): dict(
+    l1="The empire's intro video, and the stem of its portrait.",
+    l2="`ScreenMediaPlayer` plays it as the empire's video, and `RacialTrait.Icon` loads `Portraits/<VideoPath>`.",
+    l3="`PlayVideo` is called with `empire.data.Traits.VideoPath`, and `RacialTrait.Icon` uses the same string as a portrait file name, falling back to `Portraits/Unknown`. One value therefore drives two assets, so a missing video and a missing portrait fail together. The string is a file stem, not a path with an extension."),
+("races", "MusicCue"): dict(
+    l1="The track this empire plays in peace.",
+    l2="`ScreenMediaPlayer` plays it while the empire is selected and not at war, and swaps to `CombatMusic` during war.",
+    l3="The cue is chosen in `ScreenMediaPlayer` and only when nothing is already playing, so it is the ambient theme rather than a jingle. A name that is not a loaded cue leaves the previous track playing, and the value is an audio file stem under `Audio`. War replaces it entirely, which is why a race that sets no cue still has combat music."),
+("races", "Faction"): dict(
+    l1="A non-zero value marks the file a faction rather than a playable people.",
+    l2="`EmpireData.IsFaction` is `Faction > 0`, and `LoadEmpires` files such a race under `MinorEmpires` instead of `MajorEmpires`.",
+    l3="`IsFactionOrMinorRace` also accepts the deprecated `MinorRace` bool, but this byte is the live switch. `EmpireAI` gives a faction its pirate or remnant persona only when this is set together with the matching flag. Corsairs and Draugar write 1; a major race writes nothing, and the setup screen offers only major races as a player pick."),
+("races", "HullColors"): dict(
+    l1="Which parts of a hull take the empire colour.",
+    l2="`Empire.HullTintOf` uses the two-member `HullColorParts` enum, `None` or `Paint`, to decide whether a ship is tinted.",
+    l3="`Empire.HullTint` passes this field and the empire colour to `HullTintOf`, which either paints the hull or leaves the texture alone; the new-game ship preview calls the same code. `HullColors` is not saved with the empire, so a loaded game reads it from the race file again. `None` is how a race keeps its ships in their authored livery while still owning a flag and border colour."),
+("races", "SpacePortModel"): dict(
+    l1="An optional model for this race's space station.",
+    l2="`SpaceStation` loads it instead of the default station mesh when the race names one.",
+    l3="`SpaceStation.HasRaceModel` requires a non-empty value, and `StaticMesh.LoadMesh` then builds the station from that path. `FixSpacePortScale` separately corrects `SpacePortScale` to 1 with a warning when it is zero or negative, so model and scale are the two halves of one override. Leaving the field empty uses the shared station model."),
+("races", "TechTree"): dict(
+    l1="This item has no function in game.",
+    l2="Kulrathi.xml writes it, and no field of that name exists on EmpireData: the only TechTree in the build is ResourceManager's map of loaded technologies.",
+    l3="`EmpireData` has no `TechTree` field, so the element is dropped with the other unknown ones. The tech an empire starts with comes from `UnlockedAtGameStart` entries in the tech files and the racial trait flags those entries test, not from the race file. Deleting the line changes nothing."),
+("races", "WarpStart"): dict(
+    l1="The sound cue for a ship's warp-in.",
+    l2="`Ship_Warp.GetStartWarpCue` returns it when it is not null, and otherwise picks a cue from the hull's surface area.",
+    l3="The fallback is `sd_warp_start_small` below 60 surface area, `sd_warp_start_large` above 350, and `sd_warp_start_02` in between. The same non-null test gates `GetEndWarpCue`, so a race that sets only `WarpEnd` gets neither override. The value is an audio cue name, not a path."),
+("races", "WarpEnd"): dict(
+    l1="The sound cue for a ship's warp-out.",
+    l2="`Ship_Warp.GetEndWarpCue` returns it only when `WarpStart` is also set, because that is the condition the method tests.",
+    l3="The test is `data.WarpStart != null`, so `WarpEnd` alone is ignored and the surface-area default plays instead: `sd_warp_stop_small`, `sd_warp_stop_large` or `sd_warp_stop`. Setting both fields is the only way to override the warp sounds completely. The field is a cue name, not an asset path."),
+("races", "TroopNameIndex"): dict(
+    l1="The GameText id for this race's troop name.",
+    l2="`EmpireData.TroopName` wraps the index in a `LocalizedText`, and `Troop.Name` uses it for every troop the empire owns.",
+    l3="The index must match an id in `GameText.yaml`; an id with no text resolves to an empty string, which is what the troop list then shows. `Bomb.ResolveSpecialBombActions` also renames freed Owlwok troops with the Cordrazine race's name taken from here. `TroopDescriptionIndex` is the description half of the same pair."),
+("races", "TroopDescriptionIndex"): dict(
+    l1="The GameText id for this race's troop description.",
+    l2="`EmpireData.TroopDescription` wraps the index, and that text is what the troop tooltip shows.",
+    l3="It is the companion of `TroopNameIndex` and obeys the same rule: the number is a localisation id, and an id with no entry renders blank. Neither index is validated at load, so a wrong number is a silent text bug rather than a load error."),
+("races", "RebelName"): dict(
+    l1="The empire name a rebellion is created under.",
+    l2="`Empire_Espionage` looks the rebel empire up with `Universe.GetEmpireByName(data.RebelName)`.",
+    l3="The string must match the name the rebel faction is actually created with, or the lookup returns null and the rebellion has no empire to hand planets to. It is the faction's full name, while `RebelSing` and `RebelPlur` are the display forms copied into its traits. A missing value still starts a rebellion, but its planets are not transferred."),
+("races", "RebelSing"): dict(
+    l1="The rebel faction's singular name.",
+    l2="`UniverseState_Empires` copies it into `Traits.Singular` when it builds the rebel empire.",
+    l3="The rebel faction is a real empire cloned from the parent, and its `Singular` and `Plural` are replaced from this pair so the UI calls its people something else. It does not affect who owns the planets; `RebelName` does that. An empty value leaves the rebel with the parent's singular name."),
+("races", "RebelPlur"): dict(
+    l1="The rebel faction's plural name.",
+    l2="`UniverseState_Empires` copies it into `Traits.Plural` when it creates the rebel empire.",
+    l3="It is the plural half of the same substitution as `RebelSing`, so a rebellion can call itself Confederates while keeping the parent's adjective and ship style. The pair is read once at creation and then saved with the new empire. Changing the tag does not rename a rebellion that already exists."),
+("races", "EnvTerran"): dict(
+    l1="Fertility multiplier for this race on Terran worlds.",
+    l2="`Empire.EnvironmentalModifier` returns it for a colony of category `Terran`, and a trait option with the same climate multiplies it again.",
+    l3="`EnvironmentalModifier` switches on `PlanetCategory.Terran` and returns this field, which scales the colony's fertility; 1 is neutral and below 1 is worse. `LoadTraitConstraints` multiplies it by the matching `EnvTerranMultiplier` from any selected trait, so race and trait stack. It cannot make an uninhabitable world colonisable: habitability comes from the planet type's own `Habitable` flag."),
+("races", "EnvOceanic"): dict(
+    l1="Fertility multiplier for this race on Oceanic worlds.",
+    l2="`Empire.EnvironmentalModifier` returns it for a colony of category `Oceanic`, and a trait option with the same climate multiplies it again.",
+    l3="`EnvironmentalModifier` switches on `PlanetCategory.Oceanic` and returns this field, which scales the colony's fertility; 1 is neutral and below 1 is worse. `LoadTraitConstraints` multiplies it by the matching `EnvOceanicMultiplier` from any selected trait, so race and trait stack. It cannot make an uninhabitable world colonisable: habitability comes from the planet type's own `Habitable` flag."),
+("races", "EnvSteppe"): dict(
+    l1="Fertility multiplier for this race on Steppe worlds.",
+    l2="`Empire.EnvironmentalModifier` returns it for a colony of category `Steppe`, and a trait option with the same climate multiplies it again.",
+    l3="`EnvironmentalModifier` switches on `PlanetCategory.Steppe` and returns this field, which scales the colony's fertility; 1 is neutral and below 1 is worse. `LoadTraitConstraints` multiplies it by the matching `EnvSteppeMultiplier` from any selected trait, so race and trait stack. It cannot make an uninhabitable world colonisable: habitability comes from the planet type's own `Habitable` flag."),
+("races", "EnvTundra"): dict(
+    l1="Fertility multiplier for this race on Tundra worlds.",
+    l2="`Empire.EnvironmentalModifier` returns it for a colony of category `Tundra`, and a trait option with the same climate multiplies it again.",
+    l3="`EnvironmentalModifier` switches on `PlanetCategory.Tundra` and returns this field, which scales the colony's fertility; 1 is neutral and below 1 is worse. `LoadTraitConstraints` multiplies it by the matching `EnvTundraMultiplier` from any selected trait, so race and trait stack. It cannot make an uninhabitable world colonisable: habitability comes from the planet type's own `Habitable` flag."),
+("races", "EnvSwamp"): dict(
+    l1="Fertility multiplier for this race on Swamp worlds.",
+    l2="`Empire.EnvironmentalModifier` returns it for a colony of category `Swamp`, and a trait option with the same climate multiplies it again.",
+    l3="`EnvironmentalModifier` switches on `PlanetCategory.Swamp` and returns this field, which scales the colony's fertility; 1 is neutral and below 1 is worse. `LoadTraitConstraints` multiplies it by the matching `EnvSwampMultiplier` from any selected trait, so race and trait stack. It cannot make an uninhabitable world colonisable: habitability comes from the planet type's own `Habitable` flag."),
+("races", "EnvDesert"): dict(
+    l1="Fertility multiplier for this race on Desert worlds.",
+    l2="`Empire.EnvironmentalModifier` returns it for a colony of category `Desert`, and a trait option with the same climate multiplies it again.",
+    l3="`EnvironmentalModifier` switches on `PlanetCategory.Desert` and returns this field, which scales the colony's fertility; 1 is neutral and below 1 is worse. `LoadTraitConstraints` multiplies it by the matching `EnvDesertMultiplier` from any selected trait, so race and trait stack. It cannot make an uninhabitable world colonisable: habitability comes from the planet type's own `Habitable` flag."),
+("races", "EnvIce"): dict(
+    l1="Fertility multiplier for this race on Ice worlds.",
+    l2="`Empire.EnvironmentalModifier` returns it for a colony of category `Ice`, and a trait option with the same climate multiplies it again.",
+    l3="`EnvironmentalModifier` switches on `PlanetCategory.Ice` and returns this field, which scales the colony's fertility; 1 is neutral and below 1 is worse. `LoadTraitConstraints` multiplies it by the matching `EnvIceMultiplier` from any selected trait, so race and trait stack. It cannot make an uninhabitable world colonisable: habitability comes from the planet type's own `Habitable` flag."),
+("races", "EnvBarren"): dict(
+    l1="Fertility multiplier for this race on Barren worlds.",
+    l2="`Empire.EnvironmentalModifier` returns it for a colony of category `Barren`, and a trait option with the same climate multiplies it again.",
+    l3="`EnvironmentalModifier` switches on `PlanetCategory.Barren` and returns this field, which scales the colony's fertility; 1 is neutral and below 1 is worse. `LoadTraitConstraints` multiplies it by the matching `EnvBarrenMultiplier` from any selected trait, so race and trait stack. It cannot make an uninhabitable world colonisable: habitability comes from the planet type's own `Habitable` flag."),
+("races", "EnvVolcanic"): dict(
+    l1="Fertility multiplier for this race on Volcanic worlds.",
+    l2="`Empire.EnvironmentalModifier` returns it for a colony of category `Volcanic`, and a trait option with the same climate multiplies it again.",
+    l3="`EnvironmentalModifier` switches on `PlanetCategory.Volcanic` and returns this field, which scales the colony's fertility; 1 is neutral and below 1 is worse. `LoadTraitConstraints` multiplies it by the matching `EnvVolcanicMultiplier` from any selected trait, so race and trait stack. It cannot make an uninhabitable world colonisable: habitability comes from the planet type's own `Habitable` flag."),
+("races", "PreferredEnv"): dict(
+    l1="The climate this race treats as home.",
+    l2="`EmpireData.PreferredEnvPlanet` exposes it and the colony and blueprint screens compare a planet's category against it.",
+    l3="The new-game panel shows the race's preference and hides the row when it is Terran, which is the default. `LoadTraitConstraints` lets any trait option with a non-Terran `PreferredEnv` overwrite it, so the last such trait in the list decides. It is a preference, not a habitability flag: a world of another category still colonises, but the colony's fertility is measured against this climate."),
+("races", "BaseShipLevel"): dict(
+    l1="A level added to every ship this empire spawns.",
+    l2="`Ship_Initialize` adds it to the hull's level, and the pirate and remnant AIs write it as their faction level rises.",
+    l3="`Pirates` sets it to `level / 4` and `Remnants` to `Level / 3`, so a value in a race file is overwritten the first time either AI advances. The level feeds crew skill, and `Weapon.AimLevel` turns crew level into accuracy, which is why late-game pirate ships shoot straighter. It is a faction-tuning number rather than a racial constant."),
+("races", "MinimumTroopLevel"): dict(
+    l1="The troop level the AI treats as the rookie floor.",
+    l2="`DefensiveCoordinator` scraps a troop at exactly this level, and the `Minimum Troop Level` tech bonus adds to the field in `TechEntry`.",
+    l3="The comparison is `troop.Level == Us.data.MinimumTroopLevel`, so troops below it are not swept and troops above it are kept. The tech bonus of the same name raises the field mid-game, which is how an empire stops fielding level-1 troops. It is a level, not a percentage: the experience curve decides what reaching it costs."),
+("races", "StartingShip"): dict(
+    l1="A design name the load validates for the empire.",
+    l2="`CheckForRequiredShipDesigns` resolves it and logs an error for a major race when no design carries that name, and `CarrierBays` returns it as a fallback fighter name.",
+    l3="The assert runs once at content load, so a typo is a log line rather than a crash, and `IsFactionOrMinorRace` exempts factions from the complaint. The only other reader is `CarrierBays`, which falls back to it when a hull asks for a default fighter and names none. It is a design `Name`, not a file path."),
+("races", "StartingScout"): dict(
+    l1="The scout design the empire falls back to.",
+    l2="`EmpireData.ScoutShip` returns the automation pick, then this field, then the literal `Unarmed Scout`, and the load asserts the resolved name.",
+    l3="The precedence lives in `ScoutShip`, so a player who picks a scout in the automation window overrides this field without editing the race. An empty value still produces a usable scout, but it is the generic vanilla design rather than one matched to the race. The assert checks the resolved name, not the tag alone."),
+("races", "PrototypeShip"): dict(
+    l1="The design name that pays no upkeep.",
+    l2="`ShipMaintenance.IsFreeUpkeepShip` returns true for any ship whose name matches, and the load asserts the design exists.",
+    l3="The check has an overload for a live `Ship` and one for an `IShipDesign`, so the prototype and everything built to it are free. That makes the field a cost lever as well as a name, since pointing it at an expensive design removes that design's maintenance. Remnant empires are free regardless of the setting."),
+("races", "DefaultColonyShip"): dict(
+    l1="The colony ship the empire builds by default.",
+    l2="`EmpireData.ColonyShip` returns the automation pick, then this field, then `Colony Ship`, and the load asserts it is a colony ship.",
+    l3="The fallback chain means a race that names nothing still expands, using the vanilla design. The assert checks `IsColonyShip`, so a freighter here logs an error and the resolved name is still what the AI tries to build. The automation window lists the valid designs and writes the player's pick to `CurrentAutoColony`, which outranks this field."),
+("races", "DefaultSmallTransport"): dict(
+    l1="The freighter the empire builds by default.",
+    l2="`EmpireData.FreighterShip` returns the automation pick, then this field, then `Small Transport`, and the load asserts both `IsFreighter` and `IsCandidateForTradingBuild`.",
+    l3="Two asserts run on this one tag, so a design that can carry cargo but is not a trading candidate still logs an error. The `FreighterShip` fallback is what the AI uses when auto-freighters are left alone. The automation window exposes the same slot and stores the player's choice in `CurrentAutoFreighter`."),
+("races", "DefaultTroopShip"): dict(
+    l1="The troop transport the empire builds by default.",
+    l2="`Empire.CommonInitialize` fills an empty value with `<PortraitName> Troop`, and the load asserts the result is a single-troop ship.",
+    l3="Because the default is derived from `PortraitName`, a race that leaves the tag out looks for a design named after its portrait, which usually does not exist. `IsSingleTroopShip` is the shape the assert wants, so a multi-troop design here logs an error. Invasion goals ask the empire for its troop ship by this resolved name."),
+("races", "DefaultConstructor"): dict(
+    l1="The constructor the empire builds by default.",
+    l2="`EmpireData.ConstructorShip` returns the automation pick, then this field, then `Terran Constructor`, and the load asserts `IsConstructor`.",
+    l3="The literal fallback is a Terran design, so a race that names nothing here builds a ship from another people's tree. The assert is what catches a name that resolves to something that cannot build. The automation window stores the player's choice in `CurrentConstructor`, which outranks the tag."),
+("races", "DefaultMiningShip"): dict(
+    l1="The mining ship the empire builds by default.",
+    l2="`Empire.GetMiningShipName` returns it when the design exists and otherwise `DefaultMiningShipName`, and the load asserts `BaseCargoSpace > 0`.",
+    l3="The test is `ResourceManager.ShipTemplateExists`, so an empty or misspelt name silently falls back to the shared default. The cargo assert is the only check that the design can actually mine. Mining goals and the automation window both ask for the name through the same method."),
+("races", "DefaultResearchStation"): dict(
+    l1="The research station the empire builds by default.",
+    l2="`EmpireData.ResearchStation` returns the automation pick, then this field, then `Basic Research Station`, and the load asserts `IsResearchStation`.",
+    l3="The assert checks the role, not the name, so a station with the wrong role logs an error while the fallback still gives the AI something to build. Research goals ask for the resolved name, which means a race with no tag uses the vanilla station. The automation window writes the player's choice to `CurrentResearchStation`."),
+("races", "DefaultMiningStation"): dict(
+    l1="The mining station the empire builds by default.",
+    l2="`EmpireData.MiningStation` returns the automation pick, then this field, then `Basic Mining Station`, and the load asserts `IsMiningStation`.",
+    l3="As with the research station, the fallback keeps the AI working when the tag is absent and the assert only complains about the role. The station is built on a planet's mining slot, so the role is what makes it legal there. `CurrentMiningStation` outranks the tag once a player picks one."),
+("races", "DefaultSalvageShip"): dict(
+    l1="The salvage ship the empire builds when salvage ops are on.",
+    l2="`SalvageShipDesignOf` returns it only when the design exists and `IsSalvageShip`, and the load warns when salvage ops are enabled and the race names none.",
+    l3="The warning appears in `CheckForRequiredShipDesigns` only when `GlobalStats.Defaults.EnableSalvageOps` is set, so a mod that leaves the feature off never needs the tag. The automation window offers the same slot through `CurrentSalvageShip`. A design that exists but is not a salvage ship is treated as none."),
+("races", "DefaultAssaultShuttle"): dict(
+    l1="The shuttle used for boarding and troop landings.",
+    l2="`Empire.GetAssaultShuttleName` returns it when the design exists, otherwise `BoardingShuttle.Name`, and troop bays launch with that name.",
+    l3="The existence test is `ResourceManager.ShipTemplateExists`, so an empty value falls back to the shared boarding shuttle rather than failing. `ShipModule` sets a troop bay's `HangarShipUID` from this method, and `Ship_Troop` creates assault ships with it. It is a design name, and the assert checks only that it resolves."),
+("races", "DefaultSupplyShuttle"): dict(
+    l1="The shuttle that ferries ordnance and supplies.",
+    l2="`Empire.GetSupplyShuttleName` returns it when the design exists, otherwise `DefaultSupplyShuttleName`, and supply bays and refund goals ask for it by that method.",
+    l3="Supply bays, `DeliverRefund`, `RearmShipFromPlannet` and planet building all call the method, so one tag feeds every supply route the empire has. The fallback keeps those routes working when the tag is absent or misspelt. The load asserts `IsSupplyShuttle` on the value, which catches a freighter parked in the wrong slot."),
+("races", "TraitSets"): dict(
+    l1="The list of trait sets a race can start with.",
+    l2="`RacialTrait.TraitSets` is filled from this block, and `LoadTraitConstraints` gives the player set 0 and the AI a random set.",
+    l3="`PlayerTraitOptions` returns `TraitSets[0].TraitOptions`, and the AI path uses `random.Item(TraitSets)`, which is why the vanilla files comment that the first set is the player's. Each option name is matched against `RacialTraits.xml` and its modifiers are added to the race's traits; a name that matches nothing is skipped silently. A race with no sets gets no traits at all."),
+("races", "TraitSet"): dict(
+    l1="One trait set inside the list.",
+    l2="The loader maps it to a `TraitSet` object whose only field is the `TraitOptions` list.",
+    l3="`TraitSets` is an array of these, and the array order matters: index 0 is what a human player is offered and the rest are drawn for the AI. Moving a set therefore changes which traits a player sees. The element carries nothing else, so all of a set's meaning is in its options."),
+("races", "TraitOptions"): dict(
+    l1="The trait names that make up one set.",
+    l2="`LoadTraitConstraints` adds each named option's modifiers to the race, and an unknown name is ignored without a warning.",
+    l3="Each string must be a `TraitName` in `RacialTraits.xml`; the loop tests `Contains` against the loaded list, so a repeated name changes nothing. The options are added on top of the race's own fields, which is how a trait and a race bonus of the same name stack. What the player sees is the localised name of each option, not the string in the file."),
+("races", "PersonalityTraitsWeights"): dict(
+    l1="The pool the empire's diplomatic personality is drawn from.",
+    l2="`UniverseState_Empires` picks one name per personality trait with `empire.Random.Item`, so a repeated name is weighted.",
+    l3="Each name must be a `DTrait.Name` in `Diplomacy/DiplomaticTraits.xml`; an unknown string still consumes a draw and then contributes nothing. The draw fills `DiplomaticPersonality`, which sets war, peace and treaty behaviour. Listing a name three times is how a race is made reliably aggressive without forcing it."),
+("races", "EconomicTraitsWeights"): dict(
+    l1="The pool the empire's economic personality is drawn from.",
+    l2="`UniverseState_Empires` picks one `ETrait` name with `empire.Random.Item`, and the result becomes `EconomicPersonality`.",
+    l3="The names are `ETrait.Name` values from `Diplomacy/DiplomaticTraits.xml`, and an unrecognised name is a wasted draw. Weighting works by repetition, exactly as in the personality pool. The trait decides spending and research priorities rather than combat behaviour."),
+("races", "R/G/B"): dict(
+    l1="The three 8-bit channels of the empire colour.",
+    l2="`RacialTrait.Color` casts each channel to a byte, and the flag, border and map tints all use the resulting colour.",
+    l3="The cast is unchecked, so a value above 255 or below zero wraps instead of clamping. The three tags are read together into one `Color`, so a race that sets only one channel gets a strongly tinted empire rather than a neutral one. The new-game ship preview and the border drawing use the same colour."),
+("races", "IsPirateFaction"): dict(
+    l1="Marks the race as a pirate faction.",
+    l2="`EmpireAI` gives the empire the pirate persona when this flag and `IsFaction` are both set, which is what starts tribute and raid goals.",
+    l3="A race with the flag but no `Faction` value is an ordinary empire that never gets the pirate AI. The pair is read once when the empire is created, so editing the tag mid-game changes nothing. The persona is what loads `Pirates` and its base, raid and payment goals."),
+("races", "IsRemnantFaction"): dict(
+    l1="Marks the race as a remnant faction.",
+    l2="`EmpireAI` gives the empire the remnant persona when this flag and `IsFaction` are both set.",
+    l3="`Remnants` then owns the empire's goals, ship costs and guardian behaviour, and every ship it spawns is marked `IsGuardian`. As with pirates, the flag does nothing without a non-zero `Faction`. The persona is chosen at creation, so a save keeps the one it was made with."),
+("races", "PirateBaseBasic"): dict(
+    l1="The basic pirate base design.",
+    l2="`PirateForces` uses it while the effective level is 4 or less, and `GetBaseNames` counts it as a base for defence.",
+    l3="The effective level is the faction level times a difficulty multiplier (0.7 on normal, 0.8 on hard), so easier games stay on this tier longer. `GetBaseNames` returns all three tiers, which is how `IsBase` recognises a base whatever built it. A missing design leaves that tier with no base."),
+("races", "PirateBaseImproved"): dict(
+    l1="The improved pirate base design.",
+    l2="`PirateForces` uses it for effective levels 5 to 9, between the basic and advanced bases.",
+    l3="The tier swap is a single `if/else` on the effective level, so the improved base exists only while the faction is in that band. All three names are listed together in `GetBaseNames`, which is what lets the AI find its bases after an upgrade. An empty value makes the band build nothing."),
+("races", "PirateBaseAdvanced"): dict(
+    l1="The advanced pirate base design.",
+    l2="`PirateForces` uses it above effective level 9, and `GetBaseNames` keeps recognising it as a base.",
+    l3="This is the tier a long-lived pirate faction builds, and nothing in the AI chooses it directly: it falls out of the level check. The design must exist for the AI to spawn a base at all, and a missing one is not replaced by the lower tiers. That makes the tag the difference between a raider and a faction with a home."),
+("races", "PirateFighterBasic"): dict(
+    l1="The basic pirate fighter design.",
+    l2="`PirateForces` uses it up to effective level 4 and `AddToShipWeCanSpawn` lists it for raids.",
+    l3="`Pirates.AdvanceInShips` adds the improved fighter at level 5 and the advanced at 8, so this design is the starting wing and then a fallback. The fighter is also what a pirate carrier launches, which is why it must be a fighter-role design. An empty value leaves the faction unable to field fighters."),
+("races", "PirateFighterImproved"): dict(
+    l1="The mid-tier pirate fighter design.",
+    l2="`AdvanceInShips` adds it at level 5, and `PirateForces` uses it for effective levels 5 to 9.",
+    l3="`AdvanceInShips` also adds it to `ShipsWeCanSpawn` and, if the empire cannot build it, adds the design as buildable so carriers can launch it. The tier is skipped entirely when the name is empty, with a warning that points at the race XML. It replaces the basic fighter for the band rather than sitting beside it."),
+("races", "PirateFighterAdvanced"): dict(
+    l1="The top-tier pirate fighter design.",
+    l2="`AdvanceInShips` adds it at level 8, and `PirateForces` uses it above effective level 9.",
+    l3="Like the improved tier, it is added to the spawn list and made buildable so carriers can launch it. The pair of level checks means a faction can reach the advanced fighter before the advanced base, since the base needs level 10. An empty design leaves the top band with the previous tier's fighter."),
+("races", "PirateFrigateBasic"): dict(
+    l1="The basic pirate frigate design.",
+    l2="`PirateForces` uses it up to effective level 4, and `AddToShipWeCanSpawn` lists it as a raid ship.",
+    l3="The frigate is the pirate line ship, so this design is what a young faction fights with. `AdvanceInShips` replaces it at level 7 with the improved frigate and at 10 with the advanced. An empty value leaves raiding parties without a line ship."),
+("races", "PirateFrigateImproved"): dict(
+    l1="The mid-tier pirate frigate design.",
+    l2="`AdvanceInShips` adds it at level 7, and `PirateForces` uses it for effective levels 5 to 9.",
+    l3="It arrives later than the improved fighter and slaver, which is the intended curve: frigates are the last hull a pirate faction upgrades. `AddToShipWeCanSpawn` is what makes the design appear in raids. A missing name is logged and the band keeps the previous frigate."),
+("races", "PirateFrigateAdvanced"): dict(
+    l1="The top-tier pirate frigate design.",
+    l2="`AdvanceInShips` adds it at level 10, and `PirateForces` uses it above effective level 9.",
+    l3="This is the last ship tier the pirate AI reaches, so a faction with this design and an advanced base is at its ceiling. It is added to the spawn list the same way as the lower tiers, and made buildable when carriers need it. An empty value is a faction that never fields its best hull."),
+("races", "PirateSlaverBasic"): dict(
+    l1="The basic pirate boarding-ship design.",
+    l2="`PirateForces` uses it as the boarding ship up to effective level 4, and `AddToShipWeCanSpawn` lists it for raids.",
+    l3="`PirateForces` names the field `BoardingShip`, which is what the AI uses when it wants to capture rather than destroy. `AdvanceInShips` upgrades it at level 6 and again at 9. A faction with no slaver can still raid, but it cannot take ships."),
+("races", "PirateSlaverImproved"): dict(
+    l1="The mid-tier pirate boarding-ship design.",
+    l2="`AdvanceInShips` adds it at level 6, and `PirateForces` uses it for effective levels 5 to 9.",
+    l3="It is the first upgrade a pirate faction gets at level 6, ahead of the improved frigate, which is what makes capture the mid-game pirate tactic. The design is added to the spawn list so it appears in raids. An empty name is logged and the previous slaver is kept."),
+("races", "PirateSlaverAdvanced"): dict(
+    l1="The top-tier pirate boarding-ship design.",
+    l2="`AdvanceInShips` adds it at level 9, and `PirateForces` uses it above effective level 9.",
+    l3="The advanced slaver arrives one level before the advanced frigate, so a faction at that point can take ships it could not before. It is added to the spawn list like the other tiers. A missing design ends the boarding upgrades and leaves the AI with the improved slaver."),
+("races", "PirateStationBasic"): dict(
+    l1="The basic pirate orbital station design.",
+    l2="`PirateForces` uses it while the effective level is 4 or less, and `GetStationNames` counts it as a station for defence.",
+    l3="Stations are separate from bases: `GetStationNames` feeds the defensive list, and `IsBase` only looks at the base names. The tier is chosen by the same effective-level check as the base. A missing design leaves the low band without orbitals."),
+("races", "PirateStationImproved"): dict(
+    l1="The improved pirate orbital station design.",
+    l2="`PirateForces` uses it for effective levels 5 to 9, and `GetStationNames` keeps recognising it.",
+    l3="The station upgrades on the same schedule as the base, so the two swap together when the faction crosses level 5. `GetStationNames` is what lets the AI find and defend its orbitals. An empty value means that band builds no station."),
+("races", "PirateStationAdvanced"): dict(
+    l1="The advanced pirate orbital station design.",
+    l2="`PirateForces` uses it above effective level 9, and `GetStationNames` still returns it for defence.",
+    l3="It is the orbital a mature pirate faction defends with, chosen by the level check rather than by any explicit upgrade goal. The design must exist for the AI to spawn one. Nothing falls back to a lower station, so an empty value is an undefended band."),
+("races", "PirateFlagShip"): dict(
+    l1="The design the pirate flagship is spawned from.",
+    l2="`SpawnFlagShip` creates it once at half the faction's maximum level, and `StaysAtBase` keeps it home.",
+    l3="`SpawnFlagShip` refuses to create a second ship with that name, so the flag is a singleton. `PirateForces` also records it as `FlagShip`, and `StaysAtBase` prevents the AI from sending it on raids. An empty value means the faction never gets a flagship."),
+("races", "PiratePaymentPeriodTurns"): dict(
+    l1="Turns between pirate tribute demands.",
+    l2="`Pirates.RefusedPaymentPeriodTurns` scales it by `ProductionPace`, and the payment goal uses that as the delay.",
+    l3="The pace scaling keeps the same number of turns passing at every game speed, and it applies only to the refusal cooldown. The value does not change how much is demanded, only how often. A value of 0 turns the demand into an every-turn event."),
+("races", "MinimumColoniesForStartPayment"): dict(
+    l1="The colony count at which a pirate begins demanding tribute.",
+    l2="`PirateDirectorPayment` compares the victim's colony count with `Pirates.MinimumColoniesForPayment`, which returns this field.",
+    l3="The goal is only sent when the victim is at or above the threshold, so a higher number delays tribute until the target is worth robbing. The comparison uses the victim's planet count at the moment the goal runs, not at game start. Zero makes every empire a target on contact."),
+("races", "RemnantFighter"): dict(
+    l1="The design the remnant AI spawns as its fighter.",
+    l2="`Remnants.CalculateShipCosts` registers it as `RemnantShipType.Fighter`, and `SpawnShip` returns it for that type.",
+    l3="`AddShipCost` logs `Could not find a ship named ... in <race>'s race xml` when the name is empty or matches no design, and the type is then skipped rather than substituted. Every ship spawned this way is marked `IsGuardian`, which keeps it out of ordinary fleet filtering. It is a design `Name`, so a file rename without a tag edit breaks the spawn."),
+("races", "RemnantCorvette"): dict(
+    l1="The design the remnant AI spawns as its corvette.",
+    l2="`Remnants.CalculateShipCosts` registers it as `RemnantShipType.Corvette`, and `SpawnShip` returns it for that type.",
+    l3="`AddShipCost` logs `Could not find a ship named ... in <race>'s race xml` when the name is empty or matches no design, and the type is then skipped rather than substituted. Every ship spawned this way is marked `IsGuardian`, which keeps it out of ordinary fleet filtering. It is a design `Name`, so a file rename without a tag edit breaks the spawn."),
+("races", "RemnantBeamCorvette"): dict(
+    l1="The design the remnant AI spawns as its beam corvette.",
+    l2="`Remnants.CalculateShipCosts` registers it as `RemnantShipType.BeamCorvette`, and `SpawnShip` returns it for that type.",
+    l3="`AddShipCost` logs `Could not find a ship named ... in <race>'s race xml` when the name is empty or matches no design, and the type is then skipped rather than substituted. Every ship spawned this way is marked `IsGuardian`, which keeps it out of ordinary fleet filtering. It is a design `Name`, so a file rename without a tag edit breaks the spawn."),
+("races", "RemnantBattleCorvette"): dict(
+    l1="The design the remnant AI spawns as its battle corvette.",
+    l2="`Remnants.CalculateShipCosts` registers it as `RemnantShipType.BattleCorvette`, and `SpawnShip` returns it for that type.",
+    l3="`AddShipCost` logs `Could not find a ship named ... in <race>'s race xml` when the name is empty or matches no design, and the type is then skipped rather than substituted. Every ship spawned this way is marked `IsGuardian`, which keeps it out of ordinary fleet filtering. It is a design `Name`, so a file rename without a tag edit breaks the spawn."),
+("races", "RemnantSupportSmall"): dict(
+    l1="The design the remnant AI spawns as its small support ship.",
+    l2="`Remnants.CalculateShipCosts` registers it as `RemnantShipType.SmallSupport`, and `SpawnShip` returns it for that type.",
+    l3="`AddShipCost` logs `Could not find a ship named ... in <race>'s race xml` when the name is empty or matches no design, and the type is then skipped rather than substituted. Every ship spawned this way is marked `IsGuardian`, which keeps it out of ordinary fleet filtering. It is a design `Name`, so a file rename without a tag edit breaks the spawn."),
+("races", "RemnantAssimilator"): dict(
+    l1="The design the remnant AI spawns as its assimilator.",
+    l2="`Remnants.CalculateShipCosts` registers it as `RemnantShipType.Assimilator`, and `SpawnShip` returns it for that type.",
+    l3="`AddShipCost` logs `Could not find a ship named ... in <race>'s race xml` when the name is empty or matches no design, and the type is then skipped rather than substituted. Every ship spawned this way is marked `IsGuardian`, which keeps it out of ordinary fleet filtering. It is a design `Name`, so a file rename without a tag edit breaks the spawn."),
+("races", "RemnantTorpedoCruiser"): dict(
+    l1="The design the remnant AI spawns as its torpedo cruiser.",
+    l2="`Remnants.CalculateShipCosts` registers it as `RemnantShipType.TorpedoCruiser`, and `SpawnShip` returns it for that type.",
+    l3="`AddShipCost` logs `Could not find a ship named ... in <race>'s race xml` when the name is empty or matches no design, and the type is then skipped rather than substituted. Every ship spawned this way is marked `IsGuardian`, which keeps it out of ordinary fleet filtering. It is a design `Name`, so a file rename without a tag edit breaks the spawn."),
+("races", "RemnantCruiser"): dict(
+    l1="The design the remnant AI spawns as its cruiser.",
+    l2="`Remnants.CalculateShipCosts` registers it as `RemnantShipType.Cruiser`, and `SpawnShip` returns it for that type.",
+    l3="`AddShipCost` logs `Could not find a ship named ... in <race>'s race xml` when the name is empty or matches no design, and the type is then skipped rather than substituted. Every ship spawned this way is marked `IsGuardian`, which keeps it out of ordinary fleet filtering. It is a design `Name`, so a file rename without a tag edit breaks the spawn."),
+("races", "RemnantCarrier"): dict(
+    l1="The design the remnant AI spawns as its carrier.",
+    l2="`Remnants.CalculateShipCosts` registers it as `RemnantShipType.Carrier`, and `SpawnShip` returns it for that type.",
+    l3="`AddShipCost` logs `Could not find a ship named ... in <race>'s race xml` when the name is empty or matches no design, and the type is then skipped rather than substituted. Every ship spawned this way is marked `IsGuardian`, which keeps it out of ordinary fleet filtering. It is a design `Name`, so a file rename without a tag edit breaks the spawn."),
+("races", "RemnantMotherShip"): dict(
+    l1="The design the remnant AI spawns as its mothership.",
+    l2="`Remnants.CalculateShipCosts` registers it as `RemnantShipType.Mothership`, and `SpawnShip` returns it for that type.",
+    l3="`AddShipCost` logs `Could not find a ship named ... in <race>'s race xml` when the name is empty or matches no design, and the type is then skipped rather than substituted. Every ship spawned this way is marked `IsGuardian`, which keeps it out of ordinary fleet filtering. It is a design `Name`, so a file rename without a tag edit breaks the spawn."),
+("races", "RemnantExterminator"): dict(
+    l1="The design the remnant AI spawns as its exterminator.",
+    l2="`Remnants.CalculateShipCosts` registers it as `RemnantShipType.Exterminator`, and `SpawnShip` returns it for that type.",
+    l3="`AddShipCost` logs `Could not find a ship named ... in <race>'s race xml` when the name is empty or matches no design, and the type is then skipped rather than substituted. Every ship spawned this way is marked `IsGuardian`, which keeps it out of ordinary fleet filtering. It is a design `Name`, so a file rename without a tag edit breaks the spawn."),
+("races", "RemnantInhibitor"): dict(
+    l1="The design the remnant AI spawns as its inhibitor.",
+    l2="`Remnants.CalculateShipCosts` registers it as `RemnantShipType.Inhibitor`, and `SpawnShip` returns it for that type.",
+    l3="`AddShipCost` logs `Could not find a ship named ... in <race>'s race xml` when the name is empty or matches no design, and the type is then skipped rather than substituted. Every ship spawned this way is marked `IsGuardian`, which keeps it out of ordinary fleet filtering. It is a design `Name`, so a file rename without a tag edit breaks the spawn."),
+("races", "RemnantBattleship"): dict(
+    l1="The design the remnant AI spawns as its battleship.",
+    l2="`Remnants.CalculateShipCosts` registers it as `RemnantShipType.BattleShip`, and `SpawnShip` returns it for that type.",
+    l3="`AddShipCost` logs `Could not find a ship named ... in <race>'s race xml` when the name is empty or matches no design, and the type is then skipped rather than substituted. Every ship spawned this way is marked `IsGuardian`, which keeps it out of ordinary fleet filtering. It is a design `Name`, so a file rename without a tag edit breaks the spawn."),
+("races", "RemnantBomber"): dict(
+    l1="The design the remnant AI spawns as its bomber.",
+    l2="`Remnants.CalculateShipCosts` registers it as `RemnantShipType.Bomber`, and `SpawnShip` returns it for that type.",
+    l3="`AddShipCost` logs `Could not find a ship named ... in <race>'s race xml` when the name is empty or matches no design, and the type is then skipped rather than substituted. Every ship spawned this way is marked `IsGuardian`, which keeps it out of ordinary fleet filtering. It is a design `Name`, so a file rename without a tag edit breaks the spawn."),
+("races", "RemnantFrigate"): dict(
+    l1="The design the remnant AI spawns as its frigate.",
+    l2="`Remnants.CalculateShipCosts` registers it as `RemnantShipType.Frigate`, and `SpawnShip` returns it for that type.",
+    l3="`AddShipCost` logs `Could not find a ship named ... in <race>'s race xml` when the name is empty or matches no design, and the type is then skipped rather than substituted. Every ship spawned this way is marked `IsGuardian`, which keeps it out of ordinary fleet filtering. It is a design `Name`, so a file rename without a tag edit breaks the spawn."),
+("races", "RemnantBomberLight"): dict(
+    l1="The design the remnant AI spawns as its light bomber.",
+    l2="`Remnants.CalculateShipCosts` registers it as `RemnantShipType.BomberLight`, and `SpawnShip` returns it for that type.",
+    l3="`AddShipCost` logs `Could not find a ship named ... in <race>'s race xml` when the name is empty or matches no design, and the type is then skipped rather than substituted. Every ship spawned this way is marked `IsGuardian`, which keeps it out of ordinary fleet filtering. It is a design `Name`, so a file rename without a tag edit breaks the spawn."),
+("races", "RemnantBomberMedium"): dict(
+    l1="The design the remnant AI spawns as its medium bomber.",
+    l2="`Remnants.CalculateShipCosts` registers it as `RemnantShipType.BomberMedium`, and `SpawnShip` returns it for that type.",
+    l3="`AddShipCost` logs `Could not find a ship named ... in <race>'s race xml` when the name is empty or matches no design, and the type is then skipped rather than substituted. Every ship spawned this way is marked `IsGuardian`, which keeps it out of ordinary fleet filtering. It is a design `Name`, so a file rename without a tag edit breaks the spawn."),
+("races", "RemnantBehemoth"): dict(
+    l1="The design the remnant AI spawns as its behemoth.",
+    l2="`Remnants.CalculateShipCosts` registers it as `RemnantShipType.Behemoth`, and `SpawnShip` returns it for that type.",
+    l3="`AddShipCost` logs `Could not find a ship named ... in <race>'s race xml` when the name is empty or matches no design, and the type is then skipped rather than substituted. Every ship spawned this way is marked `IsGuardian`, which keeps it out of ordinary fleet filtering. It is a design `Name`, so a file rename without a tag edit breaks the spawn."),
+("races", "RemnantPortal"): dict(
+    l1="The design the remnant portal is built from.",
+    l2="`SpawnShip` returns it for `RemnantShipType.Portal`, and `Empire_Borders` treats a ship of that name as the remnants' portal.",
+    l3="The portal is what projects remnant borders, so the name is compared in `Empire_Borders` as well as used to spawn the hull. `Remnants` also has a portal goal, but it targets the ship rather than reading this tag again. A missing design means no portal and no projected border."),
+("races", "RemnantMotherShip"): dict(
+    l1="The design the remnant AI spawns as its mothership.",
+    l2="`CalculateShipCosts` registers it as `RemnantShipType.Mothership`, and `SpawnShip` returns it for that type.",
+    l3="The mothership is one of the types the spawn table can pick, and its cost is what the remnant economy pays before it appears. An empty name is logged and the type is skipped. Like every remnant spawn, the ship is marked `IsGuardian`."),
+("races", "ThrustColor0R"): dict(
+    l1="The red channel of thruster colour 1.",
+    l2="`Empire.CreateThrusterColors` packs the three channels into `ThrustColor0`, and the particle colour modes of the same name use it.",
+    l3="The particle system's `ThrustColor0` mode tints a plume with this colour, which is how two races' drives look different. The channels are bytes, so a value outside 0-255 throws during deserialization rather than wrapping. Colour 1 and colour 2 are separate, which lets a race fade one drive colour into another."),
+("races", "ThrustColor0G"): dict(
+    l1="The green channel of thruster colour 1.",
+    l2="`Empire.CreateThrusterColors` packs the three channels into `ThrustColor0`, and the particle colour modes of the same name use it.",
+    l3="The particle system's `ThrustColor0` mode tints a plume with this colour, which is how two races' drives look different. The channels are bytes, so a value outside 0-255 throws during deserialization rather than wrapping. Colour 1 and colour 2 are separate, which lets a race fade one drive colour into another."),
+("races", "ThrustColor0B"): dict(
+    l1="The blue channel of thruster colour 1.",
+    l2="`Empire.CreateThrusterColors` packs the three channels into `ThrustColor0`, and the particle colour modes of the same name use it.",
+    l3="The particle system's `ThrustColor0` mode tints a plume with this colour, which is how two races' drives look different. The channels are bytes, so a value outside 0-255 throws during deserialization rather than wrapping. Colour 1 and colour 2 are separate, which lets a race fade one drive colour into another."),
+("races", "ThrustColor1R"): dict(
+    l1="The red channel of thruster colour 2.",
+    l2="`Empire.CreateThrusterColors` packs the three channels into `ThrustColor1`, and the particle colour modes of the same name use it.",
+    l3="The particle system's `ThrustColor1` mode tints a plume with this colour, which is how two races' drives look different. The channels are bytes, so a value outside 0-255 throws during deserialization rather than wrapping. Colour 1 and colour 2 are separate, which lets a race fade one drive colour into another."),
+("races", "ThrustColor1G"): dict(
+    l1="The green channel of thruster colour 2.",
+    l2="`Empire.CreateThrusterColors` packs the three channels into `ThrustColor1`, and the particle colour modes of the same name use it.",
+    l3="The particle system's `ThrustColor1` mode tints a plume with this colour, which is how two races' drives look different. The channels are bytes, so a value outside 0-255 throws during deserialization rather than wrapping. Colour 1 and colour 2 are separate, which lets a race fade one drive colour into another."),
+("races", "ThrustColor1B"): dict(
+    l1="The blue channel of thruster colour 2.",
+    l2="`Empire.CreateThrusterColors` packs the three channels into `ThrustColor1`, and the particle colour modes of the same name use it.",
+    l3="The particle system's `ThrustColor1` mode tints a plume with this colour, which is how two races' drives look different. The channels are bytes, so a value outside 0-255 throws during deserialization rather than wrapping. Colour 1 and colour 2 are separate, which lets a race fade one drive colour into another."),
+})

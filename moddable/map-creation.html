@@ -92,7 +92,7 @@ system in SolarSystems/ skips the first four steps but still gets its planets fr
 <p class="toc"><a href="#planettypes">Planet types</a> &middot; <a href="#suns">Sun types</a> &middot; <a href="#sunzones">Sun zone data</a> &middot; <a href="#solarsystems">Solar systems</a> &middot; <a href="#randomstuff">Planet spawn table</a> &middot; <a href="#namegenerators">Name lists</a></p>        <details class="fam" id="planettypes">
 <summary><span class="t">Planet types</span><span class="pill t2">Tier 2</span><span class="pill">1 file</span><div class="l1">The catalogue of planet looks and stats: what a Terran, ice or volcanic world is like.</div></summary>
 <div class="body">
-<p class="meta"><b>YAML</b> &middot; ResourceManager.PlanetTypes</p>
+<p class="meta"><b>YAML</b> &middot; PlanetTypes.LoadPlanetTypes (called from ResourceManager.LoadContent)</p>
 <p class="lv2">Each type sets rendering meshes and textures, habitability, population per tile and fertility. Solar systems pick a type by its Id.</p>
 <details class="lv3"><summary>Level 3 &mdash; the detail</summary><div class="in"><p>WhichPlanet is a PlanetType.Id, not the entry&#x27;s position: the loader builds a map keyed by Id, so appending a type changes no existing reference.</p></div></details>
 <p class="meta"><b>Override:</b> One file; a mod&#x27;s file replaces it.</p>
@@ -145,7 +145,7 @@ system in SolarSystems/ skips the first four steps but still gets its planets fr
 </div></details><details class="fam" id="suns">
 <summary><span class="t">Sun types</span><span class="pill t2">Tier 2</span><span class="pill">1 file</span><div class="l1">The catalogue of stars: colour, light, size and whether they damage ships.</div></summary>
 <div class="body">
-<p class="meta"><b>YAML</b> &middot; ResourceManager.LoadSunTypes</p>
+<p class="meta"><b>YAML</b> &middot; SunType.LoadSunTypes</p>
 <p class="lv2">A solar system&#x27;s SunPath names one of these Ids. Radiation is a real damage zone, not decoration.</p>
 <details class="lv3"><summary>Level 3 &mdash; the detail</summary><div class="in"><p>Layers are the visual shells; IconLayer picks the map icon. RadiationRadius is in game units.</p></div></details>
 <p class="meta"><b>Override:</b> One file; replaces vanilla.</p>
@@ -196,7 +196,7 @@ system in SolarSystems/ skips the first four steps but still gets its planets fr
 </div></details><details class="fam" id="solarsystems">
 <summary><span class="t">Solar systems</span><span class="pill t2">Tier 2</span><span class="pill">15 files</span><div class="l1">A hand-placed star system: its sun, planets, moons and resources.</div></summary>
 <div class="body">
-<p class="meta"><b>XML</b> &middot; ResourceManager.LoadSolarSystems (GatherFilesModOrVanilla for Random/)</p>
+<p class="meta"><b>XML</b> &middot; ResourceManager.LoadSolarSystemData / LoadRandomSolarSystems → SolarSystemData</p>
 <p class="lv2">These are the fixed systems a mod can add; the rest of the galaxy is generated. Ring order is orbital order.</p>
 <details class="lv3"><summary>Level 3 &mdash; the detail</summary><div class="in"><p>WhichPlanet is an index into PlanetTypes.yaml, not a name. HomePlanet marks an empire start. planetScale is a multiplier on the type&#x27;s size.</p></div></details>
 <p class="meta"><b>Override:</b> Careful: the systems directory can be all-or-nothing. If a mod supplies any file there, vanilla&#x27;s set is ignored.</p>
@@ -248,7 +248,7 @@ system in SolarSystems/ skips the first four steps but still gets its planets fr
 </div></details><details class="fam" id="namegenerators">
 <summary><span class="t">Name lists</span><span class="pill t2">Tier 2</span><span class="pill">9 files</span><div class="l1">Plain lists of names the game draws from for ships, spies and systems.</div></summary>
 <div class="body">
-<p class="meta"><b>plain text</b> &middot; ResourceManager.LoadShipNames / spy-name loaders</p>
+<p class="meta"><b>plain text</b> &middot; ResourceManager.GetNameGenerator / GetRandomNames (MarkovNameGenerator)</p>
 <p class="lv2">A mod can replace a list or add a race-specific one. Blank lines and duplicates are harmless.</p>
 <details class="lv3"><summary>Level 3 &mdash; the detail</summary><div class="in"><p>The file stem selects the pool (names.txt, spynames_&lt;Race&gt;.txt). One entry per line, no commas.</p></div></details>
 <p class="meta"><b>Override:</b> Text files merge or replace by file name; one name per line.</p>

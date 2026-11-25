@@ -405,7 +405,7 @@ for the original.</p>
 </div></details><details class="fam" id="planetedicts">
 <summary><span class="t">Planet edicts</span><span class="pill t2">Tier 2</span><span class="pill">1 file</span><div class="l1">A standing order for a colony: what it should prioritise and how much it keeps.</div></summary>
 <div class="body">
-<p class="meta"><b>XML</b> &middot; ResourceManager.LoadPlanetEdicts</p>
+<p class="meta"><b>XML</b> &middot; no loader: PlanetEdict is a class but nothing deserializes PlanetEdicts/</p>
 <p class="lv2">Edicts are the governor&#x27;s sliders in preset form. They do not change output directly; they change what the colony does with it.</p>
 <details class="lv3"><summary>Level 3 &mdash; the detail</summary><div class="in"><p>Thresholds are shares of storage. Priority values weight the three outputs.</p></div></details>
 <details class="note" open><summary>Copy this: a planet edict</summary><div class="in">
@@ -499,7 +499,7 @@ for the original.</p>
 </div></details><details class="fam" id="dyson">
 <summary><span class="t">Dyson rings</span><span class="pill t2">Tier 2</span><span class="pill">1 file</span><div class="l1">The stages of a Dyson ring and what each stage produces.</div></summary>
 <div class="body">
-<p class="meta"><b>YAML</b> &middot; ResourceManager.LoadDysonRings</p>
+<p class="meta"><b>YAML</b> &middot; DysonRings.LoadDysonRings</p>
 <p class="lv2">A ring upgrades through Types in order; each type lists its rings and output.</p>
 <details class="lv3"><summary>Level 3 &mdash; the detail</summary><div class="in"><p>Type is the upgrade level; Rings is the visual/mechanical set for it.</p></div></details>
 <details class="note" open><summary>Copy this: a Dyson ring layer</summary><div class="in">

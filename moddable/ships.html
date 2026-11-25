@@ -296,7 +296,7 @@ research price is the closure of the techs that unlock its hull and modules.</p>
 </div></details><details class="fam" id="weapons">
 <summary><span class="t">Weapons</span><span class="pill t1">Tier 1</span><span class="pill">95 files</span><div class="l1">The gun itself: how hard it hits, how far, how often, and what it looks and sounds like.</div></summary>
 <div class="body">
-<p class="meta"><b>XML</b> &middot; ResourceManager.LoadWeapons → Weapon_XMLTemplate → WeaponTemplate</p>
+<p class="meta"><b>XML</b> &middot; ResourceManager.LoadWeapons → WeaponTemplate.InitializeTemplate</p>
 <p class="lv2">A module only points at a weapon. Damage, range, salvo, projectile and the Tag_ flags all live here, and the Tags drive tech bonuses and resistances.</p>
 <details class="lv3"><summary>Level 3 &mdash; the detail</summary><div class="in"><p>One damage field, several multipliers: EffectVsShields and EffectVsArmor scale it per target. PowerRequiredToFire is per shot; a beam&#x27;s sustained draw is BeamPowerCostPerSecond. Unknown elements are dropped silently.</p></div></details>
 <p class="meta"><b>Override:</b> XML unifies by file name; the file stem is the weapon UID.</p>

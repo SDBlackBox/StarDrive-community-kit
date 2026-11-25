@@ -223,7 +223,7 @@ li{margin:0 0 5px}
 </div></details><details class="fam" id="racialtraits">
 <summary><span class="t">Racial traits</span><span class="pill t2">Tier 2</span><span class="pill">1 file</span><div class="l1">The menu of racial bonuses: what each trait costs, what it forbids, and what it changes.</div></summary>
 <div class="body">
-<p class="meta"><b>XML</b> &middot; ResourceManager.LoadRaceTraits → RacialTraitOption</p>
+<p class="meta"><b>XML</b> &middot; ResourceManager.RaceTraits → TryDeserialize → RacialTraitOption</p>
 <p class="lv2">A trait is a bundle of modifiers. The race file picks a set; the traits in it are added together into the empire&#x27;s starting stats.</p>
 <details class="lv3"><summary>Level 3 &mdash; the detail</summary><div class="in"><p>Excludes names a trait that cannot be taken with this one. Category groups the UI; Cost is in trait points.</p></div></details>
 <p class="meta"><b>Override:</b> One file. TraitName is the id a race file&#x27;s TraitOptions list uses.</p>
@@ -332,7 +332,7 @@ li{margin:0 0 5px}
 </div></details><details class="fam" id="diplomacy">
 <summary><span class="t">Diplomatic traits</span><span class="pill t2">Tier 2</span><span class="pill">1 file</span><div class="l1">A diplomatic personality: how trusting, opportunistic or aggressive a people is.</div></summary>
 <div class="body">
-<p class="meta"><b>XML</b> &middot; ResourceManager.LoadDiplomacyTraits</p>
+<p class="meta"><b>XML</b> &middot; ResourceManager.DiplomaticTraits → TryDeserialize → DiplomaticTraits</p>
 <p class="lv2">These values set the starting relationship and how fast it drifts. They are separate from racial traits, though both use the word trait.</p>
 <details class="lv3"><summary>Level 3 &mdash; the detail</summary><div class="in"><p>DTrait and ETrait are the diplomatic and economic personality lists; a race names one of each in Races/.</p></div></details>
 <p class="meta"><b>Override:</b> One file. Name is the personality id a race&#x27;s DiplomaticPersonality refers to.</p>
@@ -363,7 +363,7 @@ li{margin:0 0 5px}
 </div></details><details class="fam" id="diplomacydialogs">
 <summary><span class="t">Diplomacy dialog pools</span><span class="pill t2">Tier 2</span><span class="pill">72 files</span><div class="l1">The lines an empire speaks in diplomacy, grouped by personality and mood.</div></summary>
 <div class="body">
-<p class="meta"><b>XML per language</b> &middot; ResourceManager.LoadDiplomacyDialogs</p>
+<p class="meta"><b>XML per language</b> &middot; ResourceManager.LoadDialogs → DiplomacyDialog</p>
 <p class="lv2">These are flavour: the same treaty is proposed with different words depending on the speaker&#x27;s personality and relationship.</p>
 <details class="lv3"><summary>Level 3 &mdash; the detail</summary><div class="in"><p>DL_* keys are personality pools; Friendly/Neutral/Hostile are relationship pools. DialogType selects the occasion.</p></div></details>
 <p class="meta"><b>Override:</b> One folder per language under DiplomacyDialogs/. Mods merge by file name.</p>

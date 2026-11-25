@@ -284,7 +284,7 @@ dict(id="modules", tier=1, title="Ship modules", paths=["ShipModules"], ext=".xm
  ]),
 
 dict(id="weapons", tier=1, title="Weapons", paths=["Weapons"], ext=".xml", roots=["Weapon"],
-     fmt="XML", loader="ResourceManager.LoadWeapons → Weapon_XMLTemplate → WeaponTemplate",
+     fmt="XML", loader="ResourceManager.LoadWeapons → WeaponTemplate.InitializeTemplate",
      override="XML unifies by file name; the file stem is the weapon UID.",
      l1="The gun itself: how hard it hits, how far, how often, and what it looks and sounds like.",
      l2="A module only points at a weapon. Damage, range, salvo, projectile and the Tag_ flags all live here, and the Tags drive tech bonuses and resistances.",

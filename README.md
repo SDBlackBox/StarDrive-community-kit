@@ -110,6 +110,11 @@ These stay in the StarDrive repository, because they are for people changing the
   `moddable-content-explainer-prompt.md` are tuned: a card that stayed `values only` because the
   search looked in the wrong file is a gap in the search, not in the game.
 
+- **Chase the two families that have content and no reader.** `PlanetEdicts/Core.xml` and
+  `MilitaryResearchStrategy/Swarm.xml` load nothing: `PlanetEdict` is a class with no deserializer, and
+  the strategy has no class at all. Either find the path in a part of the code not searched yet, or
+  report them as dead content; do not write cards that imply they work.
+
 ## Status
 
 Vetted against `StarDrive@f575899` on 10 November 2026. Every prompt uses paths and symbol names

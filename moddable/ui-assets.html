@@ -175,7 +175,7 @@ of the ids above removes the behaviour even though the screen still draws.</p></
 </div></details><details class="fam" id="mainmenus">
 <summary><span class="t">Main menus</span><span class="pill t2">Tier 2</span><span class="pill">1 file</span><div class="l1">The list of background scenes the main menu can show.</div></summary>
 <div class="body">
-<p class="meta"><b>YAML</b> &middot; ResourceManager.LoadMainMenus (hot reload)</p>
+<p class="meta"><b>YAML</b> &middot; MainMenuScreen + YamlParser.Deserialize&lt;MainMenusDescr&gt; (hot reload)</p>
 <p class="lv2">Each entry pairs a UI layout with a 3D scene; Default picks the first one.</p>
 <details class="lv3"><summary>Level 3 &mdash; the detail</summary><div class="in"><p>UILayoutFile and SceneFile are paths under UI/, both hot-reloadable.</p></div></details>
 <p class="meta"><b>Override:</b> One file; replaces vanilla.</p>
@@ -231,7 +231,7 @@ of the ids above removes the behaviour even though the screen still draws.</p></
 </div></details><details class="fam" id="fonts">
 <summary><span class="t">Fonts</span><span class="pill t3">Tier 3</span><span class="pill">54 files</span><div class="l1">The typefaces the UI uses. These are the files most likely to break a stripped-down mod.</div></summary>
 <div class="body">
-<p class="meta"><b>SpriteFont, XNB, TTF, OTF</b> &middot; Content pipeline + UI text renderers</p>
+<p class="meta"><b>SpriteFont, XNB, TTF, OTF</b> &middot; Fonts.LoadFonts (XNB font assets)</p>
 <p class="lv2">The .spritefont files are sources; the game loads the compiled .xnb beside them. Keep the pairs together.</p>
 <details class="lv3"><summary>Level 3 &mdash; the detail</summary><div class="in"><p>Do not delete a font a layout names. If you add a font, add both the source and the compiled XNB, or the content build will not produce it.</p></div></details>
 <p class="meta"><b>Override:</b> Fonts are loaded by name from code; a missing font throws rather than falling back.</p>
@@ -246,7 +246,7 @@ of the ids above removes the behaviour even though the screen still draws.</p></
 </div></details><details class="fam" id="textures">
 <summary><span class="t">Textures</span><span class="pill t3">Tier 3</span><span class="pill">2397 files</span><div class="l1">Every image the UI and the world draw. Mods replace them by putting a file at the same relative path.</div></summary>
 <div class="body">
-<p class="meta"><b>PNG, DDS, atlas folders</b> &middot; ResourceManager.Texture / LoadTextureAtlas</p>
+<p class="meta"><b>PNG, DDS, atlas folders</b> &middot; ResourceManager.Texture / LoadTextureAtlases</p>
 <p class="lv2">PNG and DDS both load; DDS is used for big ship and planet art. A missing texture logs a warning and draws a red placeholder instead of crashing.</p>
 <details class="lv3"><summary>Level 3 &mdash; the detail</summary><div class="in"><p>Names are looked up without extension under Textures/. Atlas folders have a .atlas file naming their sprites. Replacing one frame means replacing the folder, not one PNG.</p></div></details>
 <p class="meta"><b>Override:</b> Relative path for images (.png/.dds); an .atlas folder replaces the whole atlas.</p>
@@ -277,7 +277,7 @@ of the ids above removes the behaviour even though the screen still draws.</p></
 </div></details><details class="fam" id="audio">
 <summary><span class="t">Audio</span><span class="pill t3">Tier 3</span><span class="pill">244 files</span><div class="l1">Music and sound effects, plus one config that names volumes and which file plays for each cue.</div></summary>
 <div class="body">
-<p class="meta"><b>M4A, MP3, WAV, AAC, AIF + AudioConfig.yaml</b> &middot; GameAudio / ResourceManager.LoadAudioConfig</p>
+<p class="meta"><b>M4A, MP3, WAV, AAC, AIF + AudioConfig.yaml</b> &middot; GameAudio → AudioConfig(Audio/AudioConfig.yaml)</p>
 <p class="lv2">A mod can override a single cue without copying the whole audio folder. Supported formats are listed in the config header.</p>
 <details class="lv3"><summary>Level 3 &mdash; the detail</summary><div class="in"><p>A SoundEffect entry has an Id, a Volume and either Sound (one file) or Sounds (a random list). A missing file is a log warning and silence.</p></div></details>
 <p class="meta"><b>Override:</b> AudioConfig.yaml merges by category and sound id; sound files replace by relative path.</p>
@@ -307,7 +307,7 @@ of the ids above removes the behaviour even though the screen still draws.</p></
 </div></details><details class="fam" id="particles">
 <summary><span class="t">Particles and shaders</span><span class="pill t3">Tier 3</span><span class="pill">89 files</span><div class="l1">The engine&#x27;s particle looks and the shaders that draw beams, shields, fog and the warp effect.</div></summary>
 <div class="body">
-<p class="meta"><b>YAML, PNG, FX, MGFX, MGFXO, XNB</b> &middot; ParticleEffect / shader loaders</p>
+<p class="meta"><b>YAML, PNG, FX, MGFX, MGFXO, XNB</b> &middot; Particle.LoadParticleEffect → ParticleEffect</p>
 <p class="lv2">Particle YAML plus PNG textures make most effects. Shaders are compiled artefacts; replacing a .fx alone does nothing at runtime.</p>
 <details class="lv3"><summary>Level 3 &mdash; the detail</summary><div class="in"><p>The game loads compiled .mgfxo/.xnb effects by hardcoded name (Simple, MeshLighting, SkinnedEffect, BeamFX, Distort). A missing one is fatal, not a placeholder.</p></div></details>
 <p class="meta"><b>Override:</b> YAML by name; textures by relative path. Shaders must be compiled for the current pipeline.</p>
@@ -365,7 +365,7 @@ of the ids above removes the behaviour even though the screen still draws.</p></
 </div></details><details class="fam" id="miscassets">
 <summary><span class="t">Loading screens, cursors, flags, tutorials, video</span><span class="pill t3">Tier 3</span><span class="pill">150 files</span><div class="l1">The remaining presentation folders: loading art, mouse cursors, empire flags, tutorial slides and intro videos.</div></summary>
 <div class="body">
-<p class="meta"><b>XNB, PNG, WMV</b> &middot; LoadingScreen / CursorManager / Flag / Tutorial / Video players</p>
+<p class="meta"><b>XNB, PNG, WMV</b> &middot; ResourceManager.LoadRandomLoadingScreen / LoadVideo; TutorialScreen (Tutorials/*.xnb); flags by FlagIndex</p>
 <p class="lv2">Most are looked up by index or folder, so adding files is safe and deleting one degrades that screen.</p>
 <details class="lv3"><summary>Level 3 &mdash; the detail</summary><div class="in"><p>Flags are indexed by FlagIndex in a race file; reordering the folder changes which flag a race gets. Tutorials and videos are compiled XNB plus source.</p></div></details>
 <p class="meta"><b>Override:</b> Relative path; these are presentation assets with few hardcoded names.</p>
@@ -395,7 +395,7 @@ of the ids above removes the behaviour even though the screen still draws.</p></
 </div></details><details class="fam" id="advice">
 <summary><span class="t">Advisor text</span><span class="pill t2">Tier 2</span><span class="pill">7 files</span><div class="l1">The tips the game shows in the loading and advisor panels.</div></summary>
 <div class="body">
-<p class="meta"><b>XML per language</b> &middot; ResourceManager.LoadAdvice</p>
+<p class="meta"><b>XML per language</b> &middot; ResourceManager.LoadRandomAdvice → LoadAdviceFor</p>
 <p class="lv2">Each entry is one tip, shown at random. There is no id to preserve.</p>
 <details class="lv3"><summary>Level 3 &mdash; the detail</summary><div class="in"><p>ArrayOfString &gt; string. A missing language falls back to English.</p></div></details>
 <p class="meta"><b>Override:</b> One file per language. Mods replace by file name.</p>
@@ -408,7 +408,7 @@ of the ids above removes the behaviour even though the screen still draws.</p></
 </div></details><details class="fam" id="ftl">
 <summary><span class="t">FTL effect</span><span class="pill t2">Tier 2</span><span class="pill">1 file</span><div class="l1">What the warp flash looks like: layers, timing, rotation and scale curves.</div></summary>
 <div class="body">
-<p class="meta"><b>YAML</b> &middot; ResourceManager.LoadFTLData (hot reload)</p>
+<p class="meta"><b>YAML</b> &middot; FTLManager.AddHotLoadTarget (FTL.yaml, hot reload)</p>
 <p class="lv2">Each layer is one texture with its own timing. It is presentation only.</p>
 <details class="lv3"><summary>Level 3 &mdash; the detail</summary><div class="in"><p>ScaleCurve points are [time, scale], smoothed; Duration is seconds; Rotation is radians per second.</p></div></details>
 <p class="meta"><b>Override:</b> One file; can be edited while the game runs.</p>

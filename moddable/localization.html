@@ -1,0 +1,484 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Localization and text ids &amp;mdash; moddable content</title><style>
+:root{--bg:#14171c;--panel:#1b1f26;--ink:#e6e8ea;--dim:#8b949e;--line:#2b313a;--gold:#ffd479;--link:#8ecbff;--ok:#8ad06a;--warn:#e0a070}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 Georgia,serif}
+a{color:var(--link);text-decoration:none}a:hover{text-decoration:underline}
+code,.mono{font:12.5px ui-monospace,monospace;color:#c9d1d9;background:#20252d;padding:0 3px;border-radius:3px}
+.bar{position:sticky;top:0;z-index:9;background:rgba(20,23,28,.96);border-bottom:1px solid var(--line)}
+.bar .in{max-width:1200px;margin:0 auto;padding:9px 24px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{display:inline-block;font:12px ui-monospace,monospace;padding:5px 11px;border:1px solid #3a424e;border-radius:999px;background:var(--panel);color:var(--ink);cursor:pointer}
+.btn:hover{border-color:var(--link);text-decoration:none}
+.btn.on{border-color:var(--gold);color:var(--gold)}
+input#q{flex:1;min-width:220px;font:12.5px ui-monospace,monospace;color:var(--ink);background:#0f1216;border:1px solid #3a424e;border-radius:999px;padding:6px 12px}
+.head{max-width:1200px;margin:0 auto;padding:32px 24px 4px}
+h1{font-size:27px;margin:0 0 8px;line-height:1.25}
+p.lede{color:var(--dim);max-width:86ch;margin:0 0 12px}
+.wrap{max-width:1200px;margin:0 auto;padding:6px 24px 70px}
+.facts{display:flex;gap:16px;flex-wrap:wrap;font:12px ui-monospace,monospace;color:#c9d1d9;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:8px 12px;margin:12px 0}
+.facts b{color:var(--gold);font-weight:normal}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:1.1px;font-family:ui-monospace,monospace;color:#c9d1d9;margin:34px 0 12px;border-bottom:1px solid var(--line);padding-bottom:6px}
+h3{font-size:15px;margin:22px 0 8px}
+details{border:1px solid var(--line);border-radius:7px;background:var(--panel);margin:0 0 8px}
+details>summary{cursor:pointer;padding:10px 13px;list-style:none}
+details>summary::-webkit-details-marker{display:none}
+details>summary:before{content:"\25B6";display:inline-block;width:16px;color:var(--dim);font-size:10px;transform:translateY(-1px)}
+details[open]>summary:before{content:"\25BC"}
+.fam{margin:0 0 12px;background:#171b21}
+.fam>summary{padding:13px 15px}
+.fam>summary .t{font-size:17px;color:var(--gold)}
+.body{padding:2px 15px 14px}
+.pill{font:10.5px ui-monospace,monospace;text-transform:uppercase;letter-spacing:.4px;border:1px solid #4a5260;border-radius:9px;padding:1px 7px;color:var(--dim);margin-left:7px}
+.pill.t1{border-color:#6b5a2b;color:var(--gold)}.pill.t2{border-color:#2f5a6b;color:#8ecbff}.pill.t3{border-color:#3a4a3a;color:var(--ok)}
+.pill.idx{border-color:#6b4a2b;color:var(--warn)}
+.l1{color:#cfd6dd}
+.meta{font:11.5px ui-monospace,monospace;color:var(--dim);margin:6px 0 10px}
+.meta b{color:#c9d1d9;font-weight:normal}
+.lv2{color:#c3cbd3;margin:4px 0 6px}
+details.lv3,details.note{border-color:#232a33;background:#161a20;margin:6px 0 10px}
+details.lv3>summary,details.note>summary{font:11.5px ui-monospace,monospace;color:var(--dim);padding:6px 10px}
+details.lv3 .in,details.note .in{padding:0 11px 9px;color:#b9c2cb}
+details.lv3 .in p{margin:6px 0}
+.vanilla{font:11.5px/1.55 ui-monospace,monospace;color:#9fb0a6;background:#141a17;border-left:2px solid #3d5a46;padding:6px 8px;margin:8px 0 2px}
+.range{font-size:13.5px;color:#c8d3c0;border-left:2px solid #3d5a46;padding-left:8px;margin:6px 0}
+.crit{border-color:#6b4a2b;background:#201a14}
+pre.code{font:12px/1.55 ui-monospace,monospace;background:#0f1216;border:1px solid var(--line);border-radius:6px;padding:10px 12px;overflow:auto;color:#c9d1d9;margin:8px 0}
+.grp{background:#181d23;margin:8px 0}
+.grp>summary .g{font-size:14px;color:#e6e8ea}
+.tags{margin:8px 0 0;padding:0;list-style:none}
+.tag{background:#1b2027;margin:5px 0;border-color:#242b34}
+.tag>summary{padding:6px 10px;font-size:13.5px}
+.tag .nm{font:12.5px ui-monospace,monospace;color:var(--gold)}
+.tag .ty{font:10.5px ui-monospace,monospace;color:var(--dim);margin-left:7px}
+.tag .tx{padding:0 11px 8px;color:#b9c2cb;font-size:14px}
+table{border-collapse:collapse;width:100%;font:12.5px ui-monospace,monospace;margin:6px 0 12px}
+th,td{text-align:left;padding:6px 9px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--dim);font-weight:normal}
+td.n{white-space:nowrap;color:var(--gold)}
+.note-p{color:var(--dim);font-size:13px}
+ol,ul{padding-left:22px}
+li{margin:0 0 5px}
+.missing{font:11.5px ui-monospace,monospace;color:var(--warn)}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:12px;margin:10px 0}
+.card{display:block;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px}
+.card:hover{border-color:var(--link);text-decoration:none}
+.card .ct{font-size:17px;color:var(--gold);display:block;margin-bottom:4px}
+.card .cb{color:var(--dim);font-size:13.5px;display:block;margin-bottom:8px}
+.card .cf{font:11px ui-monospace,monospace;color:#c9d1d9;display:block}
+.foot{border-top:1px solid var(--line);margin-top:34px;padding-top:10px;font:12px ui-monospace,monospace;color:var(--dim)}
+.vals{border-collapse:collapse;width:100%;margin:10px 0;font-size:13.5px}
+.vals caption{text-align:left;color:var(--dim);font-size:12.5px;padding-bottom:6px}
+.vals th{text-align:left;color:var(--gold);font-weight:600;border-bottom:1px solid var(--line);padding:4px 8px}
+.vals td{border-bottom:1px solid var(--line);padding:4px 8px;vertical-align:top}
+.vals td:first-child{white-space:nowrap}
+.miss{color:#d98c8c;font-style:italic}
+.toc{columns:2;column-gap:34px;font-size:14px}
+@media(max-width:760px){.toc{columns:1}}
+#google_translate_element{font:12px ui-monospace,monospace;color:var(--dim);margin-left:auto}
+#google_translate_element .goog-te-gadget{font:12px ui-monospace,monospace;color:var(--dim)}
+#google_translate_element .goog-te-gadget-simple{background:var(--panel);border:1px solid #3a424e;border-radius:999px;padding:3px 9px}
+#google_translate_element .goog-te-menu-value span{color:var(--ink)}
+.goog-te-banner-frame{display:none!important}
+body{top:0!important}
+</style><script>function googleTranslateElementInit(){new google.translate.TranslateElement({pageLanguage:'en',includedLanguages:'de,ru,es,uk,pl,pt',autoDisplay:false},'google_translate_element');}</script><script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit" async></script></head><body><nav class="bar"><div class="in"><a class="btn" href="../index.html">&larr; Kit index</a><a class="btn" href="../moddable-content.html">Hub</a><a class="btn" href="game-options.html">Game options</a><a class="btn" href="map-creation.html">Map creation</a><a class="btn" href="ships.html">Ships</a><a class="btn" href="tech.html">Tech tree</a><a class="btn" href="races-diplomacy.html">Races &amp; diplomacy</a><a class="btn" href="colonies.html">Colonies</a><a class="btn" href="ui-assets.html">UI &amp; assets</a><a class="btn on" href="localization.html">Localization</a><a class="btn" href="../prompts/moddable-content.html">Prompt</a><input id="q" placeholder="Filter families and tags&hellip;" aria-label="Filter"><button class="btn" id="open">Expand all</button><button class="btn" id="close">Collapse all</button><span id="google_translate_element"></span></div></nav>
+<header class="head">
+ <h1>Localization and text ids</h1>
+ <p class="lede">The one file that holds the game&#x27;s words: how an id becomes text, how a mod&#x27;s entries merge with vanilla&#x27;s, and every content field that points at it.</p>
+ <div class="facts"><span>families: <b>1</b></span><span>files: <b>1</b></span>
+ <span>tags: <b>9</b></span><span>generated from: <b>f02509bcf</b></span></div>
+</header>
+<div class="wrap">
+<h2>Start here &mdash; one entry, one string</h2>
+<details class="note" open><summary>The file, a minimal entry, and the two ways to reach it</summary>
+<div class="in">
+<pre class="code">NewGame:
+ Id: 1
+ ENG: "New Game"
+ RUS: "Новая игра"
+ SPA: "Nueva partida"
+ UKR: "Нова гра"
+ GER: "Neues Spiel"
+ PTB: "Novo Jogo"</pre>
+<p>A mod puts its own copy at <code translate="no" class="notranslate">Mods/&lt;YourMod&gt;/GameText.yaml</code>. There is no
+<code translate="no" class="notranslate">Content/</code>&nbsp;step: the mod folder already is the content folder, and a mod that has a
+<code translate="no" class="notranslate">Content/</code>&nbsp;inside it is rejected at startup. Only the keys you change need to be in the
+file, and a key you leave out keeps vanilla's text in every language.</p>
+<table>
+<tr><th>part</th><th>required</th><th>what it is</th></tr>
+<tr><td class="n">the block key</td><td>yes</td><td>the NameId, the string code passes to <code translate="no" class="notranslate">Localizer.Token</code></td></tr>
+<tr><td class="n"><code translate="no" class="notranslate">Id</code></td><td>no</td><td>the integer other content files store; omitted ids are generated</td></tr>
+<tr><td class="n"><code translate="no" class="notranslate">ENG</code></td><td>in practice</td><td>English, the fallback every other column reads</td></tr>
+<tr><td class="n">the other six</td><td>no</td><td>a translation per language; a blank one falls back to ENG</td></tr>
+</table>
+<p><b>Two addresses, one string.</b> Other files reach it either by the number (<code translate="no" class="notranslate">NameIndex</code>,
+<code translate="no" class="notranslate">DescriptionIndex</code>, <code translate="no" class="notranslate">Localization</code>&nbsp;fields are ints) or by the name
+(<code translate="no" class="notranslate">Localizer.Token("NewGame")</code>&nbsp;in code). Both land in the same entry, so changing its text
+changes the button and any content that points at its number. Change the key instead and the by-name
+lookup stops finding it without breaking the number, which is why renaming a key is worse than
+editing it.</p>
+</div></details>
+<p class="lv2">GameText.yaml is one YAML block per string: the block&#x27;s key is the NameId code looks up, Id is the integer the other content files store, and ENG, RUS, SPA, UKR, GER, PTB and POL are the translations. The game loads vanilla&#x27;s file, then the active mod&#x27;s, merges them by NameId, and picks one column for the running language, falling back to English for each entry that has no translation. A mod ships only the keys it changes; every other string stays vanilla&#x27;s.</p>
+<details class="lv3" open><summary>Level 3 &mdash; how this section works</summary>
+<div class="in"><p>Code reaches text three ways: an int field is resolved as Localizer.Token(id), a LocalizedText field takes an int or a string, and Localizer.Token(nameId) looks a key up by name and hands back the name unchanged when it misses. A string containing braces is parsed for {id} or {NameId} tokens, and any other string is shown raw, so an id written into a plain string field displays as a number. Vanilla has 4,011 entries up to id 100,297, and 29 of them carry no Id at all, so their numbers are generated after the highest one and move when entries are added. That is why a content file should only point at an id the text file states explicitly.</p><h2>How the file is loaded and merged</h2>
+<table>
+<tr><th>step</th><th>what happens</th></tr>
+<tr><td class="n">vanilla</td><td><code translate="no" class="notranslate">ResourceManager.LoadLanguage(GlobalStats.Language)</code>&nbsp;reads
+<code translate="no" class="notranslate">Content/GameText.yaml</code>&nbsp;before fonts load, at startup and again whenever the language option changes</td></tr>
+<tr><td class="n">mod</td><td>if <code translate="no" class="notranslate">Mods/&lt;Mod&gt;/GameText.yaml</code>&nbsp;exists it is parsed and appended to vanilla's list;
+a mod whose folder contains its own <code translate="no" class="notranslate">Content/</code>&nbsp;is rejected at startup</td></tr>
+<tr><td class="n">merge</td><td>entries are joined by NameId: a matching key replaces the text and keeps vanilla's number;
+any other key keeps its declared <code translate="no" class="notranslate">Id</code>, or is given one after the highest id in the file</td></tr>
+<tr><td class="n">select</td><td>the column for the running language is taken per entry, falling back to <code translate="no" class="notranslate">ENG</code>;
+the chosen text is stored at <code translate="no" class="notranslate">Strings[Id - 1]</code></td></tr>
+<tr><td class="n">reload</td><td>switching language re-reads both files, clears the parse cache and rebuilds the codex hooks</td></tr>
+</table>
+<p>Two different keys that declare the same <code translate="no" class="notranslate">Id</code>&nbsp;do not merge: the second write replaces the first in the
+array, so both keys show the second text and nothing is logged. Two files that declare the same key merge, and the
+mod's text wins.</p>
+
+<h2>The id space</h2>
+<table>
+<tr><th>range</th><th>owner</th><th>vanilla today</th></tr>
+<tr><td class="n">1&ndash;99,999</td><td>general game text, per the allocation note at the top of the file</td><td>3,705 entries, highest 18,285</td></tr>
+<tr><td class="n">100,000&ndash;199,999</td><td>codex articles; <code translate="no" class="notranslate">Codex.yaml</code>&nbsp;points here</td><td>277 entries, highest 100,297</td></tr>
+<tr><td class="n">200,000&ndash;299,999</td><td>reserved in <code translate="no" class="notranslate">docs/codex-plan.md</code>&nbsp;for later use</td><td>none</td></tr>
+<tr><td class="n">no <code translate="no" class="notranslate">Id</code></td><td>numbered at load, after the highest id, in file order</td><td>29 entries, landing at 100,298&ndash;100,326, and their numbers move whenever an entry is added</td></tr>
+</table>
+<p>Vanilla has 4,011 entries, 3,982 of them with an explicit <code translate="no" class="notranslate">Id</code>. The <code translate="no" class="notranslate">GameText</code>&nbsp;C# enum
+is generated from this file by <code translate="no" class="notranslate">SDGameTextToEnum.exe</code>, and the game's own <code translate="no" class="notranslate">--run-localizer</code>
+switch does the same merge and export; neither is needed to ship a mod.</p>
+
+<h2>Which ids a mod should use</h2>
+<p>Nothing in the file assigns a range to mods, so pick one and stay in it. <b>60,000&ndash;65,535</b> is the band
+that works in every field:</p>
+<ul>
+<li>It sits above every general id vanilla uses today (18,285) and below the codex block at 100,000.</li>
+<li>Its ceiling is 65,535 because <code translate="no" class="notranslate">ShipModules/*.xml</code>&nbsp;stores <code translate="no" class="notranslate">NameIndex</code>&nbsp;and
+<code translate="no" class="notranslate">DescriptionIndex</code>&nbsp;as <code translate="no" class="notranslate">ushort</code>. A module cannot hold 70,000, so an id above 65,535 can never
+be attached to one.</li>
+<li>Vanilla's general text grows upward from 18,285, so the far end of 1&ndash;99,999 is the part a future update
+would reach last.</li>
+<li>200,000&ndash;299,999 is written down as reserved. Above 300,000 nothing is claimed, but only text reached by
+name or through <code translate="no" class="notranslate">LocalizedText</code>&nbsp;can use it; no module, tech, building or artifact field can.</li>
+</ul>
+<p>A clash does not break the load, which is why it ships unnoticed. Entries merge by NameId first, then each one
+writes its text at <code translate="no" class="notranslate">Strings[Id - 1]</code>, and the mod is read after vanilla, so the mod wins the write. A
+mod id that matches a vanilla id silently replaces that vanilla string, and every vanilla file pointing at the
+number then shows your text. Nothing is logged. Check before you commit:
+<code translate="no" class="notranslate">grep -n "Id: 61234" GameText.yaml</code>.</p>
+
+<h2>Which content field points at a string</h2>
+<table>
+<tr><th>file</th><th>field</th><th>what it names</th></tr>
+<tr><td class="n">ShipModules/*.xml</td><td><code translate="no" class="notranslate">NameIndex</code>, <code translate="no" class="notranslate">DescriptionIndex</code>&nbsp;(<code translate="no" class="notranslate">ushort</code>)</td><td>the module's name and tooltip</td></tr>
+<tr><td class="n">Technology/*.xml</td><td><code translate="no" class="notranslate">NameIndex</code>, <code translate="no" class="notranslate">DescriptionIndex</code></td><td>the tech's name and description</td></tr>
+<tr><td class="n">Buildings/*.xml</td><td><code translate="no" class="notranslate">NameTranslationIndex</code></td><td>the building's display name</td></tr>
+<tr><td class="n">Buildings/*.xml</td><td><code translate="no" class="notranslate">DescriptionIndex</code>, <code translate="no" class="notranslate">ShortDescriptionIndex</code></td><td>the tooltip and its one-line form</td></tr>
+<tr><td class="n">Goods/Goods.yaml</td><td><code translate="no" class="notranslate">NameIndex</code>, <code translate="no" class="notranslate">DescriptionIndex</code></td><td>the good and its tooltip; <code translate="no" class="notranslate">RefinedNameIndex</code>&nbsp;exists but vanilla leaves it 0</td></tr>
+<tr><td class="n">Artifacts/*.xml</td><td><code translate="no" class="notranslate">NameIndex</code>, <code translate="no" class="notranslate">DescriptionIndex</code></td><td>the relic's name and effect text</td></tr>
+<tr><td class="n">Races/*.xml</td><td><code translate="no" class="notranslate">TroopNameIndex</code>, <code translate="no" class="notranslate">TroopDescriptionIndex</code></td><td>that empire's troop names</td></tr>
+<tr><td class="n">ShipRoles/*.xml</td><td><code translate="no" class="notranslate">Localization</code>, and <code translate="no" class="notranslate">RaceList/Race/Localization</code></td><td>the role name, optionally per people</td></tr>
+<tr><td class="n">PlanetEdicts/*.xml</td><td><code translate="no" class="notranslate">Localization</code></td><td>the edict's name</td></tr>
+<tr><td class="n">PlanetTypes.yaml</td><td><code translate="no" class="notranslate">Composition</code></td><td>the planet type's description, typed LocalizedText</td></tr>
+<tr><td class="n">Codex.yaml</td><td><code translate="no" class="notranslate">TitleId</code>, <code translate="no" class="notranslate">ShortDescId</code>, <code translate="no" class="notranslate">TextId</code></td><td>NameIds, derived from the UID when the entry omits them</td></tr>
+<tr><td class="n">UI/*.yaml</td><td><code translate="no" class="notranslate">Title</code>, <code translate="no" class="notranslate">Tooltip</code></td><td>screen labels and hover text, typed LocalizedText, so <code translate="no" class="notranslate">"{1}"</code>&nbsp;works</td></tr>
+</table>
+<p>Those are the only files that read a text id. A module, a tech and a building are therefore translatable by
+number, while a hull, a design, a troop, a race's name and plural, a good's <code translate="no" class="notranslate">&lt;Name&gt;</code>, a system's
+name and every dialog line are raw strings that are shown exactly as written.</p>
+<p><b>A module, end to end.</b> Two numbers in the XML, two blocks in the mod's GameText, nothing else:</p>
+<pre class="code">&lt;!-- ShipModules/ModReactor.xml --&gt;
+&lt;NameIndex&gt;61000&lt;/NameIndex&gt;
+&lt;DescriptionIndex&gt;61001&lt;/DescriptionIndex&gt;
+
+# Mods/&lt;Mod&gt;/GameText.yaml
+ModReactor:
+  Id: 61000
+  ENG: "Fusion Reactor"
+  RUS: "Термоядерный реактор"
+ModReactorDesc:
+  Id: 61001
+  ENG: "Adds 40 power and stores 200."</pre>
+<p>The module does not name the keys, only the numbers, so the keys can be renamed freely. Get an
+<code translate="no" class="notranslate">Id</code>&nbsp;wrong and that area of the module is blank; get a key wrong and the number still resolves.</p>
+
+<h2>Every file type, in one table</h2>
+<p>All 45 families, and what each one does about text. Eleven of them read a GameText id.</p>
+<table>
+<tr><th>file</th><th>text field, or an example</th><th>what it means</th></tr>
+<tr><td class="n"><a href="game-options.html#globals">Globals.yaml</a></td><td>&mdash;</td><td>keys read by name; nothing is translated</td></tr>
+<tr><td class="n"><a href="game-options.html#budgets">Budgets.yaml</a></td><td>&mdash;</td><td>names are raw</td></tr>
+<tr><td class="n"><a href="game-options.html#fleetratios">FleetBuildRatios.yaml</a></td><td>&mdash;</td><td>names are raw</td></tr>
+<tr><td class="n"><a href="game-options.html#econstrats">EconomicResearchStrategies.yaml</a></td><td>&mdash;</td><td>names are raw</td></tr>
+<tr><td class="n"><a href="map-creation.html#planettypes">PlanetTypes.yaml</a></td><td><code translate="no" class="notranslate">Composition: 1702</code></td><td>the planet type's description</td></tr>
+<tr><td class="n"><a href="map-creation.html#suns">Suns.yaml</a></td><td><code translate="no" class="notranslate">Id: star_red</code></td><td>a lookup key, not a text id</td></tr>
+<tr><td class="n"><a href="map-creation.html#sunzones">SunZoneData.yaml</a></td><td>&mdash;</td><td>names are raw</td></tr>
+<tr><td class="n"><a href="map-creation.html#solarsystems">SolarSystems/*.xml</a></td><td><code translate="no" class="notranslate">&lt;Name&gt;Sol&lt;/Name&gt;</code></td><td>raw, shown as written</td></tr>
+<tr><td class="n"><a href="map-creation.html#randomstuff">RandomStuff/*.xml</a></td><td>&mdash;</td><td>raw entries</td></tr>
+<tr><td class="n"><a href="map-creation.html#namegenerators">NameGenerators/</a></td><td>&mdash;</td><td>plain word lists</td></tr>
+<tr><td class="n"><a href="ships.html#hulls">Hulls/*.hull</a></td><td>&mdash;</td><td>the hull is named by its file</td></tr>
+<tr><td class="n"><a href="ships.html#modules">ShipModules/*.xml</a></td><td><code translate="no" class="notranslate">&lt;NameIndex&gt;2166&lt;/NameIndex&gt;</code></td><td>the module's name; <code translate="no" class="notranslate">DescriptionIndex</code>, its tooltip</td></tr>
+<tr><td class="n"><a href="ships.html#weapons">Weapons/*.xml</a></td><td>&mdash;</td><td>the gun has no name of its own; the module that mounts it does</td></tr>
+<tr><td class="n"><a href="ships.html#designs">ShipDesigns/*.design</a></td><td><code translate="no" class="notranslate">&lt;Name&gt;&hellip;</code></td><td>raw, shown as written</td></tr>
+<tr><td class="n"><a href="ships.html#shiproles">ShipRoles/*.xml</a></td><td><code translate="no" class="notranslate">&lt;Localization&gt;1839&lt;/Localization&gt;</code></td><td>the role's name, optionally per race</td></tr>
+<tr><td class="n"><a href="ships.html#designoutput">Ships/DesignOutput.xml</a></td><td>&mdash;</td><td>written by the game, not read as content</td></tr>
+<tr><td class="n"><a href="tech.html#technology">Technology/*.xml</a></td><td><code translate="no" class="notranslate">&lt;NameIndex&gt;5083&lt;/NameIndex&gt;</code></td><td>the tech's name; <code translate="no" class="notranslate">DescriptionIndex</code>, its description</td></tr>
+<tr><td class="n"><a href="tech.html#research">Research.yaml</a></td><td>&mdash;</td><td>names are raw</td></tr>
+<tr><td class="n"><a href="tech.html#militaryresearch">MilitaryResearchStrategy/</a></td><td>&mdash;</td><td>names are raw</td></tr>
+<tr><td class="n"><a href="races-diplomacy.html#races">Races/*.xml</a></td><td><code translate="no" class="notranslate">&lt;TroopNameIndex&gt;2083&lt;/TroopNameIndex&gt;</code></td><td>that empire's troop name; <code translate="no" class="notranslate">Name</code>, <code translate="no" class="notranslate">Singular</code>&nbsp;and <code translate="no" class="notranslate">Plural</code>&nbsp;are raw</td></tr>
+<tr><td class="n"><a href="races-diplomacy.html#racialtraits">RacialTraits/RacialTraits.xml</a></td><td>&mdash;</td><td>trait names are raw</td></tr>
+<tr><td class="n"><a href="races-diplomacy.html#diplomacy">Diplomacy/DiplomaticTraits.xml</a></td><td>&mdash;</td><td>personality names are raw</td></tr>
+<tr><td class="n"><a href="races-diplomacy.html#diplomacydialogs">DiplomacyDialogs/&lt;Language&gt;/</a></td><td><code translate="no" class="notranslate">&lt;Friendly&gt;&hellip;&lt;/Friendly&gt;</code></td><td>translated per language folder, with keywords</td></tr>
+<tr><td class="n"><a href="races-diplomacy.html#encounters">Encounter Dialogs/</a></td><td><code translate="no" class="notranslate">&lt;text&gt;Dearest SING friends&hellip;</code></td><td>English only, with keywords</td></tr>
+<tr><td class="n"><a href="races-diplomacy.html#events">Exploration Events/</a></td><td><code translate="no" class="notranslate">&lt;TitleText&gt;&hellip;</code></td><td>raw English</td></tr>
+<tr><td class="n"><a href="colonies.html#buildings">Buildings/*.xml</a></td><td><code translate="no" class="notranslate">&lt;NameTranslationIndex&gt;&hellip;</code></td><td>the building's name; two fields for its text</td></tr>
+<tr><td class="n"><a href="colonies.html#troops">Troops/*.xml</a></td><td><code translate="no" class="notranslate">&lt;Name&gt;Antlion&lt;/Name&gt;</code></td><td>raw, shown as written</td></tr>
+<tr><td class="n"><a href="colonies.html#goods">Goods/Goods.yaml</a></td><td><code translate="no" class="notranslate">NameIndex: 161</code></td><td>the good's name; XML goods use a raw <code translate="no" class="notranslate">&lt;Name&gt;</code></td></tr>
+<tr><td class="n"><a href="colonies.html#planetedicts">PlanetEdicts/*.xml</a></td><td><code translate="no" class="notranslate">&lt;Localization&gt;120&lt;/Localization&gt;</code></td><td>the edict's name</td></tr>
+<tr><td class="n"><a href="colonies.html#artifacts">Artifacts/*.xml</a></td><td><code translate="no" class="notranslate">&lt;NameIndex&gt;&hellip;</code></td><td>the relic's name and effect text</td></tr>
+<tr><td class="n"><a href="colonies.html#dyson">DysonRings.yaml</a></td><td>&mdash;</td><td>layer settings only</td></tr>
+<tr><td class="n"><a href="ui-assets.html#ui">UI/*.yaml</a></td><td><code translate="no" class="notranslate">Title: "{1}"</code></td><td>a LocalizedText token, so the label follows the language</td></tr>
+<tr><td class="n"><a href="ui-assets.html#mainmenus">MainMenus.yaml</a></td><td><code translate="no" class="notranslate">UILayoutFile: &hellip;</code></td><td>points at a layout; holds no text</td></tr>
+<tr><td class="n"><a href="ui-assets.html#codex">Codex.yaml</a></td><td><code translate="no" class="notranslate">TitleId: CodexBlackbox</code></td><td>a NameId derived from the UID when omitted</td></tr>
+<tr><td class="n"><a href="ui-assets.html#fonts">Fonts/</a></td><td>&mdash;</td><td>the glyphs for the columns above</td></tr>
+<tr><td class="n"><a href="ui-assets.html#textures">Textures/</a></td><td>&mdash;</td><td>no text</td></tr>
+<tr><td class="n"><a href="ui-assets.html#models">Model/</a></td><td>&mdash;</td><td>no text</td></tr>
+<tr><td class="n"><a href="ui-assets.html#audio">Audio/</a></td><td>&mdash;</td><td>no text</td></tr>
+<tr><td class="n"><a href="ui-assets.html#particles">3DParticles/</a></td><td>&mdash;</td><td>no text</td></tr>
+<tr><td class="n"><a href="ui-assets.html#miscassets">LoadingScreen, Cursors, Flags, Tutorials, Video</a></td><td>&mdash;</td><td>no text</td></tr>
+<tr><td class="n"><a href="ui-assets.html#mgcb">Content.mgcb</a></td><td>&mdash;</td><td>a build list</td></tr>
+<tr><td class="n"><a href="ui-assets.html#advice">Advice/&lt;Language&gt;/Advice.xml</a></td><td><code translate="no" class="notranslate">&lt;string&gt;&hellip;</code></td><td>raw strings, one folder per language</td></tr>
+<tr><td class="n"><a href="ui-assets.html#ftl">FTL.yaml</a></td><td>&mdash;</td><td>visual settings only</td></tr>
+<tr><td class="n"><a href="ui-assets.html#explosions">Explosions.yaml</a></td><td>&mdash;</td><td>visual settings only</td></tr>
+<tr><td class="n"><a href="#gametext">GameText.yaml</a></td><td><code translate="no" class="notranslate">Id: 1</code></td><td>the strings themselves</td></tr>
+</table>
+<p>Two things follow. A name is translated only if its file has one of those fields, so renaming a UID, a hull or a
+design changes nothing on screen and adding it to GameText.yaml does nothing either. And the dialog files are the
+exception the other way: they never read an id, so translating them means a file per language rather than a column
+in the text file.</p>
+
+<h2>Languages</h2>
+<table>
+<tr><th>column</th><th>language</th><th>vanilla entries with text</th></tr>
+<tr><td class="n">ENG</td><td>English</td><td>all 4,011</td></tr>
+<tr><td class="n">RUS</td><td>Russian</td><td>3,595</td></tr>
+<tr><td class="n">UKR</td><td>Ukrainian</td><td>3,320</td></tr>
+<tr><td class="n">PTB</td><td>Brazilian Portuguese</td><td>3,586</td></tr>
+<tr><td class="n">SPA</td><td>Spanish</td><td>1,973</td></tr>
+<tr><td class="n">GER</td><td>German</td><td>2</td></tr>
+<tr><td class="n">POL</td><td>Polish</td><td>none</td></tr>
+</table>
+<p>The choice is per entry, not per file: a Russian game shows <code translate="no" class="notranslate">RUS</code>&nbsp;where it exists and English
+elsewhere, which is why a half-finished translation is still usable. A blank <code translate="no" class="notranslate">ENG</code>&nbsp;has nothing to fall
+back to and shows blank in every language.</p>
+
+<h2>Tokens inside a string</h2>
+<pre class="code">"  {80}: {81}"            two ids, substituted where they stand
+"{PowerCellName} is empty"   a NameId, looked up by name
+"\{ {80} \}"              escaped braces stay literal</pre>
+<p>Only text with a <code translate="no" class="notranslate">{</code>&nbsp;in it is parsed. Inside, <code translate="no" class="notranslate">{80}</code>&nbsp;is an id and
+<code translate="no" class="notranslate">{PowerCellName}</code>&nbsp;is a NameId; <code translate="no" class="notranslate">\{</code>&nbsp;and <code translate="no" class="notranslate">\}</code>&nbsp;print a brace. A missing
+<code translate="no" class="notranslate">}</code>&nbsp;logs a warning and stops the parse at that point, and an id with no entry logs an error and drops
+the segment. Parsed results are cached per raw string until the language is reloaded.</p>
+
+<h2>Dialog text: keywords, not ids</h2>
+<p>Diplomacy and encounter text never goes through <code translate="no" class="notranslate">GameText.yaml</code>. Each line lives in an XML file, one
+folder per language, and the names are filled in at the moment the line is shown. This is the one place a string
+carries a placeholder that reaches back into content.</p>
+<table>
+<tr><th>file</th><th>what it holds</th><th>how it is picked</th></tr>
+<tr><td class="n">DiplomacyDialogs/English/Human.xml</td><td><code translate="no" class="notranslate">&lt;DialogLine&gt;</code>&nbsp;with <code translate="no" class="notranslate">DialogType</code>,
+<code translate="no" class="notranslate">Friendly</code>, <code translate="no" class="notranslate">Neutral</code>, <code translate="no" class="notranslate">Hostile</code>, <code translate="no" class="notranslate">Default</code>&nbsp;and one <code translate="no" class="notranslate">DL_*</code>
+field per personality</td><td>code asks for the line by <code translate="no" class="notranslate">DialogType</code>; some types use the attitude field,
+others concatenate <code translate="no" class="notranslate">Default</code>&nbsp;with the personality and economic lines</td></tr>
+<tr><td class="n">DiplomacyDialogs/SharedDiplomacy.xml</td><td><code translate="no" class="notranslate">&lt;StatementSet&gt;</code>&nbsp;with
+<code translate="no" class="notranslate">&lt;words&gt;</code>&nbsp;and a <code translate="no" class="notranslate">&lt;Response&gt;</code>&nbsp;per option</td><td>the things you can say;
+<code translate="no" class="notranslate">Response</code>&nbsp;names another <code translate="no" class="notranslate">DialogType</code>&nbsp;or a hardcoded reply</td></tr>
+<tr><td class="n">DiplomacyDialogs/&lt;Language&gt;/</td><td>the same files translated</td><td>English loads first,
+then the selected language over it; a <code translate="no" class="notranslate">DialogType</code>&nbsp;the translation lacks falls back to English</td></tr>
+<tr><td class="n">Encounter Dialogs/*.xml</td><td><code translate="no" class="notranslate">&lt;text&gt;</code>, <code translate="no" class="notranslate">&lt;Text&gt;</code>,
+<code translate="no" class="notranslate">&lt;DescriptionText&gt;</code></td><td>one file per encounter step, English only, no language folders</td></tr>
+</table>
+
+<h3>The keywords</h3>
+<table>
+<tr><th>keyword</th><th>becomes</th><th>where the value lives</th></tr>
+<tr><td class="n">SING</td><td>your empire, singular</td><td><code translate="no" class="notranslate">Singular</code>&nbsp;in your race file</td></tr>
+<tr><td class="n">PLURAL</td><td>your empire, plural</td><td><code translate="no" class="notranslate">Plural</code>&nbsp;in your race file</td></tr>
+<tr><td class="n">TARSYS</td><td>the system being discussed</td><td>the target system's <code translate="no" class="notranslate">Name</code></td></tr>
+<tr><td class="n">TAREMP</td><td>the empire being discussed</td><td>its <code translate="no" class="notranslate">Traits.Name</code></td></tr>
+<tr><td class="n">TECH_DEMAND</td><td>the technology in the offer</td><td>its <code translate="no" class="notranslate">NameIndex</code>, through GameText</td></tr>
+<tr><td class="n">ADJ1, ADJ2</td><td>your empire's two adjectives</td><td><code translate="no" class="notranslate">Adj1</code>, <code translate="no" class="notranslate">Adj2</code>; encounters only</td></tr>
+<tr><td class="n">MONEY</td><td>the amount demanded</td><td>the encounter's own demand; encounters only</td></tr>
+</table>
+<p>Diplomacy recognises <code translate="no" class="notranslate">SING</code>, <code translate="no" class="notranslate">PLURAL</code>, <code translate="no" class="notranslate">TARSYS</code>, <code translate="no" class="notranslate">TAREMP</code>&nbsp;and
+<code translate="no" class="notranslate">TECH_DEMAND</code>, each also with one attached <code translate="no" class="notranslate">.</code>, <code translate="no" class="notranslate">,</code>, <code translate="no" class="notranslate">?</code>&nbsp;or
+<code translate="no" class="notranslate">!</code>. Encounters recognise <code translate="no" class="notranslate">SING</code>, <code translate="no" class="notranslate">PLURAL</code>, <code translate="no" class="notranslate">TARSYS</code>,
+<code translate="no" class="notranslate">TAREMP</code>, <code translate="no" class="notranslate">ADJ1</code>, <code translate="no" class="notranslate">ADJ2</code>&nbsp;and <code translate="no" class="notranslate">MONEY</code>, and strip the punctuation
+themselves. Neither reads braces, <code translate="no" class="notranslate">$</code>&nbsp;or brackets.</p>
+<ul>
+<li><b>Whole word, space-delimited.</b> The text is split on spaces and each word is looked up. <code translate="no" class="notranslate">SING</code>
+resolves; <code translate="no" class="notranslate">SING,</code>&nbsp;resolves; <code translate="no" class="notranslate">"SING"</code>, <code translate="no" class="notranslate">SING's</code>, <code translate="no" class="notranslate">$SING</code>&nbsp;and
+<code translate="no" class="notranslate">{SING}</code>&nbsp;stay as written.</li>
+<li><b>One mark only.</b> <code translate="no" class="notranslate">SING...</code>&nbsp;is not in the list and prints literally. Vanilla has a handful of
+those, which is how you can tell this is a word lookup and not a parser.</li>
+<li><b>Case matters.</b> <code translate="no" class="notranslate">sing</code>&nbsp;is a word, not a keyword.</li>
+<li><b>Translate around them.</b> A translated line keeps the keywords verbatim; the name comes from the race file,
+so it arrives in whatever language that file is written in.</li>
+<li><b>Renaming a DialogType loses the line.</b> Code asks for <code translate="no" class="notranslate">Greeting</code>, <code translate="no" class="notranslate">First Contact</code>,
+<code translate="no" class="notranslate">OfferResponse_InsufficientTrust</code>&nbsp;and the rest by exact string. Missing types are copied from vanilla
+English at load, so a renamed line is treated as new and the vanilla one reappears beside it.</li>
+</ul>
+<p>A mod adds dialogue by shipping a file of the same name with only the <code translate="no" class="notranslate">DialogLine</code>s it changes, or a
+new file for a new race. The merge is by <code translate="no" class="notranslate">DialogType</code>: your lines win, and every type your file lacks is
+copied from vanilla with a warning that lists them.</p>
+
+<h2>What goes wrong, and what you see</h2>
+<table>
+<tr><th>symptom</th><th>cause</th><th>fix</th></tr>
+<tr><td class="n"><code translate="no" class="notranslate">&lt;localization missing&gt;</code>&nbsp;on screen</td><td>an int field points at an id with no entry</td><td>add the block or correct the number</td></tr>
+<tr><td class="n">the NameId itself appears</td><td>a by-name lookup missed, usually case or spelling</td><td>make the block key match the name the code passes</td></tr>
+<tr><td class="n">a number shows where a word should be</td><td>the field is a plain string; strings are not resolved</td><td>use the int field, or write <code translate="no" class="notranslate">{1234}</code></td></tr>
+<tr><td class="n">two entries show the same text</td><td>both declare the same <code translate="no" class="notranslate">Id</code>; the later write wins silently</td><td>give each key its own id</td></tr>
+<tr><td class="n">a new key is blank everywhere</td><td>no <code translate="no" class="notranslate">ENG</code>&nbsp;column</td><td>write English; the other columns fall back to it</td></tr>
+<tr><td class="n">an old string is still shown</td><td>text is loaded at startup</td><td>restart, or switch language to force a reload</td></tr>
+<tr><td class="n">mod text is ignored</td><td>the file sits under <code translate="no" class="notranslate">Mods/&lt;Mod&gt;/Content/</code>&nbsp;or the mod is disabled</td><td>move it up one level and enable the mod</td></tr>
+<tr><td class="n">a pinned id now shows someone else's text</td><td>an entry above it lost its <code translate="no" class="notranslate">Id</code>&nbsp;and took a generated number</td><td>pin <code translate="no" class="notranslate">Id</code>&nbsp;on every entry another file references</td></tr>
+<tr><td class="n"><code translate="no" class="notranslate">SING</code>&nbsp;printed mid-sentence</td><td>the keyword is not a whole space-delimited word, or carries two marks</td><td>write it alone, with at most one <code translate="no" class="notranslate">.</code>, <code translate="no" class="notranslate">,</code>, <code translate="no" class="notranslate">?</code>&nbsp;or <code translate="no" class="notranslate">!</code></td></tr>
+<tr><td class="n">a dialog line never appears</td><td>its <code translate="no" class="notranslate">DialogType</code>&nbsp;no longer matches what code asks for</td><td>keep the vanilla type name; translate the text, not the type</td></tr>
+<tr><td class="n">a translation shows no empire names</td><td>the translator dropped <code translate="no" class="notranslate">SING</code>/<code translate="no" class="notranslate">PLURAL</code>/<code translate="no" class="notranslate">TARSYS</code>/<code translate="no" class="notranslate">TAREMP</code></td><td>keep the keywords verbatim in every language</td></tr>
+<tr><td class="n">a module stops loading after an id change</td><td><code translate="no" class="notranslate">NameIndex</code>&nbsp;is a <code translate="no" class="notranslate">ushort</code></td><td>keep ids on modules at or below 65,535</td></tr>
+</table>
+
+<h2>Writing a mod's file</h2>
+<pre class="code">PowerCellModule:
+ Id: 61000
+ ENG: "Power Cell"
+ RUS: "Энергоячейка"
+ UKR: "Енергоосередок"</pre>
+<ul>
+<li>Include only the keys you change or add. A key you omit keeps vanilla's text in every language.</li>
+<li>Pick an id nothing else uses &mdash; 60,000&ndash;65,535 for a mod &mdash; and keep it stable once a content
+file points at it.</li>
+<li>Leave out a language you cannot write; a blank column falls back to English rather than showing nothing.</li>
+<li>Do not rename a vanilla key to retranslate it: rename it and every by-name lookup loses it, while the number
+still resolves to the old entry.</li>
+<li>Quote every value, and escape a quote inside it. A colon or a <code translate="no" class="notranslate">#</code>&nbsp;inside an unquoted value breaks
+ the YAML.</li>
+</ul>
+
+<h2>Prompt for an LLM</h2>
+<details class="note"><summary>Copy this when you need the same string in several languages</summary>
+<div class="in">
+<pre class="code">You are writing entries for StarDrive BlackBox's Content/GameText.yaml. The file is a YAML map:
+  the key is the NameId, an identifier that is never translated and is case-sensitive;
+  Id is an optional unique integer; for a mod use 60,000-65,535, because a module's NameIndex is a ushort;
+  ENG, RUS, SPA, UKR, GER, PTB, POL are the language columns.
+
+Write one block per string I give you, in vanilla's style, two-space indent under the key:
+
+&lt;NameId&gt;:
+  Id: &lt;unused id&gt;
+  ENG: "&lt;text&gt;"
+  RUS: "&lt;text&gt;"
+
+Rules:
+- Keep every {123} and {NameId} token exactly as written, braces included; the game substitutes them.
+- Keep \n, &lt;color=Caption&gt;...&lt;/color&gt; and &lt;li&gt;...&lt;/li&gt; markup unchanged.
+- Translate only human text; never translate the NameId, the keys, or the markup.
+- Leave out a language you cannot write well instead of guessing; a blank column falls back to English.
+- Never reuse an Id, and never change an Id a content file already points at.
+- Never put dialog or encounter text in this file: those live in DiplomacyDialogs/<Language>/ and Encounter Dialogs/, and the SING, PLURAL, TARSYS, TAREMP and TECH_DEMAND keywords there must stay exactly as written.
+- Quote every value and escape an internal double quote as ".
+Return only the YAML, and list any id you were unsure about after it.</pre>
+<p class="note-p">Give the model the vanilla entries you are extending, not just your new strings: it will then
+copy the punctuation, capitalisation and <code translate="no" class="notranslate">&lt;color&gt;</code>&nbsp;markup the game already uses. Check the ids it
+returns against the file before using them.</p>
+</div></details>
+
+<details class="note"><summary>Copy this when you want to read the guide in a language the menu does not cover</summary>
+<div class="in">
+<pre class="code">You are translating a modding guide for StarDrive BlackBox into the language I name below.
+
+Translate the meaning, not the words. The reader should come away understanding what the English
+reader understands, not matching it sentence by sentence. A literal rendering of this guide is a
+worse translation than one that rephrases.
+
+- Keep the register: short statements and imperative sentences, the way a technical document in the
+target language is written. Do not switch to a formal form of address the documentation would not use.
+- One term, one translation, everywhere. Keep the list as you go and reuse it. If a term of art has no
+  settled translation, keep the English term and gloss it once, rather than inventing a word the reader
+  will never meet in the game.
+- Never translate: anything in &lt;code&gt;...&lt;/code&gt; (paths, file names, field names, keys, ids,
+  values, C# types), the tag names themselves, or anything inside &lt;color=...&gt;, &lt;li&gt;, {123}
+  and {NameId}.
+- Where a tag name stays in English, add one short line in the target language saying what it means, so
+  the reader can follow the guide without knowing the English word.
+- If you emit HTML, put translate="no" class="notranslate" on every element that holds an identifier,
+  and keep a &amp;nbsp; after it: a page translator drops the ordinary space and glues the words together.
+
+The game's own text lives in seven columns, matching the seven values of its Language enum:
+  ENG English, RUS Russian, SPA Spanish, UKR Ukrainian, GER German, PTB Brazilian Portuguese, POL Polish.
+A language outside that list can be added to this guide, not to the game: LangToken has those seven
+fields, and no eighth column exists for a mod to fill.
+
+Return the text in the original's structure, and after it list every term you kept in English or had
+to gloss.</pre>
+<p class="note-p">The menu in the bar translates these pages live, using a machine engine, in the seven languages
+StarDrive ships columns for. This prompt is for any other language, or for a copy you keep: it tells the model
+to hold the identifiers still, to keep one rendering per term, and to gloss a term of art instead of guessing
+a word for it. Both routes start from the same English page. Machine output is readable rather than
+authoritative &mdash; a term of art can come back in its everyday sense &mdash; so check any command, path or value
+against the English page before you act on it.</p>
+</div></details></div></details>
+<h2>Families in this section</h2>
+<p class="toc"><a href="#gametext">GameText</a></p>        <details class="fam" id="gametext">
+<summary><span class="t"><code translate="no" class="notranslate">GameText.yaml</code></span><span class="pill t3">Tier 3</span><span class="pill">1 file</span><div class="l1"><b>GameText</b> &mdash; Every player-visible string the game looks up, in seven languages.</div></summary>
+<div class="body">
+<p class="meta"><b>YAML</b> &middot; ResourceManager.LoadLanguage → Localizer.LoadFromYaml</p>
+<p class="meta"><b>Read from</b> <code translate="no" class="notranslate">GameText.yaml</code></p><details class="note"><summary>How these files are laid out &mdash; the pattern and its sections</summary><div class="in"><p>One block per string, keyed by the NameId code looks up, with <code translate="no" class="notranslate">Id</code>&nbsp;and one line per language indented under it. The block's key is the name, not a field: the file is read as <code translate="no" class="notranslate">Array&lt;LangToken&gt;</code>&nbsp;with <code translate="no" class="notranslate">NameId</code>&nbsp;as its key name, so a renamed block is a different string.</p><p><b>The keys come in these sections:</b></p><ul><li><b>Entry</b> (2 keys) &mdash; The key and the number that reach this string.</li><li><b>Translations</b> (7 keys) &mdash; One line per language, English first.</li></ul></div></details>
+<p class="lv2">A block per string: a NameId, an optional integer Id, and a column per language. A mod ships only the keys it changes and inherits the rest.</p>
+<details class="lv3"><summary>Level 3 &mdash; the detail</summary><div class="in"><p>An entry without Id gets a number after the highest one, so pin Id before another file points at it. A blank column falls back to ENG for that entry; a blank ENG is blank in every language.</p></div></details>
+<p class="meta"><b>Override:</b> Merged by NameId: an entry with a vanilla NameId replaces that text and keeps its number; any other NameId adds a string.</p>
+<details class="grp"><summary><span class="g">Entry</span> <span class="pill">2 tags</span><div class="l1">The key and the number that reach this string.</div></summary>
+<div class="body"><p class="lv2">The key is what code calls by name; the number is what content fields store.</p>
+<details class="lv3"><summary>Level 3 &mdash; the detail</summary><div class="in"><p>A block with an unknown NameId and no referenced Id is dead weight.</p></div></details>
+<ul class="tags">
+<li><details class="tag"><summary><span class="nm" translate="no" class="notranslate">NameId</span><span class="ty" translate="no" class="notranslate">key</span> <span class="l1">The name code passes to Localizer.Token.</span></summary><div class="tx">Case-sensitive and never translated. A by-name lookup that misses shows the name itself on screen.</div><details class="lv3"><summary>Level 3 &mdash; the detail</summary><div class="in"><p>e.g. NewGame, CodexControlsSelectingShips.</p></div></details></details></li>
+<li><details class="tag"><summary><span class="nm" translate="no" class="notranslate">Id</span><span class="ty" translate="no" class="notranslate">int</span> <span class="l1">The number an int field or a {token} stores.</span></summary><div class="tx">Optional: an omitted id is generated after the highest one, in file order, so it moves when entries are added.</div><details class="lv3"><summary>Level 3 &mdash; the detail</summary><div class="in"><p>1-99,999 general text; 100,000-199,999 codex.</p></div></details></details></li>
+</ul></div></details>
+<details class="grp"><summary><span class="g">Translations</span> <span class="pill">7 tags</span><div class="l1">One line per language, English first.</div></summary>
+<div class="body"><p class="lv2">English is the base every other column falls back to, per entry.</p>
+<details class="lv3"><summary>Level 3 &mdash; the detail</summary><div class="in"><p>A blank ENG leaves the string blank in every language.</p></div></details>
+<ul class="tags">
+<li><details class="tag"><summary><span class="nm" translate="no" class="notranslate">ENG</span><span class="ty" translate="no" class="notranslate">string</span> <span class="l1">English, the fallback for every other language.</span></summary><div class="tx">Required in practice: the loader starts from this column whatever the language is.</div><details class="lv3"><summary>Level 3 &mdash; the detail</summary><div class="in"><p>Set on all 4,011 vanilla entries.</p></div></details></details></li>
+<li><details class="tag"><summary><span class="nm" translate="no" class="notranslate">RUS</span><span class="ty" translate="no" class="notranslate">string</span> <span class="l1">Russian text.</span></summary><div class="tx">Used when the game language is Russian.</div><details class="lv3"><summary>Level 3 &mdash; the detail</summary><div class="in"><p>3,596 vanilla entries set it.</p></div></details></details></li>
+<li><details class="tag"><summary><span class="nm" translate="no" class="notranslate">SPA</span><span class="ty" translate="no" class="notranslate">string</span> <span class="l1">Spanish text.</span></summary><div class="tx">Used when the game language is Spanish.</div><details class="lv3"><summary>Level 3 &mdash; the detail</summary><div class="in"><p>1,973 vanilla entries set it.</p></div></details></details></li>
+<li><details class="tag"><summary><span class="nm" translate="no" class="notranslate">UKR</span><span class="ty" translate="no" class="notranslate">string</span> <span class="l1">Ukrainian text.</span></summary><div class="tx">Used when the game language is Ukrainian.</div><details class="lv3"><summary>Level 3 &mdash; the detail</summary><div class="in"><p>3,321 vanilla entries set it.</p></div></details></details></li>
+<li><details class="tag"><summary><span class="nm" translate="no" class="notranslate">GER</span><span class="ty" translate="no" class="notranslate">string</span> <span class="l1">German text.</span></summary><div class="tx">Used when the game language is German.</div><details class="lv3"><summary>Level 3 &mdash; the detail</summary><div class="in"><p>Only 2 vanilla entries set it.</p></div></details></details></li>
+<li><details class="tag"><summary><span class="nm" translate="no" class="notranslate">PTB</span><span class="ty" translate="no" class="notranslate">string</span> <span class="l1">Brazilian Portuguese text.</span></summary><div class="tx">Used when the game language is Portuguese; the file column is PTB.</div><details class="lv3"><summary>Level 3 &mdash; the detail</summary><div class="in"><p>3,587 vanilla entries set it.</p></div></details></details></li>
+<li><details class="tag"><summary><span class="nm" translate="no" class="notranslate">POL</span><span class="ty" translate="no" class="notranslate">string</span> <span class="l1">Polish text.</span></summary><div class="tx">Used when the game language is Polish.</div><details class="lv3"><summary>Level 3 &mdash; the detail</summary><div class="in"><p>No vanilla entry sets it.</p></div></details></details></li>
+</ul></div></details>
+<details class="note"><summary>Also present in these files (4010 distinct keys)</summary><div class="in">
+<p class="note-p">This family has one entry per id rather than a fixed tag set, so the keys are not listed. They are ids, not fields: the value is the text or rule for that id.</p>
+</div></details>
+</div></details>
+<p class="foot">Generated by <code translate="no" class="notranslate">docs/kit/build-moddable.py</code>&nbsp;from <code translate="no" class="notranslate">game/Content</code>&nbsp;at
+<code translate="no" class="notranslate">f02509bcf</code>. <a href="../moddable-content.html">Back to the hub</a>.</p>
+</div><script>
+const q = document.getElementById('q');
+const fams = [...document.querySelectorAll('details.fam')];
+const tags = [...document.querySelectorAll('details.tag')];
+function apply() {
+  const s = q.value.trim().toLowerCase();
+  for (const t of tags) t.hidden = !!s && !t.textContent.toLowerCase().includes(s);
+  for (const f of fams) {
+    const hit = !s || f.textContent.toLowerCase().includes(s);
+    f.hidden = !hit;
+    if (hit && s) f.open = true;
+  }
+}
+q.addEventListener('input', apply);
+document.getElementById('open').onclick = () => fams.forEach(f => f.open = true);
+document.getElementById('close').onclick = () => fams.forEach(f => f.open = false);
+</script></body></html>

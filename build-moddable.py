@@ -21,6 +21,7 @@ import pathlib
 import re
 import subprocess
 import sys
+import xml.etree.ElementTree as ET
 from collections import Counter
 
 sys.dont_write_bytecode = True
@@ -71,6 +72,28 @@ def notes():
     return load("md_notes", HERE / "moddable-notes.py").NOTES
 
 
+def file_spec(fam, files):
+    """The file line this family is about, written as the modder sees it under Content/.
+
+    A family of a few files lists them exactly, because that is the address the modder opens; a
+    folder of hundreds names the pattern instead. The heading is the file, not the topic: the
+    section leads with `ShipModules/*.xml` and names the topic in the line under it.
+    """
+    rels = [p.relative_to(CONTENT).as_posix() for p in files]
+    if 0 < len(rels) <= 6:
+        return " &middot; ".join(f"<code>{escape(r)}</code>" for r in rels)
+    parts = []
+    ext = (fam.get("ext") or "").strip()
+    for p in fam["paths"]:
+        if pathlib.Path(p).suffix:
+            parts.append(f"<code>{escape(p)}</code>")
+        elif ext.startswith("."):
+            parts.append(f"<code>{escape(p)}/*{escape(ext)}</code>")
+        else:
+            parts.append(f"<code>{escape(p)}/</code>")
+    return " &middot; ".join(parts)
+
+
 def files_of(fam):
     found = []
     for p in fam["paths"]:
@@ -87,6 +110,188 @@ def files_of(fam):
 
 XML_VALUE = re.compile(r"<([A-Za-z_][\w.\-]*)(?:\s[^<>]*)?>([^<>]*)</\1>")
 KEY_VALUE = re.compile(r"(?m)^\s*([A-Za-z_][\w]*)\s*[=:]\s*(.*?)\s*$")
+YAML_ITEM = re.compile(r"^-\s*([A-Za-z_][\w]*)\s*:\s*")
+YAML_FLAT = re.compile(r"^([A-Za-z_][\w]*)\s*:\s*\S")
+# Format label to the shape a modder has to copy. A label with several extensions (particles ships
+# YAML beside compiled effects) is deliberately not mapped: it is a folder of assets whose parsed
+# part another family already covers, so the layout block must not claim a schema for it.
+SHAPE_KIND = {"XML": "xml", "XML per language": "xml", "YAML": "yaml",
+              ".hull (line based)": "hull", ".design (line based)": "design",
+              "plain text": "text"}
+
+
+def _yaml_layout(files):
+    """What shapes the family's YAML actually uses, and where.
+
+    A modder edits a top-level list, a table, or a flat block very differently, and one file can hold
+    several at once (PlanetTypes.yaml has flat settings and table keys). Everything here is counted:
+    `items` for `- Type:` at column 0, `subs` for the same line indented inside a table, `blocks` for
+    a table key with no value, `flat` for a top-level `key: value`, and `opener` is the first exact
+    block opener seen, so the example matches the file rather than a tidied version of it.
+    """
+    items, subs, blocks, flat, opener = Counter(), Counter(), Counter(), 0, ""
+    for f in files:
+        try:
+            text = f.read_text(encoding="utf-8-sig", errors="replace")
+        except OSError:
+            continue
+        for line in text.splitlines():
+            if not line.strip() or line.lstrip().startswith("#"):
+                continue
+            top = not line.startswith((" ", "\t"))
+            m = YAML_ITEM.match(line.strip())
+            if m:
+                (items if top else subs)[m.group(1)] += 1
+                if top and not opener:
+                    opener = line.strip()
+            elif top and YAML_FLAT.match(line):
+                flat += 1
+            elif top and re.match(r"^[A-Za-z_]\w*\s*:\s*$", line):
+                blocks[line.split(":", 1)[0].strip()] += 1
+    return items, subs, blocks, flat, opener
+
+
+def _xml_layout(files):
+    """(root tags, entry tags) per XML file, read with a real element tree.
+
+    XmlSerializer puts the fields on the element that repeats, which is not always the root: a racial
+    trait file is `<RacialTraits><TraitList><RacialTraitOption>…` and an array file is
+    `<ArrayOfArtifact><Artifact>…`. The entry is the element carrying the most distinct child element
+    names, because that is where the children bind to fields; containers above it only nest.
+    """
+    roots, entries = Counter(), Counter()
+    for f in files:
+        try:
+            root = ET.fromstring(f.read_text(encoding="utf-8-sig", errors="replace"))
+        except (ET.ParseError, OSError):
+            continue
+        roots[root.tag] += 1
+        best, best_n = root, -1
+        for el in root.iter():
+            if not isinstance(el.tag, str):
+                continue
+            n = len({c.tag for c in el if isinstance(c.tag, str)})
+            if n > best_n:
+                best, best_n = el, n
+        entries[best.tag] += sum(1 for el in root.iter() if el.tag == best.tag)
+    return roots, entries
+
+
+def _names(counter, limit=4):
+    """`<code>Good</code> (9), ...` — names only where a file was seen to write them."""
+    parts = [f'<code>{escape(k)}</code> ({v:,})' for k, v in counter.most_common(limit)]
+    if len(counter) > limit:
+        parts.append(f'and {len(counter) - limit:,} more')
+    return ", ".join(parts)
+
+
+def layout_html(fam, files):
+    """The file the loader reads, the shape of one entry, and the sections the keys fall into.
+
+    A modder's second question after "which field" is "which file, and what does a second entry look
+    like". The file list comes from the checkout and the shape sentence is read off those files, so a
+    family cannot state a layout its own content does not have; where nothing was found, the page says
+    that instead of printing a schema.
+    """
+    kind = SHAPE_KIND.get(fam["fmt"], "assets")
+    rels = [p.relative_to(CONTENT).as_posix() for p in files]
+    if not rels:
+        read = ('<p class="meta"><b>Read from:</b> no file — nothing under '
+                + ", ".join(f'<code>{escape(p)}</code>' for p in fam["paths"])
+                + ' is present in this checkout, so the loader has nothing to read.</p>')
+    elif len(rels) <= 6:
+        read = ('<p class="meta"><b>Read from</b> '
+                + ", ".join(f'<code>{escape(r)}</code>' for r in rels) + '</p>')
+    else:
+        dirs = Counter(r.split("/", 1)[0] for r in rels if "/" in r)
+        where = ", ".join(f'<code>{escape(d)}/</code>' for d in dirs)
+        if dirs:
+            read = (f'<p class="meta"><b>Read from</b> {len(rels):,} files under {where}; the first '
+                    f'is <code>{escape(rels[0])}</code>.</p>')
+        else:
+            read = (f'<p class="meta"><b>Read from</b> {len(rels):,} files, starting with '
+                    f'<code>{escape(rels[0])}</code>.</p>')
+    if kind == "xml":
+        roots, entries = _xml_layout(files)
+        root = roots.most_common(1)[0][0] if roots else ""
+        entry = entries.most_common(1)[0][0] if entries else ""
+        if root and root.startswith("ArrayOf") and entry == root:
+            body = ('<p>A bare list: the root <code>&lt;' + escape(root) + '&gt;</code> holds one '
+                    'child element per entry, and the entries carry no fields of their own.</p>')
+        elif root and root.startswith("ArrayOf"):
+            body = ('<p>One list per file: the root <code>&lt;' + escape(root) + '&gt;</code> only '
+                    'wraps the list, and <code>&lt;' + escape(entry) + '&gt;</code> repeats as the '
+                    'entry. Each child element under an entry is a field bound by name, and an '
+                    'element the class has no field for is dropped without a warning, so a misspelt '
+                    'element is a setting that quietly does nothing.</p>')
+        elif root and entry == root:
+            body = ('<p>One object per file: the root element <code>&lt;' + escape(root) + '&gt;</code> '
+                    'is the entry, and each child element is a field bound by name. An element the '
+                    'class has no field for is dropped without a warning, so a misspelt element is a '
+                    'setting that quietly does nothing.</p>')
+        elif root:
+            body = ('<p>One list per file: the root <code>&lt;' + escape(root) + '&gt;</code> only '
+                    'nests, and <code>&lt;' + escape(entry) + '&gt;</code> is the entry that repeats. '
+                    'Each child element under an entry is a field bound by name, and an element the '
+                    'class has no field for is dropped without a warning.</p>')
+        else:
+            body = ('<p>No file could be parsed as XML in this checkout, so the element names below '
+                    'are the only structure recorded.</p>')
+        if roots:
+            body += ('<p>Root elements in vanilla: '
+                     + ", ".join(f'<code>&lt;{escape(k)}&gt;</code> in {v:,} file'
+                                 f'{"s" if v != 1 else ""}' for k, v in roots.most_common(4))
+                     + ('' if entry == root else '; entries: '
+                        + ", ".join(f'<code>&lt;{escape(k)}&gt;</code> ({v:,})'
+                                    for k, v in entries.most_common(4)))
+                     + '.</p>')
+    elif kind == "yaml":
+        items, subs, blocks, flat, opener = _yaml_layout(files)
+        if items:
+            body = ('<p>A YAML list of blocks: each entry starts with a line such as '
+                    f'<code>{escape(opener)}</code>, and the indented keys under it are that '
+                    'entry\'s fields. A second entry is a second block, not a second file.</p>')
+            body += f'<p>Block types in vanilla: {_names(items)}.</p>'
+        elif blocks and subs:
+            lead = ('Top-level <code>key: value</code> lines are settings of the file itself, and a '
+                    'key with no value opens a table. ' if flat else '')
+            body = (f'<p>{lead}Each table holds one <code>- {escape(subs.most_common(1)[0][0])}:</code> '
+                    'item per entry, and the keys indented under an item are its fields.</p>')
+            body += f'<p>Tables in vanilla: {_names(blocks)}.</p>'
+        elif blocks:
+            body = ('<p>A map of blocks: each top-level <code>key:</code> opens one block, and the '
+                    'indented keys under it belong to that block &mdash; the file\'s own settings when '
+                    'it has a single container.</p>')
+            body += f'<p>Top-level keys in vanilla: {_names(blocks)}.</p>'
+        else:
+            body = ('<p>One flat block of <code>key: value</code> lines: the loader binds each key to '
+                    'a field of the same name, so there are no per-entry blocks to repeat.</p>')
+    elif kind == "hull":
+        body = ('<p>One hull per file, one <code>Key=value</code> per line. The loader splits on '
+                '<code>=</code> and binds the key to a field of the same name; a key it has no field '
+                'for is skipped, so a typo reads as a value that never arrives.</p>')
+    elif kind == "design":
+        body = ('<p>One design per file: a <code>Version=</code> line, then <code>Key=value</code> '
+                'header lines, then the module rows after <code>Modules</code>. Each key is bound to a '
+                'field by name, and an unknown key is ignored.</p>')
+    elif kind == "text":
+        body = ('<p>One entry per line: the line text is the whole value, with no keys and no '
+                'structure of its own.</p>')
+    if fam.get("shape"):
+        # A format label that covers two shapes (particles: parsed YAML plus compiled shaders; UI:
+        # layout trees plus flat scenes) cannot be derived from one rule, so the family states it.
+        body = fam["shape"]
+    elif kind == "assets":
+        body = ('<p>Assets, not parsed records: a file replaces the vanilla file at the same relative '
+                'path under <code>Content/</code>, and nothing binds keys to fields. The sections '
+                'below are the guide\'s grouping of what the files are for, not a schema.</p>')
+    secs = "".join(
+        f'<li><b>{escape(g["title"])}</b> ({len(g["tags"])} key'
+        f'{"s" if len(g["tags"]) != 1 else ""}) &mdash; {escape(g["l1"])}</li>'
+        for g in fam["groups"])
+    return (read + '<details class="note"><summary>How these files are laid out &mdash; the pattern '
+            'and its sections</summary><div class="in">' + body
+            + f'<p><b>The keys come in these sections:</b></p><ul>{secs}</ul></div></details>')
 
 
 def harvest(fam, files):
@@ -309,6 +514,12 @@ li{margin:0 0 5px}
 .miss{color:#d98c8c;font-style:italic}
 .toc{columns:2;column-gap:34px;font-size:14px}
 @media(max-width:760px){.toc{columns:1}}
+#google_translate_element{font:12px ui-monospace,monospace;color:var(--dim);margin-left:auto}
+#google_translate_element .goog-te-gadget{font:12px ui-monospace,monospace;color:var(--dim)}
+#google_translate_element .goog-te-gadget-simple{background:var(--panel);border:1px solid #3a424e;border-radius:999px;padding:3px 9px}
+#google_translate_element .goog-te-menu-value span{color:var(--ink)}
+.goog-te-banner-frame{display:none!important}
+body{top:0!important}
 """
 
 JS = """
@@ -1037,13 +1248,15 @@ def render_family(fam, count, seen, samples, pats, sec=None, comments=None):
     extra = {k: v for k, v in seen.items() if not is_documented(k, pats)}
     by_lower = {k.lower(): v for k, v in samples.items()}
     tier = fam["tier"]
+    files = files_of(fam)
     o = [f'<details class="fam" id="{fam["id"]}">',
-         f'<summary><span class="t">{escape(fam["title"])}</span>'
+         f'<summary><span class="t">{file_spec(fam, files)}</span>'
          f'<span class="pill t{tier}">Tier {tier}</span>'
          f'<span class="pill">{count} file{"s" if count != 1 else ""}</span>'
-         f'<div class="l1">{escape(fam["l1"])}</div></summary>',
+         f'<div class="l1"><b>{escape(fam["title"])}</b> &mdash; {escape(fam["l1"])}</div></summary>',
          '<div class="body">',
          f'<p class="meta"><b>{escape(fam["fmt"])}</b> &middot; {escape(fam["loader"])}</p>',
+         layout_html(fam, files),
          f'<p class="lv2">{escape(fam["l2"])}</p>']
     if fam["l3"]:
         o.append('<details class="lv3"><summary>Level 3 &mdash; the detail</summary>'
@@ -1164,15 +1377,43 @@ def nav(current):
             f'{secs}<a class="btn" href="{prompt}">Prompt</a>'
             '<input id="q" placeholder="Filter families and tags&hellip;" aria-label="Filter">'
             '<button class="btn" id="open">Expand all</button>'
-            '<button class="btn" id="close">Collapse all</button></div></nav>')
+            '<button class="btn" id="close">Collapse all</button>'
+            '<span id="google_translate_element"></span></div></nav>')
+
+
+def protect(html):
+    """Keep identifiers away from a page translator, and keep the space the translator drops.
+
+    Google's translator leaves the text of a <code> element as written, but strips the whitespace
+    that follows an inline element, which glues "ushort" onto the next word. A no-break space
+    survives the round trip, so it replaces the ordinary space after each inline code span.
+    """
+    html = html.replace('<code>', '<code translate="no" class="notranslate">')
+    html = html.replace('<span class="nm">', '<span class="nm" translate="no" class="notranslate">')
+    html = html.replace('<span class="ty">', '<span class="ty" translate="no" class="notranslate">')
+    return re.sub(r'</code> ', '</code>&nbsp;', html)
 
 
 def page(title, body, current):
+    body = protect(body)
     return ('<!doctype html>\n<html lang="en"><head><meta charset="utf-8">'
             '<meta name="viewport" content="width=device-width,initial-scale=1">'
-            f'<title>{escape(title)}</title><style>{CSS}</style></head>'
+            f'<title>{escape(title)}</title><style>{CSS}</style>{TRANSLATE}</head>'
             f'<body>{nav(current)}{body}<script>{JS}</script></body></html>\n')
 
+
+# The languages StarDrive itself ships, from Localizer's Language enum and the fields of LangToken:
+# German, Russian, Spanish, Ukrainian, Polish and Brazilian Portuguese. German and Russian come first
+# because the game's own translations are fullest in those two.
+LANGUAGES = ["de", "ru", "es", "uk", "pl", "pt"]
+LANG_LIST = ",".join(LANGUAGES)
+
+TRANSLATE = ('<script>function googleTranslateElementInit(){'
+             "new google.translate.TranslateElement({pageLanguage:'en',"
+             "includedLanguages:'" + LANG_LIST + "',autoDisplay:false},"
+             "'google_translate_element');}</script>"
+             '<script src="https://translate.google.com/translate_a/element.js?'
+             'cb=googleTranslateElementInit" async></script>')
 
 LEVELS = """<p>Every collapsed line is <b>level 1</b>: one sentence, no identifier, enough to decide whether to
 open it. Opening it gives <b>level 2</b>: several sentences on what the thing does, what reads it, and
@@ -1180,6 +1421,11 @@ what you would notice in play. A nested <b>level 3</b> gives the field, formula,
 modder would quote, plus a generated <span class="vanilla">In vanilla</span> line naming each file and
 the values it writes. Level 3 is written to a soft cap of five
 sentences; where an entry runs longer, it is because the numbers or the failure mode need the room.</p>
+<p class="note-p">Every family also names the files its loader actually reads, and the block headed
+<b>How these files are laid out</b> states the shape of one entry &mdash; a YAML list of <code>- Good:</code>
+blocks, a map of blocks, one flat block, or one object per XML file &mdash; with the block types and
+top-level keys read from the checkout. The sections listed beneath it are the groups the keys are
+explained in.</p>
 <p class="note-p">Nothing here is written for engine contributors, and there is no level 4.</p>"""
 
 RULES = """<table>
@@ -1278,7 +1524,7 @@ def main():
 <header class="head">
  <h1>Moddable content &mdash; what a mod can replace</h1>
  <p class="lede">Every file family and tag under <code>game/Content</code>, grouped the way a modder works:
- game options, map creation, ships, tech, races and diplomacy, colonies, and UI. Each entry opens from one
+ game options, map creation, ships, tech, races and diplomacy, colonies, UI, and localization. Each entry opens from one
  sentence to how it behaves, then to the field, the units, the failure symptom and the values vanilla
  actually uses.</p>
  <div class="facts"><span>families: <b>{len(fams)}</b></span><span>content files: <b>{total_files:,}</b></span>
@@ -1288,7 +1534,7 @@ def main():
 <div class="wrap">
 <h2>How to read an entry</h2>
 {LEVELS}
-<h2>The seven sections</h2>
+<h2>The {len(secs)} sections</h2>
 <div class="cards">{''.join(cards)}</div>
 <h2>Replace or inherit</h2>
 {RULES}
@@ -1315,8 +1561,9 @@ field at all: its card names the map, the declared type and the member names the
 quotes the file's own comment where one exists, because a name that resolves to an enum has no field
 whose readers could be counted.</p>
 <p class="note-p">Coverage is measured per family: each one ends with the tags it contains that no entry
-above names. A tag listed there is a warning, not an instruction. <code>GameText.yaml</code> and
-<code>Codex*.yaml</code> are id-to-text maps and are intentionally not enumerated key by key.</p>
+above names. A tag listed there is a warning, not an instruction. <code>Codex*.yaml</code> is an id-to-text
+map and is intentionally not enumerated key by key; <code>GameText.yaml</code> has its own section and is
+enumerated by entry part, not by its 4,000 ids.</p>
 <p class="foot">Generated by <code>docs/kit/build-moddable.py</code> from <code>game/Content</code> at
 <code>{escape(commit)}</code> and the prose in <code>moddable-*.py</code>. Re-run the script after editing
 content or prose; do not hand-edit this page.</p>

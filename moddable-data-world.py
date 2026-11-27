@@ -71,6 +71,18 @@ BUTTON_STYLES = {
  "Text": "Draws only the text, with no button background.",
 }
 
+# ExoticBonusType members, read from Good.cs. The empire keeps one bonus entry per value, keyed in a
+# Map, so two mineable goods that name the same type collide rather than stacking.
+EXOTIC_BONUS_TYPES = {
+ "None": "No bonus: the good is mined and stored, but no empire stat reads it.",
+ "Credits": "Credit income; consumption scales with the empire's population in billions.",
+ "ShieldRecharge": "Shield regeneration; consumption scales with the recharge the fleet produces.",
+ "DamageReduction": "Damage reduction on every ship; consumption scales with fleet surface area.",
+ "Production": "Gross production; consumption scales with the production made before exotics.",
+ "RepairRate": "Ship repair rate; consumption scales with the repair the fleet and colonies do.",
+ "WarpSpeed": "Warp speed; consumption scales with the fleet's total warp thrust.",
+}
+
 DYSON_STAGES = {
  "1": "The first ring set: four back and four front layers, with a fixed structure only the textures may change.",
  "2": "The second ring set vanilla ships, with the same fixed layer structure as stage 1.",
@@ -265,42 +277,75 @@ dict(id="troops", tier=2, title="Troops", paths=["Troops"], ext=".xml", roots=["
  ]),
  ]),
 
-dict(id="goods", tier=2, title="Goods", paths=["Goods"], ext=".xml", roots=["Good"],
-     fmt="XML + one YAML", loader="ResourceManager.LoadGoods",
-     override="XML unifies by file name; Goods/Goods.yaml is the transportable-goods list.",
-     l1="A physical commodity that freighters move between colonies.",
-     l2="Goods have mass and cost and use cargo space. Goods.yaml lists which goods are transported automatically.",
-     l3="Only goods marked cargo and listed in Goods.yaml enter the freight network. Icons resolve from IconTexturePath or the good's name.",
-     notation=dict(title="Copy this: a good, and its freight entry", body="""
-<p>One XML file per good, plus one block in <code>Goods/Goods.yaml</code> if freighters should move it:</p>
-<pre class="code">&lt;Good&gt;
-  &lt;Name&gt;Colonists in Stasis Pods&lt;/Name&gt;
-  &lt;UID&gt;Colonists_1000&lt;/UID&gt;
-  &lt;Mass&gt;1&lt;/Mass&gt;
-  &lt;Description&gt;People, packed for the journey.&lt;/Description&gt;
-&lt;/Good&gt;</pre>
+dict(id="goods", tier=2, title="Goods", paths=["Goods"], ext=".yaml", roots=["Good"],
+     fmt="YAML", loader="ResourceManager.LoadGoods → YamlParser.DeserializeArray<Good>",
+     override="One file. A mod's Goods.yaml replaces vanilla's list; the blocks are not merged one by one.",
+     l1="Every resource the game knows: the three cargo goods freighters carry and the six exotics mined at gas giants.",
+     l2="Only Goods/Goods.yaml is read. It deserializes straight into Good, one block per good, and the UID is the id. The per-good XML files beside it are legacy: nothing loads them, so editing Name, Mass or Cost there changes nothing in play.",
+     l3="The three freight goods are hardcoded by UID in the cargo and storage code, so their names are fixed. A good with IsGasGiantMineable true joins the gas-giant deposit pool and becomes an exotic resource for every empire, with its bonus driven by ExoticBonusType, MaxBonus and ConsumptionMultiplier. The loader sets no bounds on any number here.",
+     notation=dict(title="Copy this: an exotic good", body="""
+<p>One block of <code>Goods/Goods.yaml</code>, complete. The three freight goods are the same shape with <code>IsGasGiantMineable: false</code> and <code>ExoticBonusType: None</code>.</p>
 <pre class="code">Good:
-  UID: Production
-  RefiningRatio: 1
+  UID: Energon
+  RefiningRatio: 0.5
   MaxRichness: 6
-  Weight: 1</pre>
+  NameIndex: 4943
+  RefinedNameIndex: 4936
+  DescriptionIndex: 4944
+  Weight: 5
+  IsGasGiantMineable: true
+  ExoticBonusType: Production
+  MaxBonus: 0.25
+  ConsumptionMultiplier: 0.02</pre>
 <ul>
-<li><b>UID</b> is the id and also the texture name: <code>Textures/Goods/&lt;UID&gt;</code> unless <code>IconTexturePath</code> overrides it.</li>
-<li>The YAML entry is the transport list. A good with no block there exists in the game but is never shipped, which looks like freight ignoring it.</li>
-<li><code>Weight</code> sets how common the resource is for mining; <code>MaxRichness</code> caps the deposit richness it can generate.</li>
+<li>Only <code>Goods.yaml</code> is loaded. The XML files in the same folder predate this loader and nothing reads them.</li>
+<li><b>UID</b> is the id and the icon name: the game loads <code>Textures/Goods/&lt;UID&gt;</code>, so a renamed good needs a renamed texture.</li>
+<li>A mineable good needs an <code>ExoticBonusType</code> other than None, plus a <code>MaxBonus</code> and a <code>ConsumptionMultiplier</code>, or its deposits pay nothing. At least one good must be mineable or gas-giant mining throws on the first deposit.</li>
 </ul>"""),
      groups=[
- G("Good fields", "What one good is worth and weighs.", "Mass limits how much a freighter can carry; Cost is its value.", "Description is plain text, not a localisation id.", [
-   T("UID","string","Good id.","", ""),
-   T("Name","string","Display name.","", ""),
-   T("Mass","float","Mass per unit.","", ""),
-   T("Cost","float","Value per unit.","", ""),
-   T("IsCargo","bool","Moves through freight.","", ""),
-   T("IconTexturePath","string","Icon.","", ""),
-   T("Description","string","Tooltip.","", ""),
+ G("Good fields", "What one good is, how often it appears and what its bonus pays.",
+   "Only the six exotics are mined; the three freight goods are recognised by their exact UIDs.",
+   "Weight and MaxRichness shape a deposit when the planet is created, while the bonus fields decide what the empire gets every turn after that.", [
+   T("UID","string","The good's id, and the name of its icon.",
+     "Cargo, storage and the trade code find a good by this string, and the icon loads from Textures/Goods/<UID>. The three freight goods are matched by the exact literals Food, Production and Colonists_1000 in code, so those three ids are fixed.",
+     "`Mineable.CargoId` returns `ResourceType.UID`, and `ShipInfoUIElement` finds the good with `TransportableGoods.Find(g => g.UID == cargoId)` before reading its name and description. `Ship_Cargo` and `ColonyStorage` compare the literal strings `Food`, `Production` and `Colonists_1000`, which is why a renamed freight good stops being food or production and becomes an inert commodity. The icon path is `Goods/` plus the UID through `ResourceManager.Texture`, and a missing texture draws a placeholder rather than failing."),
+   T("NameIndex","int","Localisation id of the good's display name.",
+     "The name is not stored in the good: it is looked up by id in the language files, and the cargo tooltip and the mining panel both read it from there.",
+     "`Mineable.TranslatedResourceName` returns `new LocalizedText(ResourceType.NameIndex)`, and `ShipInfoUIElement`'s cargo tooltip prints the same token. Vanilla uses 162 for Production, 161 for Food, 4949 for Colonists_1000 and 4939-4953 for the exotics. A missing id leaves the name unresolved, and the screen shows the number or a blank instead of a word."),
+   T("RefinedNameIndex","int","Localisation id of the refined form's name.",
+     "Only the exotics use it: the mining and bonus screens label the refined output with this id, which is a different string from the raw ore's name.",
+     "`ExoticBonusesWindow` builds its row label from `new LocalizedText(bonus.Good.RefinedNameIndex)` and passes `DescriptionIndex` as the tooltip, and `MiningOpsDebug` prints the same id. Vanilla sets it on the six exotics only (4933-4938) and leaves the three freight goods without it. A good that is never refined should leave it out rather than point it at an unrelated string."),
+   T("DescriptionIndex","int","Localisation id of the tooltip text.",
+     "It supplies the sentence under the good's name in a cargo slot and in the exotic-bonus window, and the same text is what the codex lookup receives.",
+     "`ShipInfoUIElement` shows `new LocalizedText(good.DescriptionIndex)` and hands it to `Codex.CodexHooks.Find`, while `ExoticBonusesWindow` uses it as the second half of its tooltip. Vanilla: Production 4950, Food 4951, Colonists_1000 4952, exotics 4940-4954. Two goods that share a description also share whatever codex hook that text resolves, so give each one its own id."),
+   T("Weight","int","How often this good is chosen for a gas giant's deposit.",
+     "It is a lottery weight rather than a percentage: the generator adds a good to its pool once per point of Weight and then picks one entry uniformly. Vanilla gives all six exotics 5, so they are equally likely.",
+     "`Mineable.GetRandomResourceType` fills an array from `TransportableGoods.Filter(g => g.IsGasGiantMineable)`, adding each good `good.Weight` times, then takes `universe.Random.Item`. A weight of 10 against six goods at 5 is a 10-in-40 chance, and 0 removes the good from the pool. If every mineable good is 0 the array is empty and the constructor throws with a message naming Goods.yaml."),
+   T("MaxRichness","byte","The ceiling of the die a deposit's richness is rolled on.",
+     "Each mineable gas giant rolls a richness up to this value when the planet is created, and richness is the rate at which the mining op extracts raw resource. Vanilla 6 for every good.",
+     "`Mineable`'s constructor sets `Richness = planet.Universe.Random.RollDie(ResourceType.MaxRichness)`, and the field is a byte, so 255 is the arithmetic ceiling. The roll happens once at planet creation, so a change reaches new galaxies and not deposits that already exist. `Richness` is described in the code as how much of the resource is extracted per turn, so a higher roll makes a faster mining op rather than a larger total."),
+   T("RefiningRatio","float","How much refined resource one raw point becomes.",
+     "It is the exchange rate at a mining station: each raw point processed yields this much refined stock, scaled by the empire's refining-efficiency research and capped at 1. Vanilla 1 for the freight goods and 0.5 for every exotic.",
+     "`Mineable.RefineRatioFor` returns `(RefiningRatio * empire.data.RefiningRatioMultiplier).UpperBound(1)`, so the Refining Ratio Bonus tech can lift 0.5 to 1 and no further; `RefiningEfficiencyTests` pins three levels at 1.3. A ratio of 0 makes a station refine nothing, and the mining goal then produces no stock. The ratio changes the yield per raw point, not how fast the deposit is mined."),
+   T("IsGasGiantMineable","bool","Whether the good can be mined at a gas giant.",
+     "It does two jobs: it puts the good into the pool a deposit is chosen from, and it makes every empire create an exotic-bonus entry for it. False leaves the good as cargo or a fixed commodity only.",
+     "`Mineable.GetRandomResourceType` filters on it, and both `Empire` constructors loop `TransportableGoods.Filter(g => g.IsGasGiantMineable)` to build `ExoticBonuses`. `GetNumExoticGoods` counts the same filter, and the mining constructor throws when the count is zero. Vanilla has six true and the three freight goods false, so mining ops need at least one exotic in the file."),
+   T("ExoticBonusType","ExoticBonusType","Which empire stat the refined resource pays into.",
+     "Each value names one stat, and the empire keeps one bonus entry per value, so two mineable goods cannot share a type. None is a mined good that pays nothing: legal, but the deposit is wasted.",
+     "`Empire` fills `ExoticBonuses`, a `Map<ExoticBonusType, EmpireExoticBonuses>`, by calling `Add(good.ExoticBonusType, ...)` for each mineable good; `Map` is a `Dictionary`, so a duplicate key throws at empire creation instead of merging. The same value picks the consumption base in `EmpireExoticBonuses.UpdateStaticConsumption`: population for Credits, fleet surface area for DamageReduction, gross production for Production, warp thrust for WarpSpeed, and the ships' own recharge and repair for ShieldRecharge and RepairRate. Vanilla uses each of the six non-None values exactly once.",
+     values=("enum:ExoticBonusType", EXOTIC_BONUS_TYPES)),
+   T("MaxBonus","float","The ceiling of the bonus, as a fraction of the stat.",
+     "The bonus rises with the refined stock and per-turn output the empire holds against its consumption, and stops here. 0.5 multiplies the stat by 1.5 at full supply, and 1 doubles it.",
+     "`EmpireExoticBonuses.DynamicBonus` returns `((RefinedPerTurnForConsumption + CurrentStorage) / Consumption * MaxBonus).UpperBound(MaxBonus)`, and `CurrentBonusMultiplier` adds 1 to it. When `Consumption` is 0 the full MaxBonus applies as soon as any stock exists, which makes a zero-consumption good an unconditional buff. Vanilla runs from 0.25 (Energon, production) to 1.0 (NanoGas repair and Aetherium warp)."),
+   T("ConsumptionMultiplier","float","Scales how much of the boosted stat an empire pays for the bonus.",
+     "Consumption is the stat's own size times this value, so the same number means different amounts for a bonus on credits than for one on repair. That is what keeps a bonus proportional as an empire grows.",
+     "`UpdateStaticConsumption` computes a base from the bonus type and then `Consumption = consumption * Good.ConsumptionMultiplier`, which `NeedMoreOps` and `RefiningNeeded` compare against the refining output. Vanilla spans 0.0001 (Aetherium, warp) to 0.12 (Luxarium, credits), which is why one exotic needs a single station and another needs several. 0 makes consumption zero, and `DynamicBonus` then pays the full MaxBonus from the first refined unit."),
  ]),
- G("Goods.yaml", "The transport list.", "One entry per good the freight AI may move.", "A good absent here exists but is never shipped.", [
-   T("Good","element","A transportable good entry.","", ""),
+ G("The list", "How the file is laid out.", "One Good block per resource, in any order.",
+   "Lookups are by UID, so order is not a priority; a duplicate UID or bonus type is a real error.", [
+   T("Good","element","One good block in the list.",
+     "The YAML key repeats once per good, and each block deserializes into one Good. Order is not a priority: lookups are by UID or by bonus type.",
+     "Vanilla ships nine blocks: Production, Food, Colonists_1000, Pulsefield, Luxarium, Fortifume, Energon, NanoGas and Aetherium. A repeated UID leaves two entries, and `TransportableGoods.Find` returns the first, so the later one is unreachable through the cargo code. Two mineable goods with the same ExoticBonusType are worse: the empire's bonus map throws when it is built."),
  ]),
  ]),
 
@@ -512,33 +557,85 @@ dict(id="racialtraits", tier=2, title="Racial traits", paths=["RacialTraits"], e
  ]),
  ]),
 
-dict(id="diplomacy", tier=2, title="Diplomatic traits", paths=["Diplomacy"], ext=".xml", roots=["DiplomaticTraits", "DiplomaticTraitsList"],
+dict(id="diplomacy", tier=2, title="Diplomatic traits", paths=["Diplomacy"], ext=".xml", roots=["DiplomaticTraits", "DTrait", "ETrait"],
      fmt="XML", loader="ResourceManager.DiplomaticTraits → TryDeserialize → DiplomaticTraits",
-     override="One file. Name is the personality id a race's DiplomaticPersonality refers to.",
-     l1="A diplomatic personality: how trusting, opportunistic or aggressive a people is.",
-     l2="These values set the starting relationship and how fast it drifts. They are separate from racial traits, though both use the word trait.",
-     l3="DTrait and ETrait are the diplomatic and economic personality lists; a race names one of each in Races/.",
+     shape=("<p>Two lists under one root: <code>&lt;DiplomaticTraitsList&gt;</code> holds the "
+            "<code>&lt;DTrait&gt;</code> entries and <code>&lt;EconomicTraitsList&gt;</code> holds the "
+            "<code>&lt;ETrait&gt;</code> entries. An empire takes one from each list, and the two lists are read "
+            "by different code &mdash; only the DTrait fields are diplomacy.</p>"),
+     override=("Races name entries in PersonalityTraitsWeights / EconomicTraitsWeights; an id that is not in "
+               "this file logs a warning and the empire gets a random entry. Rebels draw at random too."),
+     l1="The personalities an empire can be given: one diplomatic (DTrait) and one economic (ETrait).",
+     l2=("Diplomatic values are thresholds on a relationship's trust and the anger it tolerates; economic "
+         "values pick a research strategy and add AI ship goals."),
+     l3=("A race's weights choose the entries, and the player gets neither: the player's diplomatic trait is "
+         "the blank None entry, so the code that needs a player's territorialism averages all six DTrait "
+         "entries, and the economic trait is Generalists."),
      groups=[
- G("Personality", "The two lists a race can choose from.", "DTrait is diplomatic, ETrait is economic.", "Weights and modifiers are read when relations change.", [
-   T("DTrait","element","Diplomatic personality entry.","", ""),
-   T("ETrait","element","Economic personality entry.","", ""),
-   T("Name","string","Personality id.","", ""),
-   T("Description","int","Localisation id.","", ""),
-   T("Alliance","float","Willingness to ally.","", ""),
-   T("NAPact","float","Willingness to sign a non-aggression pact.","", ""),
-   T("Trade","float","Willingness to trade.","", ""),
-   T("Trustworthiness","float","How much trust is kept.","", ""),
-   T("TrustGainedAtPeace","float","Trust gained per peaceful turn.","", ""),
-   T("Opportunism","float","Willingness to exploit weakness.","", ""),
-   T("Territorialism","float","Sensitivity to border pressure.","", ""),
-   T("AngerDissipation","float","How fast anger fades.","", ""),
-   T("NaturalRelChange","float","Baseline relation drift.","", ""),
-   T("PowerIncrease","float","Weight given to power growth.","", ""),
-   T("WeaknessDecline","float","Weight given to weakness.","", ""),
-   T("EconomicResearchStrategy","string","Economic strategy id.","", ""),
-   T("ColonyGoalsPlus","float","Extra colony ambition.","", ""),
-   T("ShipGoalsPlus","float","Extra fleet ambition.","", ""),
-   T("EconomicTraitsList","element","Container for the economic personality list.","", ""),
+ G("Diplomatic personality (DTrait)", "Thresholds and anger for one empire's diplomacy.",
+   "Six entries in vanilla: Xenophobic, Honorable, Cunning, Aggressive, Ruthless, Pacifist.",
+   "The numbers are read when a treaty is offered, when trust is updated and when anger is recalculated.", [
+   T("Name","string","The personality id, parsed into the PersonalityType enum.",
+     "Read through TraitName, which runs Enum.TryParse each time; a name that does not parse becomes None and no warning is logged.",
+     "PersonalityType decides which diplomacy planner runs, which spy missions are considered and how war goals are picked, and Empire exposes IsCunning through IsPacifist for the rest of the code. The vanilla ids match the enum names exactly, case included."),
+   T("Description","string","Flavour text for the entry.",
+     "DTrait declares the field and the loader fills it, but nothing in the game reads it: no screen shows it and diplomacy dialogs print lines from the DiplomacyDialog files.",
+     "Editing it changes no behaviour, which also makes it useless as a place to record what the numbers do."),
+   T("Territorialism","int","Border tolerance: the anger at which foreign ships become an attack.",
+     "Total anger above it makes open war acceptable, and a trader's border violation attacks once border anger plus 10 passes it. Opening borders needs AvailableTrust at or above it, and border anger over 75% of it cancels the offer. Vanilla runs 30 to 50.",
+     "A peace treaty writes off a third of the value from the border and territorial anger pools. It enters the ratios inverted: 1 - T/100 in the war offensive ratio and T/100 in the expansion ratio, so one value pushes an empire toward expansion and away from invasion at the same time."),
+   T("Opportunism","float","Appetite for a weak neighbour, added to the expansion and war ratios.",
+     "Added unnormalised in GetExpansionRatio (0.2 adds 0.2, the same scale as territorialism/100) and averaged in GetWarOffensiveRatio. Vanilla runs 0.2 to 0.75.",
+     "Values above 1 skew expansion further than vanilla ever does, and 0 removes weakness from both ratios. Nothing else reads it."),
+   T("NAPact","int","Trust needed before the AI offers a non-aggression pact.",
+     "The offer is skipped while AvailableTrust is at or below the value, so 0 offers as soon as the other gates pass and 13 waits for real trust. Vanilla runs 0 to 13.",
+     "In an incoming offer the value is added to the trust the AI needs before saying yes, and open borders charge NAPact + 7.5. The NAP part is waived when the empire is already at war with someone else or sees a threat of 20 or more."),
+   T("Alliance","int","Trust needed before the AI accepts an alliance.",
+     "It rejects while AvailableTrust is below Alliance + TotalAnger, so an angry empire needs more than the file's number. Vanilla runs 15 to 50.",
+     "This is only the trust gate: turns known, the player side's turns of open borders and the TurnsAbove95 threshold are checked separately, and an empire that fails those never reaches the comparison."),
+   T("Trade","int","Trust needed before the AI offers a trade treaty.",
+     "A trade treaty comes after a non-aggression pact: the offer is skipped without one and while AvailableTrust is at or below the value. Vanilla runs 2 to 15.",
+     "In an incoming offer Trade is added to the trust the AI needs, and against a player an empire also stays silent while its total anger minus trust is above 50."),
+   T("Trustworthiness","int","Anger tolerated before declaring war, and a weight in the spy budget.",
+     "The war check compares the other side's anger with Trustworthiness x its peacefulness (1 - military ratio). Vanilla runs 25 (Cunning) to 80 (Honorable).",
+     "The spy budget adds Trustworthiness x 0.01 to the treasury an empire sets aside, so a low value spends the difference on ships instead. IsTrusting (>= 80) and Careless (<= 60) are defined on the class and read by nothing, so they are not thresholds in play."),
+   T("AngerDissipation","float","Anger points removed from every pool each turn.",
+     "Each of the four pools (diplomatic conflict, ships in borders, military conflict, territorial conflict) loses the value per turn, doubled while a peace treaty holds; total anger is capped at 100. Vanilla runs 0.05 to 0.2.",
+     "At 0.05 a full pool takes about 2,000 turns to empty and at 0.2 about 500. Peace also removes 0.1 from each pool per turn on top of this until the treaty runs out."),
+   T("WeaknessDecline","float","Written by vanilla, parsed, and read by no code.",
+     "DTrait declares the field and the loader fills it, but nothing in the checkout reads it.",
+     "No code outside the declaration reads it, so a file may set the key but changing it cannot change the game."),
+   T("PowerIncrease","float","Declared on DTrait, parsed, and never read.",
+     "The names suggest a relation drift for rising and falling powers, but the drift is computed in Relationship.UpdateThreat from military strength instead.",
+     "No code outside the declaration reads it, so a file may set the key but changing it cannot change the game."),
+   T("TrustGainedAtPeace","float","Declared on DTrait, parsed, and never read.",
+     "Trust moves through ImproveRelations and the trust entries, not through this value.",
+     "No code outside the declaration reads it, so a file may set the key but changing it cannot change the game."),
+   T("SalvageStationTrustLoss","float","Trust each system owner loses when a player builds a salvage platform there.",
+     "Default 5 when the element is absent, which every vanilla entry relies on. The loss is multiplied by the owner's difficulty modifier before it is applied.",
+     "Owners that are the player, factions, at war, allied or holding open borders with the salvager are skipped. It is the only field here that moves trust directly instead of setting a threshold."),
+   T("NaturalRelChange","float","A vanilla key with no field on DTrait.",
+     "Honorable writes <NaturalRelChange>0</NaturalRelChange>, and DTrait has no field of that name, so the value is discarded silently.",
+     "This item has no function in game."),
+ ]),
+ G("Economic personality (ETrait)", "The research strategy and the AI goal bump.",
+   "Five entries in vanilla: Generalists, Industrialists, Technologists, Militarists, Expansionists.",
+   "Chosen from the same file and read by the economy and research code, not by diplomacy.", [
+   T("Name","string","The economic personality id, and the key its strategy is looked up under.",
+     "EmpireResearch calls GetEconomicStrategy(Name), and EconomicResearchStrategies.yaml has one entry per vanilla name, so the spelling is the identity.",
+     "The same id is what race weights and the diplomacy screen display. The player has no economic trait and is given Generalists when one is needed."),
+   T("Description","string","Flavour text for the entry, read by nothing.",
+     "The loader fills it and no screen prints it; a unit test asserts the player's entry has none, which is the only place the field is touched.",
+     "No behaviour depends on it."),
+   T("EconomicResearchStrategy","string","Maps to the enum used when trust accrues.",
+     "EconomicPersonality() switches on this string and falls back to Generalists for anything it does not recognise; vanilla writes Balanced in all five entries, so every empire is Generalists here.",
+     "The strategy object an empire researches with comes from Name, not this field, so editing it moves trust handling and leaves the research plan alone."),
+   T("ColonyGoalsPlus","int","Expansionists set 1 here; nothing reads it.",
+     "ETrait declares the field and the loader fills it, but no code in the checkout reads ColonyGoalsPlus: colony targets come from the strategy and the difficulty.",
+     "No code outside the declaration reads it, so a file may set the key but changing it cannot change the game."),
+   T("ShipGoalsPlus","int","Extra ship goals the AI gets when it is built.",
+     "Added once to EmpireAI.NumberOfShipGoals during construction, so Militarists (6) run six more concurrent goals than an empire without the value.",
+     "It is read once, at empire creation, and nothing revisits it later, so a change shows only in a new game."),
  ]),
  ]),
 
@@ -825,38 +922,48 @@ dict(id="advice", tier=2, title="Advisor text", paths=["Advice"], ext=".xml", ro
 
 dict(id="militaryresearch", tier=2, title="Military research strategy", paths=["MilitaryResearchStrategy"], ext=".xml", roots=["MilitaryResearchStrategy"],
      fmt="XML", loader="no loader: no class or reader exists for MilitaryResearchStrategy/",
-     override="XML unifies by file name; Name is the strategy id.",
-     l1="A named research order for the AI's military, split by weapon and hull path.",
-     l2="The AI follows one path (beam, kinetic, missile, energy, hull) and researches the techs listed for it.",
-     l3="Each Tech entry has an id and a path element; the order in the file is the order it researches.",
+     override="No override: the folder is loaded by nothing.",
+     l1="A research-order file that vanilla ships but no code loads.",
+     l2="There is no MilitaryResearchStrategy class and no call that reads the folder: the name, the six path lists and every Tech entry are consumed by nothing, so editing or deleting the file changes no behaviour.",
+     l3="Vanilla ships one file, Swarm.xml, and the build manifest lists it, which makes it look supported; outside the file itself the only mention of these path names in the repository is that manifest. Every card below therefore carries the fixed dead-key sentence rather than an explanation.",
      groups=[
- G("Strategy", "The paths and the techs in them.", "A path with no techs leaves the AI without a plan.", "Tech ids must exist; a missing one is skipped.", [
-   T("Name","string","Strategy id.","", ""),
-   T("BeamPath","element","Beam tech list.","", ""),
-   T("KineticPath","element","Kinetic tech list.","", ""),
-   T("MissilePath","element","Missile tech list.","", ""),
-   T("EnergyPath","element","Energy tech list.","", ""),
-   T("HullPath","element","Hull tech list.","", ""),
-   T("Tech","element","One tech entry.","", ""),
-   T("id","string","Tech UID.","", ""),
-   T("DefensePath","element","Defence tech list.","", ""),
+ G("Strategy", "The keys the file carries.", "No loader reads any of them.", "Each card is the fixed dead-key sentence.", [
+   T("Name","string","This item has no function in game."),
+   T("BeamPath","element","This item has no function in game."),
+   T("KineticPath","element","This item has no function in game."),
+   T("MissilePath","element","This item has no function in game."),
+   T("EnergyPath","element","This item has no function in game."),
+   T("HullPath","element","This item has no function in game."),
+   T("Tech","element","This item has no function in game."),
+   T("id","string","This item has no function in game."),
+   T("DefensePath","element","This item has no function in game."),
  ]),
  ]),
 
 # ---------------------------------------------------------------- tier 2 YAML tuning
-dict(id="research", tier=2, title="Research weights", paths=["Research.yaml"], roots=[],
+dict(id="research", tier=2, title="Research weights", paths=["Research.yaml"], roots=["ResearchSettings"],
      fmt="YAML", loader="ResourceManager.LoadResearchOptionSettings",
      override="One file; a mod's file replaces it, not merges per key.",
      l1="How expensive each research area is, per race and per hull or weapon type.",
-     l2="Weights multiply the tech's own Cost. A race can be cheaper at weapons and dearer at colonization without touching the tree.",
-     l3="The file is a list of ResearchSettings keyed by PortraitName; All applies first.",
+     l2="Each block is a set of multipliers applied on top of the tech's own Cost: one map for technology types, one for hull classes, one for research areas and one for weapon tags. The file is a list of blocks keyed by race portrait, with All as the base every empire gets.",
+     l3="`ResearchSettings.LoadYaml` deserializes the array and sorts it by `IsAll`, which puts the All block last, despite the comment there saying All is applied first. `LoadResearchOptions` then applies the blocks in that order and assigns `toMap[key] = value`, so All overwrites a race block for any key both set; a race block only wins on keys All leaves out. The four maps are read at different points: technology types and hull classes scale the AI's tech costs, research areas add to its priorities, and weapon tags scale a design's score once per tag.",
      groups=[
  G("Cost weights", "The multipliers.", "1 is neutral; 0.5 halves the price.", "Weapon and hull weights are selected by tag.", [
-   T("PortraitName","string","Race the block applies to; All is the base.","", ""),
-   T("TechnologyTypeModifiers","map","Cost per technology branch.","", ""),
-   T("ShipCostModifiers","map","Cost per hull class.","", ""),
-   T("ResearchAreaModifiers","map","Cost per research area.","", ""),
-   T("WeaponModifiers","map","Cost per weapon tag.","", ""),
+   T("PortraitName","string","The race portrait whose block this is, or All for every empire.",
+     "It is matched against the empire's own PortraitName, and All matches every empire and is applied last, so a race block only survives on keys All does not set.",
+     "`ResearchSettings.IsAll` compares it to `All` ignoring case, and `ApplyMatchingModifiers` accepts a block when `IsAll` or when `PortraitName == empire.PortraitName` exactly. `LoadYaml` sorts blocks by `IsAll` and `LoadResearchOptions` assigns each block's values in turn, so the last writer wins, which is All. A misspelt portrait never matches and its block does nothing."),
+   T("TechnologyTypeModifiers","map","Cost multiplier for each technology branch.",
+     "A tech that belongs to one of these types is priced with that multiplier, so 0.5 halves its research cost for the AI's chooser. A tech matching several types takes the first match in map order.",
+     "`ResearchOptions.GetAnyTypeMod` walks `TechTypeMods` and returns the value of the first `TechnologyType` where `tech.IsTechnologyType` is true, or 1; `CostMultiplier(TechEntry)` multiplies that by the tech's own `LowPriorityCostMultiplier`, and `ChooseTech` applies the result to the cost. Vanilla's All block sets every type to 1, so the block is a template rather than a tuned table."),
+   T("ShipCostModifiers","map","Score multipliers for hull classes and the ship picker's own knobs.",
+     "The picker multiplies a candidate design's tech score by the value for its role, but only while the empire cannot build that role, so 2 makes that class twice as expensive to aim for. The same map holds Randomize, LineFocusIntensity and BalanceToInfraIntensity, which are numbers rather than multipliers.",
+     "`ShipPicker` calls `Options.CostMultiplier(ShipCosts.X)` for hull techs, orbitals, colony and freighter designs, and role values gated on `!empire.CanBuild...`; `Randomize` scales the random cost swing, `LineFocusIntensity` is read as an int and discounts ships continuing a known line, and `BalanceToInfraIntensity` scales the ship-versus-infrastructure cost ratio. Vanilla: Carrier, Bomber, TroopShip and Support 0.95, ColonyShip, Freighter and Orbitals 2, AllHulls 1, GroundCombat 0.95, Randomize 0.1."),
+   T("ResearchAreaModifiers","map","Extra weight each research area gets in the AI's priorities.",
+     "It is added to the strategy's own ratio for that area, so 1 is a full point of preference and 0.5 a half, not a multiplier. Vanilla's All block uses 1 for every area except GroundCombat at 0.5.",
+     "`ResearchPriorities` builds its table as the strategy ratio plus `Priority.GetPriority(area)`, and `GetPriority` returns the map value or 1 when the area is absent. Because the numbers are added rather than multiplied, a value of 10 swamps the strategy's own ratios and a negative value can push an area below zero. Vanilla's block reproduces the code defaults."),
+   T("WeaponModifiers","map","Score multiplier for each weapon tag on a candidate design.",
+     "Every distinct weapon tag on a design multiplies its tech score, so a design with beams and missiles gets both values applied; 0.5 makes that design half as expensive for the AI to aim for. Vanilla sets every tag to 1.",
+     "`ShipPicker` iterates the design's distinct tags and does `techScore *= Options.CostMultiplier(tag)`, which reads `WeaponPreference` and returns 1 for a tag the file does not name. The keys are `WeaponTag` members, and vanilla's All block lists twelve of them at 1.00, from Kinetic to Torpedo."),
    T("LineFocusIntensity","float","How strongly the AI focuses a line.","Read as an int, so 0 to 0.99 all disable line focusing; 1 counts each already-known tech once, larger values discount ships that continue a line more, and nothing clamps them.", "", key="ShipCosts"),
    T("Randomize","float","Randomise the weights.","0 turns the roll off, 0.1 gives a 10% swing either way, and at 1 a roll can cancel the whole score; above 1 it can drive the score negative, so the useful maximum is 1.", "", key="ShipCosts"),
  ]),
@@ -1129,12 +1236,12 @@ dict(id="sunzones", tier=2, title="Sun zone data", paths=["SunZoneData.yaml"], r
  ]),
  ]),
 
-dict(id="dyson", tier=2, title="Dyson rings", paths=["DysonRings.yaml"], roots=[],
+dict(id="dyson", tier=2, title="Dyson rings", paths=["DysonRings.yaml"], roots=["SunLayerInfo", "DysonRings"],
      fmt="YAML", loader="DysonRings.LoadDysonRings",
      override="One file; replaces vanilla.",
-     l1="The stages of a Dyson ring and what each stage produces.",
-     l2="A ring upgrades through Types in order; each type lists its rings and output.",
-     l3="Type is the upgrade level; Rings is the visual/mechanical set for it.",
+     l1="The ring layers drawn around a star for each stage of a Dyson swarm.",
+     l2="The file is presentation only: each stage lists eight ring layers with a texture and their motion. What a swarm produces is decided by the swarm itself and the racial trait that unlocks its stage, not here.",
+     l3="`DysonRings.LoadDysonRings` deserializes the file into a Map keyed by Type, so a repeated stage keeps only the last block. `SolarSystem` asks for a stage through `GetDysonRings` and draws the back rings before the star's own layers and the front rings after them. The file's own header says the structure is hardcoded: the count and order of the eight rings are code, and only the paths and motion are content.",
      notation=dict(title="Copy this: a Dyson ring layer", body="""
 <p>The first layer of the first ring type. The file's own header comment says the layer structure is hardcoded and only the texture paths should change:</p>
 <pre class="code">- DysonSwarm:
@@ -1147,25 +1254,35 @@ dict(id="dyson", tier=2, title="Dyson rings", paths=["DysonRings.yaml"], roots=[
       PulsePeriod: 5.0
       LayerScale: 0.15</pre>
 <ul>
-<li><b>Type</b> is the upgrade stage, and the file repeats the block for each stage; a missing stage stops progression past it.</li>
-<li><code>TexturePath</code> is relative to <code>Textures/</code>. Keep the layer count and order, and swap the image for a retexture.</li>
-<li><code>PulsePeriod</code> is in seconds; <code>RotationSpeed</code> is radians per second, so a negative value turns the layer the other way.</li>
+<li><b>Type</b> is the swarm stage. Vanilla ships stages 1 and 2; a stage the file omits throws when the swarm asks for it, because the map lookup has no fallback.</li>
+<li><code>TexturePath</code> is relative to <code>Textures/</code>. Keep the eight layers and their order, and swap the images for a retexture.</li>
+<li><code>PulsePeriod</code> is in seconds and 0 turns the pulse off; <code>RotationSpeed</code> is radians per second, so a negative value turns the layer the other way.</li>
 </ul>"""),
      groups=[
- G("Ring type", "One upgrade stage.", "Order in the file is the upgrade order.", "A missing stage stops progression.", [
+ G("Ring stage", "One upgrade stage.", "The file repeats the block per stage; the stages are code-driven, so content only supplies their look.", "A stage the file omits throws when asked for, and a repeated Type keeps only the last block.", [
    T("Type","byte","The swarm stage this ring set belongs to.",
      "The loader keeps the sets in a byte-keyed map, so a repeated Type keeps only the last entry.",
      "The layer structure is hardcoded: a new stage needs a matching entry and a caller that asks for it.",
      values=("key:DysonRings.yaml:Type", DYSON_STAGES)),
-   T("Rings","map","Ring definitions for the level.","", ""),
-   T("TexturePath","string","Ring texture.","", ""),
+   T("Rings","map","The eight ring layers of one stage.",
+     "The loader reads it as a list of SunLayerInfo; the first four draw behind the star and the last four in front, and each ring fades in at its own quarter of the swarm's completion.",
+     "`DysonRings.NumBacktRings` is 4, and `SolarSystem` draws the set twice: `DrawDysonRings(..., drawBackRings: true)` before the star's layers and once more after them for the front rings. `GetRingAlpha(index, completion)` maps index 0-3 to `((completion - 0.25*index)*4).Clamped(0,1)` and index 4-7 the same with index-4, so ring 0 appears first and ring 3 last. The four/four split is a constant, not something the file can change."),
+   T("TexturePath","string","The image for one ring layer.",
+     "It is relative to Textures/ and is what the layer draws unless AnimationPath is set. A path that no longer resolves falls back to the game's default texture instead of failing the load.",
+     "`SunLayerState.CreateSprite` calls `DrawableSprite.SubTex(content, info.TexturePath)`, which loads `Textures/` plus the path through `LoadTextureOrDefault`; a non-empty `AnimationPath` wins and this field is then unused. Vanilla points the eight rings of a stage at `Suns/Type1DysonSwarmBack1.png` and its seven siblings, so a retexture only has to replace those eight files."),
    T("BlendMode","SpriteBlendMode","How the ring layer is blended.",
      "Additive brightens where rings overlap; AlphaBlend keeps the texture's transparency.",
      "An unknown name is not a blend mode, so the layer keeps its default of AlphaBlend.",
      values=("enum:SpriteBlendMode", SPRITE_BLEND)),
-   T("LayerScale","float","Layer scale.","", ""),
-   T("RotationSpeed","float","Rotation speed.","", ""),
-   T("PulsePeriod","float","Pulse cycle seconds.","", ""),
+   T("LayerScale","float","How large one ring layer draws against the star.",
+     "It multiplies the layer's on-screen size after the star's own scale and the pulse, so 0.15 draws the ring at 15% of the star's size. Vanilla uses 0.15 on every ring.",
+     "`SunLayerState.Draw` computes `scale = ScaleIntensity * sizeScaleOnScreen * Info.LayerScale`, where `sizeScaleOnScreen` comes from the star's radius. There is no clamp: 0 hides the layer, 1 draws it at the star's full size, and values above 1 push it past the star's edge. Because the star's radius is a per-type field, the same 0.15 is a different absolute size around a white dwarf and a blue giant."),
+   T("RotationSpeed","float","Radians per second the layer turns.",
+     "It is added to the sprite's rotation every simulation step, so 0.03 (the field's default) is a full turn in about 3.5 minutes and a negative value turns the other way. Vanilla uses -0.001 on every ring, a very slow counter-rotation.",
+     "`SunLayerState.Update` runs `Sprite.Rotation += Info.RotationSpeed * timeStep.FixedTime` with the rotation in radians, so a full turn takes 2*pi/speed seconds: 0.03 is about 209 s and 0.001 about 6,283 s. `RotationStart` sets where it begins, generated per layer from its -1 to 1 range. The value is read every frame and is not clamped, so a large number makes the ring spin visibly fast."),
+   T("PulsePeriod","float","Seconds in one pulse cycle, or 0 to switch pulsing off.",
+     "With a positive value the layer's scale and colour breathe between the PulseScale and PulseColor bounds, one cycle every this many seconds; 0 or less leaves both at full. Vanilla 5.0 on every ring.",
+     "`SunLayerState.Update` only enters the pulse branch when `PulsePeriod > 0f`, then computes `Intensity = (1 + sin(PulseTimer/PulsePeriod * TwoPi)) * 0.5` and lerps `PulseScale` and `PulseColor` by it. The field's default is 0, so an omitted value is a static ring. The period is in simulation seconds, not frames, so it holds at any game speed."),
  ]),
  ]),
 
@@ -1225,18 +1342,38 @@ dict(id="mainmenus", tier=2, title="Main menus", paths=["MainMenus.yaml"], roots
 # ---------------------------------------------------------------- tier 3
 dict(id="gametext", tier=3, title="GameText", paths=["GameText.yaml"], roots=[],
      fmt="YAML", loader="ResourceManager.LoadLanguage → Localizer.LoadFromYaml",
-     override="Merged by id: the mod's text overrides vanilla per key, other keys stay.",
-     l1="Every player-visible string the game looks up by id, in every language.",
-     l2="One big map of id to text. A mod only needs the keys it changes; the rest are inherited.",
-     l3="Keys are the ids code passes to LocalizedText or GameText. NameIndex and DescriptionIndex fields point at numeric ids, not keys.",
+     shape=("<p>One block per string, keyed by the NameId code looks up, with <code>Id</code> and one line "
+            "per language indented under it. The block's key is the name, not a field: the file is read as "
+            "<code>Array&lt;LangToken&gt;</code> with <code>NameId</code> as its key name, so a renamed block "
+            "is a different string.</p>"),
+     override="Merged by NameId: an entry with a vanilla NameId replaces that text and keeps its number; any other NameId adds a string.",
+     l1="Every player-visible string the game looks up, in seven languages.",
+     l2="A block per string: a NameId, an optional integer Id, and a column per language. A mod ships only the keys it changes and inherits the rest.",
+     l3="An entry without Id gets a number after the highest one, so pin Id before another file points at it. A blank column falls back to ENG for that entry; a blank ENG is blank in every language.",
      groups=[
- G("String id", "One id and its text.", "Only the languages present are overridden.", "Unknown ids are harmless; missing ids show the id or blank.", [
-   T("<id>","string","The text for one id.","", ""),
+ G("Entry", "The key and the number that reach this string.", "The key is what code calls by name; the number is what content fields store.", "A block with an unknown NameId and no referenced Id is dead weight.", [
+   T("NameId","key","The name code passes to Localizer.Token.","Case-sensitive and never translated. A by-name lookup that misses shows the name itself on screen.","e.g. NewGame, CodexControlsSelectingShips."),
+   T("Id","int","The number an int field or a {token} stores.","Optional: an omitted id is generated after the highest one, in file order, so it moves when entries are added.","1-99,999 general text; 100,000-199,999 codex."),
+ ]),
+ G("Translations", "One line per language, English first.", "English is the base every other column falls back to, per entry.", "A blank ENG leaves the string blank in every language.", [
+   T("ENG","string","English, the fallback for every other language.","Required in practice: the loader starts from this column whatever the language is.","Set on all 4,011 vanilla entries."),
+   T("RUS","string","Russian text.","Used when the game language is Russian.","3,596 vanilla entries set it."),
+   T("SPA","string","Spanish text.","Used when the game language is Spanish.","1,973 vanilla entries set it."),
+   T("UKR","string","Ukrainian text.","Used when the game language is Ukrainian.","3,321 vanilla entries set it."),
+   T("GER","string","German text.","Used when the game language is German.","Only 2 vanilla entries set it."),
+   T("PTB","string","Brazilian Portuguese text.","Used when the game language is Portuguese; the file column is PTB.","3,587 vanilla entries set it."),
+   T("POL","string","Polish text.","Used when the game language is Polish.","No vanilla entry sets it."),
  ]),
  ]),
 
 dict(id="codex", tier=3, title="Codex and hooks", paths=["Codex.yaml", "CodexHooks.yaml"], roots=[],
      fmt="YAML", loader="ResourceManager.LoadBlackboxSpecific",
+     shape=("<p>A YAML sequence of entries: each one starts with a line that is only <code>-</code>, and "
+            "the indented keys under it are that entry's properties. The <code>UID</code> is the id the "
+            "code looks up, not a field of a class, and the article text lives in <code>GameText.yaml</code> "
+            "under token ids 100000 and up. The file's own note warns that the inline "
+            "<code>- UID: value</code> form drops the first value in this parser, so the dash goes on its "
+            "own line.</p>"),
      override="Merged by id; Codex ids are 100000 and up.",
      l1="The in-game encyclopedia entries and the links from game objects to them.",
      l2="Codex.yaml holds the articles; CodexHooks.yaml says which module, tech or concept opens which article.",
@@ -1310,6 +1447,10 @@ dict(id="models", tier=3, title="Models", paths=["Model"], roots=[],
 
 dict(id="audio", tier=3, title="Audio", paths=["Audio"], roots=[],
      fmt="M4A, MP3, WAV, AAC, AIF + AudioConfig.yaml", loader="GameAudio → AudioConfig(Audio/AudioConfig.yaml)",
+     shape=("<p><code>AudioConfig.yaml</code> is the parsed file: a list of <code>- Category:</code> blocks, "
+            "each with a <code>Name</code>, a <code>Volume</code> and a list of <code>- SoundEffect:</code> "
+            "items. Each item carries an <code>Id</code>, a <code>Volume</code> and the file that plays. The "
+            "sound files beside it are named from those cues and replace by relative path.</p>"),
      override="AudioConfig.yaml merges by category and sound id; sound files replace by relative path.",
      l1="Music and sound effects, plus one config that names volumes and which file plays for each cue.",
      l2="A mod can override a single cue without copying the whole audio folder. Supported formats are listed in the config header.",
@@ -1336,6 +1477,11 @@ dict(id="audio", tier=3, title="Audio", paths=["Audio"], roots=[],
 
 dict(id="particles", tier=3, title="Particles and shaders", paths=["3DParticles", "Effects"], roots=[],
      fmt="YAML, PNG, FX, MGFX, MGFXO, XNB", loader="Particle.LoadParticleEffect → ParticleEffect",
+     shape=("<p>The folder is mixed, and only one part is a schema. <code>3DParticles/ParticleEffects.yaml</code> "
+            "is parsed into named particle effects, so the keys inside an effect are fields that bind by name. "
+            "PNG textures are picked up by name from the paths that YAML writes. The compiled shaders in "
+            "<code>Effects/</code> are loaded by hardcoded name as <code>.mgfxo</code> or <code>.xnb</code>, so a "
+            "shader is replaced by file, never by a key.</p>"),
      override="YAML by name; textures by relative path. Shaders must be compiled for the current pipeline.",
      l1="The engine's particle looks and the shaders that draw beams, shields, fog and the warp effect.",
      l2="Particle YAML plus PNG textures make most effects. Shaders are compiled artefacts; replacing a .fx alone does nothing at runtime.",
@@ -1404,6 +1550,10 @@ dict(id="fonts", tier=3, title="Fonts", paths=["Fonts"], roots=[],
 
 dict(id="ui", tier=3, title="UI layouts and menu scenes", paths=["UI"], roots=[],
      fmt="YAML (layout and scene)", loader="LayoutParser / SceneInstance (hot reload)",
+     shape=("<p>Two shapes share the folder. A layout (<code>*.yaml</code>) is a tree: each element is a "
+            "block with an id, a position and a size, and the code looks elements up by id, so the ids are "
+            "the interface. A scene (<code>*.scene.yaml</code>) is one flat block of camera, sun and ambient "
+            "values. Both are hot-reloadable, so an edit appears without a restart.</p>"),
      override="Files replace by name; both are hot-reloadable.",
      l1="Where the buttons sit and what the 3D main-menu background looks like.",
      l2="Layouts are a tree of elements with positions and sizes; scenes set camera, sun and ambient light.",
@@ -1490,6 +1640,10 @@ dict(id="miscassets", tier=3, title="Loading screens, cursors, flags, tutorials,
 
 dict(id="mgcb", tier=3, title="Content.mgcb", paths=["Content.mgcb"], roots=[],
    fmt="MonoGame content manifest", loader="MonoGame content pipeline at build time",
+   shape=("<p><code>Content.mgcb</code> is a MonoGame build manifest, not a runtime file: it lists which "
+          "fonts, effects, videos and tutorials the content pipeline compiles into the <code>.xnb</code> "
+          "and <code>.mgfxo</code> files the game loads. A new font or shader needs an entry here; the game "
+          "reads the compiled output and never the manifest.</p>"),
    override="Not runtime content; a mod does not need one unless it ships compiled XNB assets.",
    l1="The build manifest that tells the content pipeline how to compile fonts, effects, videos and tutorials.",
    l2="It is read when the game is built, not when it runs. Editing it changes the build, not a running game.",

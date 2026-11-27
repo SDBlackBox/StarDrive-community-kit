@@ -29,14 +29,6 @@ NOTES = {
     l2=("Troop.cs has no field for a sound; attacks play the animation from attack_path and the global "
         "combat sounds. The value is silently discarded."),
     l3="This item has no function in game."),
-("goods", "Mass"): dict(
-    l2=("Good.cs has no Mass field, so cargo space is charged from the ship and its modules, not from the "
-        "good. The value is silently discarded."),
-    l3="This item has no function in game."),
-("goods", "IsCargo"): dict(
-    l2=("Good.cs has no IsCargo field: a good is cargo if a freighter carries it, and nothing reads this "
-        "flag. The value is silently discarded."),
-    l3="This item has no function in game."),
 ("buildings", "ShortDescription"): dict(
     l2=("Only ShortDescriptionIndex is read; this free-text element has no field, and the short tooltip is "
         "built from the stats when the index is 0. The value is silently discarded."),
@@ -315,16 +307,6 @@ NOTES = {
     "A habitability multiplier for that planet category, spelled with the Multiplier suffix in the race file but read into the runtime field without it. "
     "1 is neutral; values above 1 make that climate more productive and below 1 less. "
     "The same suffix pattern applies to Oceanic, Steppe, Tundra, Swamp, Desert, Ice, Barren and Volcanic.",
-
-("diplomacy", "Alliance"):
-    "How willing a personality is to accept an alliance, weighed against the current relation and the other side's strength. "
-    "It is not a threshold: a high value still refuses when trust is low, and a low value can accept when the alternative is worse. "
-    "NAPact and Trade are the same kind of willingness for their treaties.",
-
-("diplomacy", "NaturalRelChange"):
-    "The baseline drift in relations per turn before events, treaties and actions adjust it. "
-    "Positive values slowly heal a rivalry, negative values slowly poison a peace. "
-    "AngerDissipation and TrustGainedAtPeace modify the same drift, so changing one without the others rarely has the intended effect.",
 
 ("solarsystems", "WhichPlanet"):
     "An index into PlanetTypes.Types, counted from zero in file order. "
